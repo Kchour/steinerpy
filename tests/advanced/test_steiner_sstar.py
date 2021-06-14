@@ -5,7 +5,7 @@ cfg.Animation.visualize = False
 cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy.algorithms import SstarAstar, SstarDijkstra, SstarPrimalDual
+from steinerpy.algorithms import SstarHS, SstarHS0, SstarBS
 
  # Spec out our squareGrid
 minX = -15			# [m]
@@ -38,7 +38,7 @@ class TestSteinerSstar(unittest.TestCase):
         dist = []
 
         # Create Astar object
-        ao = SstarAstar(graph, terminals)
+        ao = SstarHS(graph, terminals)
         # test comps type
         self.assertIsInstance(ao.comps, dict)
         # run algorithm
@@ -47,7 +47,7 @@ class TestSteinerSstar(unittest.TestCase):
 
         # Test Primal Dual
         # Create Astar object
-        ao = SstarPrimalDual(graph, terminals)
+        ao = SstarBS(graph, terminals)
         # test comps type
         self.assertIsInstance(ao.comps, dict)
         # run algorithm
@@ -55,7 +55,7 @@ class TestSteinerSstar(unittest.TestCase):
         dist.append(sum(ao.return_solutions()['dist']))
 
         # Test Dijkstra
-        ao = SstarDijkstra(graph, terminals)
+        ao = SstarHS0(graph, terminals)
         # test comps type
         self.assertIsInstance(ao.comps, dict)
         # Run algorithm, does it return true?

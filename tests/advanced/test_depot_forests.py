@@ -5,7 +5,7 @@ cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 
 from steinerpy.context import Context
 from steinerpy.library.graphs.graph import GraphFactory, SquareGridDepot
-from steinerpy.algorithms import SstarAstar, SstarDijkstra, SstarPrimalDual
+from steinerpy.algorithms import SstarHS, SstarHS0, SstarBS
 from steinerpy.library.graphs.parser import DataParser
 
 class TestSteinerSstar(unittest.TestCase):
@@ -44,7 +44,7 @@ class TestSteinerSstar(unittest.TestCase):
         # dist.append(sum(ao.return_solutions()['dist']))
 
         # Create Astar object
-        ao = SstarAstar(graph, terminals)
+        ao = SstarHS(graph, terminals)
         # test comps type
         self.assertIsInstance(ao.comps, dict)
         # run algorithm
@@ -53,7 +53,7 @@ class TestSteinerSstar(unittest.TestCase):
 
         # Test Primal Dual
         # Create Astar object
-        ao = SstarPrimalDual(graph, terminals)
+        ao = SstarBS(graph, terminals)
         # test comps type
         self.assertIsInstance(ao.comps, dict)
         # run algorithm
@@ -102,7 +102,7 @@ class TestSteinerSstar(unittest.TestCase):
         terminals = [(-15,-15), (-15,15), (15,15), (15,-15)]
 
         # Create Astar object
-        ao = SstarPrimalDual(graph, terminals)
+        ao = SstarBS(graph, terminals)
 
         # test comps type
         self.assertIsInstance(ao.comps, dict)
@@ -143,7 +143,7 @@ class TestSteinerSstar(unittest.TestCase):
         # terminals = [(-8, -4), (0, -13), (1, -5), (-15, 2), (-1, -7), (-11, 12)]
 
         # Create Astar object
-        ao = SstarAstar(graph, terminals)
+        ao = SstarHS(graph, terminals)
 
         # test comps type
         self.assertIsInstance(ao.comps, dict)

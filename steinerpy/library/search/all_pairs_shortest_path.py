@@ -2,11 +2,10 @@ import multiprocessing as mp
 import math
 import numpy as np
 from functools import partial
-from progress.bar import IncrementalBar
-from memory_profiler import profile
 
 from steinerpy.library.logger import MyLogger
 from steinerpy.library.search.search_algorithms import AStarSearch
+from steinerpy.library.misc.utils import Progress
 
 # DEBUG
 import os
@@ -73,7 +72,8 @@ class AllPairsShortestPath:
             num_tasks = G.node_count()
             node_tasks = G.get_nodes()
 
-        job_progress = IncrementalBar("Dijkstra in Parallel: ",max=num_tasks)
+        # job_progress = IncrementalBar("Dijkstra in Parallel: ",max=num_tasks)
+        job_progress = Progress(num_tasks)
 
         pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
         
@@ -122,7 +122,8 @@ class AllPairsShortestPath:
         """
         D = G.get_adjacency_matrix()
         n = D.shape[0]
-        progress_bar = IncrementalBar("fw sequential", max=n)
+        # progress_bar = IncrementalBar("fw sequential", max=n)
+        progress_bar = Progress(n)
 
         for k in range(n):
             progress_bar.next()
@@ -165,7 +166,8 @@ class AllPairsShortestPath:
         # cls.G = G
 
         # Total progress
-        progress_bar = IncrementalBar("fw in parallel", max=n)
+        # progress_bar = IncrementalBar("fw in parallel", max=n)
+        progress_bar = Progress(n)
 
         # generate results k times. Add progress bar
         for k in range(n):

@@ -12,7 +12,7 @@ Todo:
 
 """
 
-import cloudpickle
+import pickle
 import os
 import pandas as pd
 import numpy as np
@@ -67,7 +67,7 @@ class Process:
             # directory = os.path.dirname(os.path.realpath(__file__))
             # but change baseline file name according to your needs
             with open(os.path.join(self.baseline_dir, self.baseline_filename), 'rb') as f:
-                self.base_data = cloudpickle.load(f)
+                self.base_data = pickle.load(f)
             '''base_data (dict): Contains data pertaining to the baseline file
                 base_data={ 
                 'solution': [{'sol':[], 'path':[], 'dist':[]}, {...}, ..., {}]
@@ -78,7 +78,7 @@ class Process:
 
             # Load results
             with open(os.path.join(self.results_dir, self.results_filename), 'rb') as f:
-                self.results = cloudpickle.load(f)
+                self.results = pickle.load(f)
             ''' results (dict): Contains data pertaining to the results
                 results = {
                     'Astar':[{...runresults...}]

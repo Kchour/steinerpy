@@ -1,6 +1,5 @@
 
 import cProfile
-from memory_profiler import profile
 import unittest
 from timeit import default_timer as timer
 

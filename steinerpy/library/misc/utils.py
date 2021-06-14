@@ -60,7 +60,6 @@ from operator import itemgetter
 
 '''
 import random as rdm
-import networkx as nx
 ''' wip in class to implement Disjoint Union method for cycle detection '''
 class CycleDetection:
     def __init__(self, terminals, visualize=False):
@@ -178,3 +177,36 @@ class MyTimer:
         """IMPORTANT FUNCTION. Required to reinitialize variables"""
         cls.timeTable = {}
 
+import sys
+import time
+class Progress:
+
+    def __init__(self, num_of_iter):
+        
+        self.n = num_of_iter
+        self.i = 0
+        self.bar_length = 21
+    
+    def next(self):
+        # for i in range(self.n):
+        sys.stdout.write('\r')
+        # the exact output you're looking for:
+        # sys.stdout.write("[%-20s] %d%%" % ('='*i, 5*i))
+        # incremental bar ===, length of bar, percentage 
+        perc = (100/(self.n-1)*self.i)
+        sys.stdout.write("[{:{}}] {:.1f}%".format("="*int(perc*self.bar_length/100), self.bar_length, perc))
+        sys.stdout.flush()
+        self.i+=1
+        # sleep(0.25)
+        # new line
+        # sys.stdout.write("\n")
+    
+    def finish(self):
+        sys.stdout.write("\n")
+
+
+if __name__ == "__main__":
+    p = Progress(574)
+    for i in range(574):
+        p.next()
+        time.sleep(0.25)

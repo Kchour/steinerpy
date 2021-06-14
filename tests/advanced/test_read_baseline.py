@@ -1,12 +1,12 @@
-import cloudpickle
 import os
 import unittest
+import pickle
 
 class TestReadPickle(unittest.TestCase):
     def test_baseline_size(self):
         directory = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(directory, 'baseline_test_single.pkl'), 'rb') as f:
-            data = cloudpickle.load(f)
+            data = pickle.load(f)
 
         '''data={ 
             'solution': [{'sol':[], 'path':[], 'dist':[]}, {...}, ..., {}]
@@ -23,20 +23,20 @@ class TestReadPickle(unittest.TestCase):
         # load baseline data for kruskal        
         directory = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(directory, 'baseline_test_single.pkl'), 'rb') as f:
-            data = cloudpickle.load(f)
+            data = pickle.load(f)
 
         # baseline dist array
         baseline_dist = data['solution']
 
         directory = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(directory, 'results_test_single.pkl'), 'rb') as f:
-            data = cloudpickle.load(f)
+            data = pickle.load(f)
 
         '''
             data = {
-                'Astar':[results, {...}, ...,  {...}], 
-                'SstarAstar':[results, {...}, ...,  {...}], 
-                'SstarDijkstra': [results, {...}, ...,  {...} ],
+                'S*-unmerged':[results, {...}, ...,  {...}], 
+                'S*-HS':[results, {...}, ...,  {...}], 
+                'S*-HS0': [results, {...}, ...,  {...} ],
            }
             
             where
@@ -55,7 +55,7 @@ class TestReadPickle(unittest.TestCase):
         print("wip")
         eps = 1e-6
         # iterate over number of run-instances
-        for i in range(len(data['Astar'])):
+        for i in range(len(data['S*-unmerged'])):
             alike_test = set()
             # iterate over algorithm names
             for k in data.keys():

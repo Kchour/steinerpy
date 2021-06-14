@@ -16,20 +16,12 @@ For developers, install the project in editable mode [more info](https://stackov
 ```
 pip3 install -e .
 ```
-
-## Optional
-
-There is also support for large files (i.e. results_*.pkl) using [git-lfs](https://github.com/git-lfs/git-lfs/wiki/Installation). Large files are kept in a separate server, while the repo contains only pointers to them.
-
-If git-lfs is installed and you DO NOT wish to download any large files, run
-`GIT_LFS_SKIP_SMUDGE=1 git clone SERVER-REPOSITORY`
-
-# How to use
+# Getting Started
 
 First import some relevant modules 
 ```
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy import Context
+from steinerpy.context import Context
 ```
 
 Create a squareGrid
@@ -39,10 +31,10 @@ minX = -15			# [m]
 maxX = 15           
 minY = -15
 maxY = 15
-grid = None         # pre-existing 2d numpy array?
-grid_size = 1       # grid fineness[m]
+grid = None         # pre-existing 2d numpy array, where 1=obstacle
+grid_size = 1       # grid fineness
 grid_dim = [minX, maxX, minY, maxY]
-n_type = 8           # neighbor type
+n_type = 8          # either 8 or 4 cell neighbors
 
 # Create a squareGrid using GraphFactory
 graph = GraphFactory.create_graph("SquareGrid", grid=grid, grid_dim=grid_dim, grid_size=grid_size, n_type= n_type)  
@@ -73,12 +65,42 @@ results = context.return_solutions()
  ...10, -12]])], 'sol': [(...), (...), (...), (...)]}
 ```
 
-Currently supported inputs are `Astar`, `SstarAstar`, `SstarDijkstra`.
+Currently supported inputs are `S*-unmerged`, `S*-HS`, `S*-HS0`, `Kruskal`, `S*-BS`, `S*-MM`, and `S*-MM0`.
 
-See `Results` and `Tests` folder for more examples
+See `Tests` folder for more examples
 
-# TODO List
-See todo list
+# Configuring Behavior
+
+The `Config` module is provided for configuring global behavior. Simply import it before all other `steinerpy` packages and directly modify class variables, e.g. to visualize the algorithms as they run,
+
+```
+import steinerpy.config as cfg
+cfg.Animation.visualize = True
+```
+
+or to adjust heuristics
+
+```
+import steinerpy.config as cfg
+cfg.Algorithm.sstar_heuristic_type = diagonal_uniform # This is the default option
+cfg.Algorithm.hFactor = 1.0  # Heuristic factor i.e. for any node n, its priority is given by f(n) = g(n) + hFactor*h(n)
+```
+
+See the config module for more options (note: not everything has been implemented)
+
+# Customize the Heuristic Function
+The underlying heuristic in all heuristic-based algorithms can be customized by binding `steinerpy.algorithms.common.custom_heuristics` with a function in the form `h_func(n, goal)` i.e.
+
+```
+from steinerpy.library.config import Config as cfg
+cfg.sstar_heuristic_type = "custom"
+
+from steinerpy.algorithms.common import Common
+def my_cust_h_func(n, goal):
+    ...
+
+common.custom_heuristics = my_cust_h_func
+```
 
 # Running tests
 Make sure the global config `visualize` is set to `False`. In the future, we will find a better way to set global flags
@@ -89,34 +111,5 @@ Go to the `tests` folder in the root directory, and run any of the scripts there
 ## Automated tests
 cd in root directory, then run `python3 -m unittest discover`. By default `discover` tries to look for \*tests\*, but can be changed using `-p, --pattern` flag
 
-# Misc Notes
-- Make sure to unset `PYTHONPATH` before creating a virtual environment test
-    ```
-    $ Unset PYTHONPATH
-    $ python3 -m venv test_venv
-    $ source test_venv/bin/activate
-    ```
-
-Note that this will only affect the current shell and is not permanent!
-    
-- After building docs, we can start an http server and open `index.html`
-
-    ```
-    $ python -m http.server
-    ```
-
-Then in the browser open, whatever ip address is displayed in the shell
-
-- Build docs with `sphinx` command
-    ```
-    $ cd docs
-    $ sphinx-quickstart # not necessary for us 
-    $ make html
-    ```
-- git-lfs tutorial: [link](https://github.com/git-lfs/git-lfs/wiki/Tutorial)
-- To use git-lfs for the first time after a large file has been previously committed [link](https://github.com/git-lfs/git-lfs/issues/1328)
-    - back up current branch
-    - use `git reset {sha}` to find last parent without issues
-    - track large files with `git-lfs` using `.gitattributes`
-    - commit and push
-- To ignore lfs file downloads globally: `git lfs install --skip-smudge`
+# TODO List
+See todo list (very wip)

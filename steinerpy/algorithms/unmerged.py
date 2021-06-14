@@ -8,7 +8,7 @@ from steinerpy.library.search.generic_algorithms import GenericSearch
 from steinerpy.library.search.search_utils import reconstruct_path, CycleDetection
 from steinerpy.library.logger import MyLogger
 
-class Astar(Framework):
+class Unmerged(Framework):
     def __init__(self, graph, terminals):
         Framework.__init__(self, graph, terminals)
         # self.terminals = T

@@ -1,6 +1,6 @@
 """This module is used to produce baseline files """
 
-import cloudpickle
+import pickle
 import random as rd
 import os
 from timeit import default_timer as timer
@@ -8,7 +8,6 @@ import multiprocessing as mp
 import math
 import numpy as np
 import itertools as it
-from progress.bar import IncrementalBar
 from functools import partial
 
 from steinerpy.library.search.all_pairs_shortest_path import AllPairsShortestPath
@@ -16,13 +15,14 @@ from steinerpy.library.search.search_algorithms import AStarSearch
 from steinerpy.library.logger import MyLogger
 from steinerpy.context import Context
 import steinerpy.config as cfg
+from steinerpy.library.misc.utils import Progress
 # from steinerpy.algorithms.kruskal import Kruskal
 
 class GenerateBaseLine:
-    """Generate a baseline file using Kruskal's algorithm, to help compare S* algorithms
+    """Generate a baseline file using Kruskal's algorithm, to help compare with S* algorithm
 
     The user has the option of setting the number of terminals to be randomly generated and 
-    number of run-instances. The recommended output file name is the form 'baseline_{}t-{}i.pkl'
+    number of run-instances. The required output file name is the form 'baseline_{}t-{}i.pkl'
 
     Attributes:
         graph (SquareGrid, MyGraph): Graph classes from superclass IGraph.
@@ -130,7 +130,7 @@ class GenerateBaseLine:
 
         else:
             with open(read_from_file, 'rb') as f:
-                list_of_instances = cloudpickle.load(f)
+                list_of_instances = pickle.load(f)
         
         return list_of_instances
                         
@@ -192,7 +192,7 @@ class GenerateBaseLine:
         # directory = os.getcwd()
         if self.save_to_file:
             with open(os.path.join(self.save_directory, self.filename), 'wb') as f:
-                cloudpickle.dump({
+                pickle.dump({
                     'terminals': self._terminals,
                     'solution': solution,
                     'obstacles': obstacles
@@ -234,7 +234,7 @@ class GenerateBaseLineMulti(GenerateBaseLine):
         #        'expanded': int_value,
         #        'time': float_value}
         # }
-        # Stored as a binary file through cloudpickle (FIXME: change to cPickle)
+        # Stored as a binary file through pickle (FIXME: change to cPickle)
         if cache_filename is None:
             self.cache_filepath = os.path.join(self.save_directory, "__cache__" + filename)
         else:
@@ -312,13 +312,13 @@ class GenerateBaseLineMulti(GenerateBaseLine):
                     self._terminals = self.create_terminals()
                     if self.file_behavior == "OVERWRITE":
                         with open(self.temp_terminals_filename, 'wb') as f:
-                            cloudpickle.dump(self._terminals, f) 
+                            pickle.dump(self._terminals, f) 
                 else:
                     # Check to see if temp even exists for RESUSE. If not definitely generate and save to disk
                     if not os.path.exists(self.temp_terminals_filename):
                         self._terminals = self.create_terminals()
                         with open(self.temp_terminals_filename, 'wb') as f:
-                            cloudpickle.dump(self._terminals, f) 
+                            pickle.dump(self._terminals, f) 
                     else:
                         self._terminals = self.create_terminals(self.temp_terminals_filename)
                         self.m_instances = len(self._terminals)
@@ -339,7 +339,7 @@ class GenerateBaseLineMulti(GenerateBaseLine):
             for cf in self.cachefiles:
                 if os.path.exists(cf):
                     with open(cf, 'rb') as f:
-                        results_from_file = cloudpickle.load(f)
+                        results_from_file = pickle.load(f)
                                        
                     # subtract solved problems from results_from_File
                     allcombs_term_set -= set(results_from_file)
@@ -373,7 +373,7 @@ class GenerateBaseLineMulti(GenerateBaseLine):
             # temporarily save our terminals to disk to relieve memory usage
             if LOAD == False:
                 with open(self.temp_terminals_filename, 'wb') as f:
-                    cloudpickle.dump(self._terminals, f)
+                    pickle.dump(self._terminals, f)
             # clear _terminals attribute
             self._terminals = None
             self.terminal_set = terminal_set
@@ -401,7 +401,7 @@ class GenerateBaseLineMulti(GenerateBaseLine):
 
             #use try/finally clause to ensure pool closure
             try:
-                bar_assign_job = IncrementalBar('Steiner APSP via PDijk', max = len_terminal_set)
+                bar_assign_job = Progress(len_terminal_set)
                 chunksize = int(len_terminal_set // (self.num_processes**2) + 1)
                 print("Tentative jobs: ", len_terminal_set)
                 print("Chunksize: ",chunksize)# update the cache if it exists. if not create one
@@ -417,7 +417,7 @@ class GenerateBaseLineMulti(GenerateBaseLine):
                     if len(partial_results) > 300000:
                         # save results to disk
                         with open(self.cache_filepath + str(self.cache_count).zfill(3), 'wb') as f:
-                            cloudpickle.dump(partial_results, f)
+                            pickle.dump(partial_results, f)
                         
                         # update cache files direct path and count
                         self.cachefiles.append(self.cache_filepath + str(self.cache_count).zfill(3))
@@ -432,7 +432,7 @@ class GenerateBaseLineMulti(GenerateBaseLine):
                 if len(partial_results)>0:
                     # save results to disk
                     with open(self.cache_filepath + str(self.cache_count).zfill(3), 'wb') as f:
-                        cloudpickle.dump(partial_results, f)
+                        pickle.dump(partial_results, f)
                     
                     self.cachefiles.append(self.cache_filepath + str(self.cache_count).zfill(3))
                     partial_results={}
@@ -450,20 +450,20 @@ class GenerateBaseLineMulti(GenerateBaseLine):
             # # update the cache if it exists. if not create one
             # if os.path.exists(self.cache_filepath):
             #     with open(self.cache_filepath, 'rb') as f:
-            #         results_from_file = cloudpickle.load(f)
+            #         results_from_file = pickle.load(f)
             #         # update with our new data
             #         results_from_file.update(dict(path_results_dict))
             #     with open(self.cache_filepath, 'wb') as f:
-            #         cloudpickle.dump(results_from_file, f)
+            #         pickle.dump(results_from_file, f)
             # else:
             #     with open(self.cache_filepath, 'wb') as f:
-            #         cloudpickle.dump(dict(path_results_dict), f)
+            #         pickle.dump(dict(path_results_dict), f)
         
         # AUTOSKIPS IF FILE ALREADY EXISTS
         if not SKIP:
             # Reload terminal instances post mp
             with open(os.path.join(self.temp_terminals_filename), 'rb') as f:
-                self._terminals = cloudpickle.load(f)
+                self._terminals = pickle.load(f)
             ### Call Kruskal for each terminal instance
             # # Create a lock, must be done before the pool
             # l = mp.Lock()
@@ -483,7 +483,7 @@ class GenerateBaseLineMulti(GenerateBaseLine):
             t0 = timer()
             # add try except finally
             try:
-                bar_assign_job = IncrementalBar('Running Kruskal', max = len(self._terminals))
+                bar_assign_job = Progress(len(self._terminals))
                 for kd in pool.imap(self.get_kruskal_info, self._terminals, int(len(self._terminals) // (self.num_processes**2) + 1)):
                     kruskal_results.append(kd)
                     bar_assign_job.next()
@@ -509,7 +509,7 @@ class GenerateBaseLineMulti(GenerateBaseLine):
                 if not os.path.exists(self.save_directory):
                     os.makedirs(self.save_directory)
                 with open(os.path.join(self.save_directory, self.filename), 'wb') as f:
-                    cloudpickle.dump({
+                    pickle.dump({
                         'terminals': self._terminals,
                         'solution': kruskal_results,
                         'obstacles': self.graph.obstacles

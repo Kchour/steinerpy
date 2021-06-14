@@ -4,7 +4,6 @@
     2) run this file
 '''
 
-# from steinerpy.steiner.algorithms import kruskal, astar, astar_bidi, primal_dual
 import pickle
 import os
 import unittest
@@ -44,9 +43,9 @@ class TestAlgorithmsBaseLine(unittest.TestCase):
 
         # Use contextualizer to run algorithms (make sure debug visualizer is off)
         results = {
-            'Astar': [],
-            'SstarAstar':[], 
-            'SstarDijkstra': [], 
+            'S*-unmerged': [],
+            'S*-HS':[], 
+            'S*-HS0': [], 
         }
 
         # Fill 'Kruskal' results from baseline file
@@ -55,16 +54,16 @@ class TestAlgorithmsBaseLine(unittest.TestCase):
             context = Context(graph, t)
 
                #formerly dijkstra
-            context.run('SstarDijkstra')
-            results['SstarDijkstra'].append(context.return_solutions())
+            context.run('S*-HS0')
+            results['S*-HS0'].append(context.return_solutions())
 
             # astar unmerged
-            context.run('Astar')
-            results['Astar'].append(context.return_solutions())
+            context.run('S*-unmerged')
+            results['S*-unmerged'].append(context.return_solutions())
 
             # formerly bi-directional astar
-            context.run('SstarAstar')
-            results['SstarAstar'].append(context.return_solutions())
+            context.run('S*-HS')
+            results['S*-HS'].append(context.return_solutions())
             #We already have kruskals as base line
 
         # Save results!

@@ -1,7 +1,7 @@
 '''Read baseline file and add obstacles to it'''
 
 import os
-import cloudpickle 
+import pickle
 import random as rd
 import time
 import numpy as np
@@ -34,7 +34,7 @@ class GenerateBaselineObstacles:
 
         # directory = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(self.load_directory, baseline_file), 'rb') as f:
-            self.data = cloudpickle.load(f)
+            self.data = pickle.load(f)
 
         '''data={ 
             'solution': [{'sol':[], 'path':[], 'dist':[]}, {...}, ..., {}]
@@ -99,7 +99,7 @@ class GenerateBaselineObstacles:
         # dump instances and solution to file
         # directory = os.getcwd()
         with open(os.path.join(self.load_directory, self.out_filename), 'wb') as f:
-            cloudpickle.dump({
+            pickle.dump({
                 'terminals': terminals,
                 'solution': solution,
                 'obstacles': obstacles
@@ -130,7 +130,7 @@ if __name__ =="__main__":
 
     # specify directory to read baseline file and to write obstacles to
     # directory = os.path.dirname(os.path.realpath(__file__))+"/../"
-    from steinerpy.library.config import Config as cfg
+    from steinerpy.config import Config as cfg
     load_directory = cfg.results_dir
 
     #create and run. Input baseline file to read

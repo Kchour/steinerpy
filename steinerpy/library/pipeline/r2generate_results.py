@@ -7,12 +7,12 @@ import re
 import math
 import itertools as it
 import multiprocessing as mp
-from progress.bar import IncrementalBar
 from functools import partial
 
 from steinerpy.library.logger import MyLogger
 from steinerpy.context import Context
 import steinerpy.config as cfg
+from steinerpy.library.misc.utils import Progress
 
 class GenerateResults:
     """Generate results based on baseline files, so that we can process the results.
@@ -153,8 +153,8 @@ class GenerateResults:
         t0 = timer()
         # Use contextualizer to run algorithms (make sure debug visualizer is off for speed)
         if algorithms_to_run is None:
-            results = {'SstarAstar':[], 'SstarPrimalDual': [], 'Astar':[],  \
-                    'SstarMM':[]}
+            results = {'S*-HS':[], 'S*-BS': [], 'S*-unmerged':[],  \
+                    'S*-MM':[]}
             algorithms_to_run = list(results)
         else:
             results = {alg: [] for alg in algorithms_to_run}
@@ -231,7 +231,7 @@ class GenerateResultsMulti(GenerateResults):
         # Create task generator, progress bar
         algs_to_run = ['SstarAstar', 'SstarPrimalDual', 'SstarMM', "Astar"]
         number_of_jobs = len(list(it.product(self.data['terminals'], algs_to_run)))
-        bar_assign_job = IncrementalBar('Job progress', max = number_of_jobs)
+        bar_assign_job = Progress(number_of_jobs)
         tasks = it.product(self.data['terminals'], algs_to_run)
         # unload data attribute for memory relief
         self.data = None

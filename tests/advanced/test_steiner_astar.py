@@ -5,9 +5,9 @@ cfg.Animation.visualize = False
 cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy.algorithms import Astar
+from steinerpy.algorithms import Unmerged
 
-class TestSteinerAstar(unittest.TestCase):
+class TestSteinerUnmerged(unittest.TestCase):
 
     def test_astar(self):
 
@@ -29,7 +29,7 @@ class TestSteinerAstar(unittest.TestCase):
         # terminals = [(-15, -15), (15, 15)]
   
           # Create Astar object
-        ao = Astar(graph, terminals)
+        ao = Unmerged(graph, terminals)
 
         # test comps type
         self.assertIsInstance(ao.comps, dict)

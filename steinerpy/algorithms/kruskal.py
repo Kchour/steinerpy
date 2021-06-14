@@ -1,7 +1,7 @@
 import itertools as it
 from timeit import default_timer as timer
 import numpy as np
-import cloudpickle
+import pickle
 
 import steinerpy.config as cfg
 from steinerpy.library.misc.utils import MyTimer
@@ -120,7 +120,7 @@ class Kruskal(AbstractAlgorithm):
             for ff in file_to_read:
             # read from file(s), load into adjQueue
                 with open(ff, 'rb') as f:
-                    cache_ = cloudpickle.load(f)    
+                    cache_ = pickle.load(f)    
 
                 for i,j in it.combinations(self.terminals, r=2):
                     # get terminal pair stats from cache (it should be)

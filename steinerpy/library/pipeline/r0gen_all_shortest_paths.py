@@ -1,16 +1,16 @@
 # MARK FOR DELETION
 
-import cloudpickle
+import pickle
 from timeit import default_timer as timer
 import multiprocessing as mp
 import numpy as np
 import math
 import os
-from progress.bar import IncrementalBar
 from functools import partial
 
 from steinerpy.library.search.search_algorithms import AStarSearch
 from steinerpy.library.graphs.graph import GraphFactory
+from steinerpy.library.misc.utils import Progress
 
 class OfflinePaths:      
     """Class related to obtaining all shortest paths  """
@@ -61,7 +61,7 @@ class OfflinePaths:
             # Get all non-occupied cells
             locs = np.where(graph.grid==0)
             # Create bar
-            bar_assign_job = IncrementalBar('Job progress', max = len(locs[0]))
+            bar_assign_job = Progress(len(locs[0]))
             
             # create generator expression, perhaps save memory? remeber x,y are flipped because of how arrays indexing works
             locs_gen = ((x,y) for x,y in zip(locs[1], locs[0]))
@@ -112,7 +112,7 @@ class OfflinePaths:
         # Save results to a specific directory if wanted
         if save_file is not None:
             with open(save_file, 'wb') as f:
-                cloudpickle.dump(final_results_pool, f)
+                pickle.dump(final_results_pool, f)
 
         return final_results_pool
 

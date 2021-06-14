@@ -1,7 +1,7 @@
 """ This module allows the user to select an algorithm to run"""
 
 from steinerpy.library.logger import MyLogger
-from .algorithms import Astar, SstarAstar, SstarDijkstra, Kruskal, SstarPrimalDual, SstarMM, SstarMM0
+from .algorithms import Unmerged, SstarHS, SstarHS0, Kruskal, SstarBS, SstarMM, SstarMM0
 from steinerpy.library.graphs.graph import GraphFactory
 
 class Context:
@@ -56,19 +56,19 @@ class Context:
         self.strategy = strategy
 
         # run based on input
-        if self.strategy == "Astar":
-            self.instances[self.strategy] = Astar(self._graph, self._terminals)
-        elif self.strategy == "SstarAstar":
-            self.instances[self.strategy] = SstarAstar(self._graph, self._terminals)
-        elif self.strategy == "SstarDijkstra":
-            self.instances[self.strategy] = SstarDijkstra(self._graph, self._terminals)
+        if self.strategy == "S*-unmerged":
+            self.instances[self.strategy] = Unmerged(self._graph, self._terminals)
+        elif self.strategy == "S*-HS":
+            self.instances[self.strategy] = SstarHS(self._graph, self._terminals)
+        elif self.strategy == "S*-HS0":
+            self.instances[self.strategy] = SstarHS0(self._graph, self._terminals)
         elif  self.strategy == "Kruskal":
             self.instances[self.strategy] = Kruskal(self._graph, self._terminals)
-        elif self.strategy == "SstarPrimalDual":
-            self.instances[self.strategy] = SstarPrimalDual(self._graph, self._terminals)
-        elif self.strategy == "SstarMM":
+        elif self.strategy == "S*-BS":
+            self.instances[self.strategy] = SstarBS(self._graph, self._terminals)
+        elif self.strategy == "S*-MM":
             self.instances[self.strategy] = SstarMM(self._graph, self._terminals)
-        elif self.strategy == "SstarMM0":
+        elif self.strategy == "S*-MM0":
             self.instances[self.strategy] = SstarMM0(self._graph, self._terminals)
         else:
             raise ValueError("Strategy {} is not found".format(self.strategy))

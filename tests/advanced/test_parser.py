@@ -25,7 +25,7 @@ class TestParser(unittest.TestCase):
         context = Context(g, T)
         context.run('Kruskal')
         results1 = context.return_solutions()
-        context.run('SstarDijkstra')
+        context.run('S*-HS0')
         results2 = context.return_solutions()
         # assert results
         self.assertEqual(sum(results1['dist']), sum(results2['dist']))
@@ -43,7 +43,7 @@ class TestParser(unittest.TestCase):
         context = Context(g, T)
         context.run('Kruskal')
         results1 = context.return_solutions()
-        context.run('SstarDijkstra')
+        context.run('S*-HS0')
         results2 = context.return_solutions()
         # assert results
         self.assertEqual(sum(results1['dist']), sum(results2['dist'])) 
@@ -91,7 +91,7 @@ class TestParser(unittest.TestCase):
         context.run('Kruskal')
         results1 = context.return_solutions()
 
-        context.run('SstarAstar')
+        context.run('S*-HS')
         results2 = context.return_solutions()
 
         # assert results

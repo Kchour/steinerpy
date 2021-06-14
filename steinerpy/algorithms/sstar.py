@@ -3,7 +3,7 @@ from steinerpy.framework import Framework
 from .common import Common
 
 
-class SstarAstar(Framework):
+class SstarHS(Framework):
     """S* Merged with Heuristics (A*) """
 
     def __init__(self, G, T):
@@ -89,7 +89,7 @@ class SstarAstar(Framework):
        
     #     return True
 
-class SstarDijkstra(Framework):
+class SstarHS0(Framework):
     """S* Merged with no Heuristics (Dijkstra) """
     def __init__(self, G, T):
         super().__init__(G, T)
@@ -145,7 +145,7 @@ class SstarDijkstra(Framework):
        
     #     return True
 
-class SstarPrimalDual(Framework):
+class SstarBS(Framework):
     def __init__(self, G, T):
         super().__init__(G, T)
 
