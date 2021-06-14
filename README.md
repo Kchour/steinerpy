@@ -45,13 +45,13 @@ Define some terminals
 terminals = [(-10, -12), (-3, 10), (10, -7), (13, 6), (0, 3)]
 ```
 
-Now run an algorithm using the `Context` class:
+Now run an algorithm using the `Context` selector class:
 ```
 # Create context
 context = Context(graph, terminals)
 
-# run and store results for astar
-context.run('Astar')
+# run and store results for S star heuristic search
+context.run('S*-HS')
 results = context.return_solutions()
 ```
 
@@ -65,7 +65,7 @@ results = context.return_solutions()
  ...10, -12]])], 'sol': [(...), (...), (...), (...)]}
 ```
 
-Currently supported inputs are `S*-unmerged`, `S*-HS`, `S*-HS0`, `Kruskal`, `S*-BS`, `S*-MM`, and `S*-MM0`.
+Currently supported inputs through `Context` are `S*-unmerged`, `S*-HS`, `S*-HS0`, `Kruskal`, `S*-BS`, `S*-MM`, and `S*-MM0`.
 
 See `Tests` folder for more examples
 
