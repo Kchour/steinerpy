@@ -676,3 +676,6 @@ tags
 
 # ignore virtual environment
 venv
+
+# ignore large preprocessed heuristic files
+tests/heuristic

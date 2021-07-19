@@ -31,19 +31,21 @@ graph = GraphFactory.create_graph("SquareGrid", grid=grid, grid_dim=grid_dim, gr
 terminals = [(-8, -4), (0, -13), (1, -5), (-15, 2), (-1, -7), (-11, 12), 
 (11, 5), (-10, -5), (7, 6), (0, 4), (-8, 11), (12, -10), (1, 1)]
 
+# terminals = [(-8, -4), (0, -13), (1, -5), (10, 10),(-11, 12)]
+
 class TestSteinerSstar(unittest.TestCase):
     
     def test_returned_tree_values(self):
         #Store Tree values
         dist = []
 
-        # Create Astar object
-        ao = SstarHS(graph, terminals)
-        # test comps type
-        self.assertIsInstance(ao.comps, dict)
-        # run algorithm
-        self.assertTrue(ao.run_algorithm())
-        dist.append(sum(ao.return_solutions()['dist']))
+        # # Create Astar object
+        # ao = SstarHS(graph, terminals)
+        # # test comps type
+        # self.assertIsInstance(ao.comps, dict)
+        # # run algorithm
+        # self.assertTrue(ao.run_algorithm())
+        # dist.append(sum(ao.return_solutions()['dist']))
 
         # Test Primal Dual
         # Create Astar object

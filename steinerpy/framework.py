@@ -176,7 +176,8 @@ class Framework(AbstractAlgorithm):
                 # if self.depots is not None:
                 #     AnimateV2.add("depots", np.array(self.depots).T.tolist(), figure_number=2, markersize=14, marker='o', color='b')
 
-                # AnimateV2.update(figure_number=2)           
+                # AnimateV2.update(figure_number=2)    
+                AnimateV2.update()       
 
     def nominate(self):
         """Each component nominates a node from its open set
@@ -813,7 +814,7 @@ class Framework(AbstractAlgorithm):
                 #     if self.graph.obstacles:
                 #         self.plotObstacle.update(np.array(self.graph.obstacles).T.tolist())
 
-                    AnimateV2.add_line("solution", np.vstack(self.S['path']).T.tolist(), 'ro', markersize=10, zorder=10)
+                    AnimateV2.add_line("solution", np.vstack(self.S['path']).T.tolist(), 'yo', markersize=10, zorder=10)
                     # # if self.graph.obstacles:
                     pass
 
@@ -909,8 +910,9 @@ class Framework(AbstractAlgorithm):
                     # ax = AnimateV2.instances[1].ax
                     # ax.set_title(alg_name)
 
-                    plt.tight_layout()
-                    # ax.axis('equal')
+                    plt.tight_layout()  #to make legend fit
+                    ax = plt.gca()
+                    ax.axis('equal')
                     # ax.set_aspect('equal', 'box')
 
                     plt.draw()

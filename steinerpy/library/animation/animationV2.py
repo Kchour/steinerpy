@@ -138,6 +138,9 @@ class AnimateV2:
             ax.set_ylim(ylim[0], ylim[1])
         cls.prevent_clipping()
 
+        # try setting equal axis?
+        ax.axis('equal')
+
         plt.show(block=False)   
         plt.pause(0.1)
 
@@ -147,7 +150,7 @@ class AnimateV2:
         cls.instances[figure_number] = o
 
     @classmethod
-    def _add(cls, artist_name, x, y, *args, figure_number=1, figure_name="", xlim=None, ylim=None, draw_clean=False, linestyle="", **kwargs):
+    def _add(cls, artist_name, x, y, *args, figure_number=1, figure_name="", xlim=None, ylim=None, draw_clean=False, linestyle="", alpha=1, **kwargs):
         """Add line2d artist and its data to a particular figure 
 
         Args:
@@ -223,6 +226,7 @@ class AnimateV2:
         # Set line2d data
         line.set_xdata(cls.instances[figure_number].artists[artist_name]['xdata'])
         line.set_ydata(cls.instances[figure_number].artists[artist_name]['ydata'])
+        line.set_alpha(alpha)
 
     @classmethod
     def add_artist_ex(cls, artist, artist_name, figure_number=1):
@@ -260,6 +264,7 @@ class AnimateV2:
         if cfg.Animation.animate_delay > 0:
             time.sleep(cfg.Animation.animate_delay)
 
+    
     @classmethod
     def on_shutdown(cls, event):
         # When figure is closed, clear out all figure instances

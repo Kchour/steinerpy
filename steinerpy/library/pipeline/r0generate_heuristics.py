@@ -41,7 +41,7 @@ class GenerateHeuristics:
         from steinerpy.library.search.all_pairs_shortest_path import AllPairsShortestPath
 
         results = AllPairsShortestPath.dijkstra_in_parallel(graph, random_sampling_limit=random_sampling_limit)  
-        results["type"] = "LAND"  
+        results["type"] = "LAND" 
         return results
 
     @staticmethod
@@ -57,23 +57,92 @@ class GenerateHeuristics:
         results["type"] = "APSP"
         return results
 
+    ################################################################################################
+    #   Create lookup table of functions, to mimic switch case speed
+    ################################################################################################
+
+    @staticmethod
+    def retrieve_from_landmark(result, from_node, to_node):
+        """For each landmark, distances to every other node is stored
+
+            Lower bound is computed using triangle inequality
+        
+            WARNING: This is a slow method
+        """
+        max_lower_bound = max((abs(result[r][from_node] - result[r][to_node]) for r in result if r != "type"))
+        return max_lower_bound 
+
+    def retrieve_from_apsp(result, from_node, to_node):
+        return result[(from_node, to_node)]
+
+    return_type = {"LAND": retrieve_from_landmark, 
+                   "APSP": retrieve_from_apsp,
+                   "APSP_FROM_LAND": retrieve_from_apsp}
     @staticmethod
     def retrieve_heuristic_value(result, from_node, to_node):
         """Non-databased version of heuristic value retrieval 
 
         TODO implement database with sqllite and APSW?
 
+
         """
-        if result["type"] == "LAND":
-            max_lower_bound = max((abs(result[r][from_node] - result[r][to_node]) for r in result if r != "type"))
-            return max_lower_bound 
-        elif result["type"] == "APSP":
-            return result[(from_node, to_node)]
+        return GenerateHeuristics.return_type[result["type"]](result, from_node, to_node)
 
     #########################
-    #########################
+    # User interface functions
     #########################
 
+    @staticmethod
+    def convert_land_to_apsp(filename=None, data=None, output=None):
+        """User can either specify the file location or provide the data from memory
+
+        """
+        print("Converting landmarks to All pairs shortest path (APSP)")
+        import pickle
+        import itertools as it
+        
+        if filename is not None:
+
+            with open(filename, 'rb') as f:
+                data = pickle.load(f)
+
+
+        # get landmarks
+        landmarks = data.keys()
+
+        # get all the dijkstra keys
+        for k in data.keys():
+            all_keys = data[k].keys()
+            break
+
+        # get all pairs and put into dictionary
+        processed_data = {}
+        for (i,j) in it.permutations(all_keys, 2):
+            # Octile distance
+            x1, y1 = i
+            x2, y2 = j
+            dmax = max(abs(x1 - x2), abs(y1 - y2))
+            dmin = min(abs(x1 - x2), abs(y1 - y2))
+            h2 = 1.414*dmin + (dmax - dmin)
+
+            # landmark heuristic
+            h1 =  max([abs(data[l][i]-data[l][j]) for l in landmarks if l != "type"]) 
+        
+            # max over heuristic lower bounds
+            processed_data[(i,j)] = max(h1,h2) 
+
+        # Add self edges
+        for v in all_keys:
+            processed_data[(v,v)] = 0
+
+        # Add type key
+        processed_data["type"] = "APSP_FROM_LAND"
+
+        if output is not None:
+            with open(output, 'wb') as f:
+                pickle.dump(processed_data, f)
+        
+        return processed_data
 
     @staticmethod
     def heuristic_wrap(from_node, to_node):
@@ -97,18 +166,35 @@ class GenerateHeuristics:
 
     @classmethod
     def gen_and_save_results(cls, graph, file_location, file_name, processes=4, file_behavior=None):
-        """Entry point for most users"""
+        """Entry point for most users
+        
+        Returns results if heuristics is generated
+        """
         import pickle, os
         
+        # location to save generated results
         save_location = os.path.join(file_location, file_name)
-        # Raise fileExistsError by default
+        
+        # Raise fileExistsError by default 
         if file_behavior is None:
             if os.path.exists(save_location):
                 raise FileExistsError('{} already exists!'.format(save_location))
+            else:
+                # Actually generate the heuristics
+                results = cls.get_heuristics(graph, processes)
+
+                # if file path does not exist, create and then save it!
+                if not os.path.exists(file_location):
+                    os.makedirs(file_location)
+                with open(save_location, 'wb') as f:
+                    pickle.dump(results, f)
+
+                return results
         else:
             if file_behavior == "SKIP":
+                # If the file exists already, just do nothing!
                 if os.path.exists(save_location):
-                    pass
+                    print("file {} already exists, skipping...".format(file_name) )
                 else:
                     results = cls.get_heuristics(graph, processes)
                     # create directory if does not exist
@@ -116,14 +202,22 @@ class GenerateHeuristics:
                         os.makedirs(file_location)
                     with open(save_location, 'wb') as f:
                         pickle.dump(results, f)
+                    
+                    return results
             elif file_behavior == "OVERWRITE":
+                # Does not care if file exists, will overwrite!
+
                 results = cls.get_heuristics(graph, processes)
                 # create directory if does not exist
                 if not os.path.exists(file_location):
                     os.makedirs(file_location)
                 with open(save_location, 'wb') as f:
                     pickle.dump(results, f)
+
+                return results
             elif file_behavior == "RETURNONLY":
+                # Does save results, will only return results
+
                 results = cls.get_heuristics(graph, processes)
                 return results
 

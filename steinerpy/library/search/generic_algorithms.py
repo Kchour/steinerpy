@@ -250,8 +250,8 @@ class GenericSearch(Search):
             if self.visualize:
                 # Update plot with visuals
                 # self.animateCurrent.update_clean(current)
-                AnimateV2.add_line("nominated_{}".format(self.id), current[0], current[1], 'o', draw_clean=True, markersize=10)
-
+                AnimateV2.add_line("nominated_{}".format(self.id), current[0], current[1], 'ko', zorder=15, draw_clean=True, markersize=10)
+                # AnimateV2.update()
             # #Early exit if we reached our goal
             # if current == self.goal:
             #     return parent, g, current
@@ -310,8 +310,17 @@ class GenericSearch(Search):
             # self.animateClosed.update(current)
 
             # Delete nominated node drawing, add it as closed
-            # AnimateV2.delete("nominated_{}".format(self.id))
-            AnimateV2.add_line("closed_{}".format(self.id), current[0], current[1], 'o', markersize=10)
+
+            AnimateV2.add_line("closed_{}".format(self.id), current[0], current[1], 'mo', markersize=10)
+            # AnimateV2.update()
+
+            # hide the nominate node temporarily
+            AnimateV2.add_line("nominated_{}".format(self.id), current[0], current[1], 'ko', alpha=0, zorder=15, draw_clean=True, markersize=10)
+
+
+            # Show recently closed node with a white x (the best nominated node over all)
+            # AnimateV2.add_line("recent_closed_{}".format(self.id), current[0], current[1], 'wx', alpha=1, zorder=16, draw_clean=True, markersize=10)
+            # AnimateV2.update()
 
         # refresh neighbors
         self.currentNeighs = []
@@ -352,7 +361,14 @@ class GenericSearch(Search):
                 for n in self.frontier.elements:
                     x.append(n[0])
                     y.append(n[1])
-                AnimateV2.add_line("neighbors_{}".format(self.id), x,y, 'D', markersize=10, draw_clean=True)
+                AnimateV2.add_line("neighbors_{}".format(self.id), x,y, 'cD', markersize=7, draw_clean=True)
+                # Hide the best nominated node now
+                # AnimateV2.add_line("recent_closed_{}".format(self.id), current[0], current[1], 'wx', alpha=0, draw_clean=True, markersize=10)
+        
+        # if self.visualize:
+        #     AnimateV2.update()
+
+
 
 
         # consider deleting fvalues to save memory, since it's only relevant to openset
@@ -670,8 +686,8 @@ class GenericSearch(Search):
             # Draw new merged components
             dataClosedSet = np.array(list(closedSet)).T.tolist()
             dataSetF = np.array(list(setF)).T.tolist()
-            AnimateV2.add_line("closed_{}".format(mergedGS.id), dataClosedSet[0], dataClosedSet[1], 'o', markersize=10)
-            AnimateV2.add_line("neighbors_{}".format(mergedGS.id), dataSetF[0], dataSetF[1], 'D', markersize=10, draw_clean=True)
+            AnimateV2.add_line("closed_{}".format(mergedGS.id), dataClosedSet[0], dataClosedSet[1], 'mo', markersize=10)
+            AnimateV2.add_line("neighbors_{}".format(mergedGS.id), dataSetF[0], dataSetF[1], 'cD', markersize=7, draw_clean=True)
 
         return mergedGS
         
