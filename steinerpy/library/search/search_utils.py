@@ -128,7 +128,6 @@ class PriorityQueueHeap:
         self.entry_table = {}
         self.elements = self.entry_table
 
-        self.MIN = False
         self.min_item = None
         
     def __contains__(self, item):
@@ -148,7 +147,6 @@ class PriorityQueueHeap:
         entry = [priority, next(self.ecount), item]
         heapq.heappush(self.pq, entry)
         self.entry_table[item] = entry
-        self.MIN = False
  
     def get(self):
         """ return the item with min priority value, specifically a tuple (value, item)
@@ -157,7 +155,6 @@ class PriorityQueueHeap:
         # only return priority and item
         while self.pq:
             priority, _, task = heapq.heappop(self.pq)
-            self.MIN = False
             if task is not self.REMOVED:
                 del self.entry_table[task]
                 return (priority, task)
@@ -170,20 +167,18 @@ class PriorityQueueHeap:
     def get_min(self):
         """Return min item without removing it. purge "REMOVED items"
         """
-        while self.pq:
-            # if not self.MIN:
-            entry = heapq.heappop(self.pq)
+        # use heapqueue property
+        entry = self.pq[0]
+        while entry is not None: 
             priority = entry[0]
             task = entry[-1]
             if task is not self.REMOVED:
-                # del self.entry_table[task]
-                heapq.heappush(self.pq, entry)
-
-                self.MIN = True
                 self.min_item = (priority, task)
                 return (priority, task)
-            # else:
-            #     return self.min_item
+            else:
+                # deletes the nodes marked for deletion
+                heapq.heappop(self.pq)
+            entry = self.pq[0]
         raise KeyError('pop from an empty priority queue')
 
 
@@ -247,9 +242,9 @@ class DoublyLinkedList:
             
             print(prev, curr, next)
 
-            if method is 'forward':  
+            if method == 'forward':  
                 curr = next
-            elif method is 'reverse':
+            elif method == 'reverse':
                 curr = prev
             else:
                 raise Exception("Please select a method ('forward', 'reverse')") 

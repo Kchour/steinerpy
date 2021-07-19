@@ -269,14 +269,14 @@ class GenericSearch(Search):
         This is easier than searching and updating every key
 
         """
-        # Create a new frontier structure
-        for o in self.frontier.entry_table:
+        # Modify frontier structure
+        for o in self.frontier.entry_table.copy():
             # make sure goal is not empty
             if self.goal:
                 # priority changes as a result of destination change. 
                 # Hence both fmin and pmin need to be updated
                 priority = self.fCosts(self, self.g, o)
-                self.frontier.put(o,priority)     
+                self.frontier.put(o, priority)     
                 self.fmin_heap.put(o, self.f[o])
 
 
