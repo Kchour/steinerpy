@@ -89,17 +89,19 @@ cfg.Algorithm.hFactor = 1.0  # Heuristic factor i.e. for any node n, its priorit
 See the config module for more options (note: not everything has been implemented)
 
 # Customize the Heuristic Function
-The underlying heuristic in all heuristic-based algorithms can be customized by binding `steinerpy.algorithms.common.custom_heuristics` with a function in the form `h_func(n, goal)` i.e.
+The underlying heuristic in all heuristic-based algorithms can be customized by binding `steinerpy.algorithms.common.Common.custom_heuristics` with a function in the form `h_func(n, goal)` i.e.
 
 ```
-from steinerpy.library.config import Config as cfg
+import steinerpy.config as cfg
 cfg.sstar_heuristic_type = "custom"
 
 from steinerpy.algorithms.common import Common
 def my_cust_h_func(n, goal):
     ...
 
-common.custom_heuristics = my_cust_h_func
+Common.custom_heuristics = my_cust_h_func
+...
+
 ```
 
 # Running tests
