@@ -79,6 +79,8 @@ class Search:
         # F costs function object for priority updates
         self.fCosts = fCostsFunc     # fCostsFunc is a passed-in method, returns a float
 
+        # root node
+        self.root = {start: start}
 
     # def set_start(self, start):
     #     self.start = start
@@ -345,6 +347,9 @@ class GenericSearch(Search):
                 frontier.put(next, priority)
                 parent[next] = current
 
+                # update root node pointer
+                self.root[next] = self.root[current]
+
                 # update gmin,rmin, fmin heaps
                 self.gmin_heap.put(next,g_next)
                 self.rmin_heap.put(next, g[current])
@@ -502,6 +507,7 @@ class GenericSearch(Search):
         mergedP = {}                 # merged parent list
         mergedID = []
         mergedGoal = {}
+        mergedRoot = {}
 
         ## Merge the terminal indices
         # TODO. PROB DONT NEED list
@@ -529,19 +535,23 @@ class GenericSearch(Search):
         
         ## new variables for ease: Linked lists, frontier, and g costs
         p1 = self.parent
-        p2 = other.parent
         f1 = self.frontier.elements
-        f2 = other.frontier.elements
         g1 = self.g
-        g2 = other.g
         c1 = set(g1) - set(f1)
+        r1 = self.root
+
+        p2 = other.parent
+        f2 = other.frontier.elements
+        g2 = other.g
         c2 = set(g2) - set(f2)
+        r2 = other.root
 
         ## Get Merged g and p structures, need to handle overlapping of lists
         setG = set(g1).union(set(g2))                                 # works; handle c/o overlapping
         # closedSet = (set(g1) - set(f1)).union(set(g2) - set(f2))    # original case, working
         closedSet = c1.union(c2)
               
+        # Merge the gcosts of all components (includes frontier and closed sets)
         for next in setG:
             # for overlapping nodes, retain the one with least g.
             # else, just keep them according tot he component
@@ -549,23 +559,29 @@ class GenericSearch(Search):
                 if g1[next] < g2[next]:
                     g_next = g1[next]
                     current = p1[next]
+                    root = r1[next]
                 else:
                     g_next = g2[next]
                     current = p2[next]
+                    root = r2[next]
             elif next in g1:
                 g_next = g1[next]
                 current = p1[next]
+                root = r1[next]
             elif next in g2:
                 g_next = g2[next]
                 current = p2[next]
+                root = r2[next]
 
             mergedG[next] = g_next
             mergedP[next] = current
+            mergedRoot[next] = root
 
         # get merged f and update merged p structures
         # setF = set(f1).union(set(f2)) - closedSet       # original case, working       
         setF = set(f1).union(set(f2))                     # works; handle c/o overlapping     
 
+        # Recalculate the frontier costs
         # DO I NEED TO SET THE G COSTS HERE TOO?.
         # NO need to set current?
         for next in setF:
@@ -652,6 +668,7 @@ class GenericSearch(Search):
         mergedGS.parent = mergedP
         mergedGS.id = mergedID
         mergedGS.frontier = mergedF
+        mergedGS.root = mergedRoot
         # if g1[self.current] < g2[other.current]
         # if self.currentF < other.currentF:
         #     mergedGS.current = self.current

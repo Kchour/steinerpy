@@ -1,7 +1,7 @@
 import unittest
 
 import steinerpy.config as cfg
-cfg.Animation.visualize = False
+cfg.Animation.visualize = True
 cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 
 from steinerpy.library.graphs.graph import GraphFactory
@@ -28,10 +28,10 @@ graph = GraphFactory.create_graph("SquareGrid", grid=grid, grid_dim=grid_dim, gr
 # (-1, 11), (-3, 1), (-12, -13), (-14, -1), (-13, -12), (14, 2), (15, -10), 
 # (2, 11), (5, -8), (12, 8), (15, -8), (13, 13), (0, 14), (3, 11), (-12, 0), 
 # (8, 9), (-4, 6), (1, -11), (-1, 1), (0, -12), (-1, -2), (12, -3), (-6, 13)]
-terminals = [(-8, -4), (0, -13), (1, -5), (-15, 2), (-1, -7), (-11, 12), 
-(11, 5), (-10, -5), (7, 6), (0, 4), (-8, 11), (12, -10), (1, 1)]
+# terminals = [(-8, -4), (0, -13), (1, -5), (-15, 2), (-1, -7), (-11, 12), 
+# (11, 5), (-10, -5), (7, 6), (0, 4), (-8, 11), (12, -10), (1, 1)]
 
-# terminals = [(-8, -4), (0, -13), (1, -5), (10, 10),(-11, 12)]
+terminals = [(-8, -4), (0, -13), (1, -5), (10, 10),(-11, 12)]
 
 class TestSteinerSstar(unittest.TestCase):
     
