@@ -72,15 +72,12 @@ class Search:
         self.g = {}
         self.g[start] = 0
 
-        # Linked List
+        # Linked List, used to identify parents of a node along a path
         self.parent = {}
         self.parent[start] = None
 
         # F costs function object for priority updates
         self.fCosts = fCostsFunc     # fCostsFunc is a passed-in method, returns a float
-
-        # root node
-        self.root = {start: start}
 
     # def set_start(self, start):
     #     self.start = start
@@ -111,10 +108,13 @@ class Search:
             to a start (or root node, if start is not specified)
 
         paremeters:
-            parents: a singly-linked list using python dict
+            parents: removed. kept for compatibility reasons
             start: a tuple (x,y) position. Optional
             goal: a tuple (x,y) position. Mandatory
             order: 'forward', or 'reverse' 
+
+        Attributes:
+            parent: a singly-linked list using python dict
 
         '''
         current = goal
@@ -126,7 +126,7 @@ class Search:
                 break
             path.append(current)
             #  current = parents[current]
-            current = parents.get(current, None)
+            current = self.parent.get(current, None)
 
         if start != None:
             path.append(start)
@@ -186,17 +186,13 @@ class GenericSearch(Search):
         self.rmin_heap.put(start, 0)
         self.fmin_heap.put(start, 0)
 
-        # Visulization?
-        # if visualize:     
-        #     # initialize plot (graph has the dimensions built it)
-        #     # xlim = (graph.grid_dim[0], graph.grid_dim[1])   #(minX, maxX)
-        #     # ylim = (graph.grid_dim[2], graph.grid_dim[3])   #(minY, maxY)
-        #     # no sleep atm
-        #     # self.animateCurrent = Animate(number=1, xlim=xlim, ylim=ylim, gridSize=1,linewidth=5, markerType='bo', markerSize=10, sleep=0, order=2)
-        #     # self.animateClosed = Animate(number=1, xlim=xlim, ylim=ylim, gridSize=1,linewidth=5, markerType='o', markerSize=10, sleep=0, order=-1)
-        #     # self.animateNeighbors = Animate(number=1, xlim=xlim, ylim=ylim, gridSize=1,linewidth=5, markerType='o', markerSize=5, sleep=0, order=-1)
-        #     # self.animatePath = Animate(number=1, xlim=xlim, ylim=ylim, gridSize=1,linewidth=5, markerType='o', markerSize=5, sleep=0.000, order=-1)
-        #     pass
+        # Extra things: not necessary for shortest path computation
+        # every node will keep track its closest terminal root node based on gcost
+        self.root = {start: start}
+
+        # Keep track of children in shortest path computation
+        # (shortest path tree rooted at a terminal)
+        self.children = {}
 
     @property
     def goal(self):
@@ -343,12 +339,23 @@ class GenericSearch(Search):
                 end = timer()
                 MyTimer.add_time("fcosts_time", end - start )
 
-                # Update frontier and parent list
+                # Update frontier
                 frontier.put(next, priority)
-                parent[next] = current
 
-                # update root node pointer
-                self.root[next] = self.root[current]
+                # update children before updating parent list
+                if current not in self.children:
+                    self.children[current] = set({next})
+                else:
+                    # now add children to current
+                    self.children[current].add(next) 
+
+                # make sure children of a parent is correct
+                # when parents get changed
+                if next in parent and parent[next] in self.children:
+                    self.children[parent[next]].remove(next)
+
+                # update parent list
+                parent[next] = current
 
                 # update gmin,rmin, fmin heaps
                 self.gmin_heap.put(next,g_next)
@@ -357,6 +364,9 @@ class GenericSearch(Search):
 
                 # track current neighbors
                 self.currentNeighs.append(next)
+
+                # update root node pointer (extra)
+                self.root[next] = self.root[current]
                 
             if self.visualize:
                 # self.animateNeighbors.update(next)
@@ -372,9 +382,6 @@ class GenericSearch(Search):
         
         # if self.visualize:
         #     AnimateV2.update()
-
-
-
 
         # consider deleting fvalues to save memory, since it's only relevant to openset
         del self.f[current]
@@ -508,6 +515,7 @@ class GenericSearch(Search):
         mergedID = []
         mergedGoal = {}
         mergedRoot = {}
+        mergedChildren = {}
 
         ## Merge the terminal indices
         # TODO. PROB DONT NEED list
@@ -576,6 +584,11 @@ class GenericSearch(Search):
             mergedG[next] = g_next
             mergedP[next] = current
             mergedRoot[next] = root
+
+            if current not in mergedChildren:
+                mergedChildren[current] = set({next})
+            else:
+                mergedChildren[current].add(next)
 
         # get merged f and update merged p structures
         # setF = set(f1).union(set(f2)) - closedSet       # original case, working       
@@ -669,6 +682,7 @@ class GenericSearch(Search):
         mergedGS.id = mergedID
         mergedGS.frontier = mergedF
         mergedGS.root = mergedRoot
+        mergedGS.children = mergedChildren
         # if g1[self.current] < g2[other.current]
         # if self.currentF < other.currentF:
         #     mergedGS.current = self.current
