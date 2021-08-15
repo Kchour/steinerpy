@@ -5,13 +5,17 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from timeit import default_timer as timer
+import logging
 
 import steinerpy.config as cfg
 from steinerpy.library.animation import AnimateV2
-from steinerpy.library.logger import MyLogger
+# from steinerpy.library.logger import MyLogger # deprecated
 from steinerpy.library.misc.utils import MyTimer
 from steinerpy.library.search.search_utils import PriorityQueue, PriorityQueueHeap
 from steinerpy.library.search.search_utils import DoublyLinkedList
+
+# create logger
+my_logger = logging.getLogger(__name__)
 
 class Search:
     """ Base Class `Search` can be extended by any iterative search algorithm.
@@ -242,7 +246,7 @@ class GenericSearch(Search):
             self.currentP = currentP
 
             # LOG nomination
-            MyLogger.add_message("{} nominated {} with priority {}".format(self.id, self.current, self.currentP), __name__, "DEBUG")
+            my_logger.debug("{} nominated {} with priority {}".format(self.id, self.current, self.currentP))
 
             #print("Terminal, current: ",self.start, current)
             if self.visualize:
@@ -352,7 +356,8 @@ class GenericSearch(Search):
                 # make sure children of a parent is correct
                 # when parents get changed
                 if next in parent and parent[next] in self.children:
-                    self.children[parent[next]].remove(next)
+                    if next in self.children[parent[next]]:
+                        self.children[parent[next]].remove(next)
 
                 # update parent list
                 parent[next] = current
@@ -387,7 +392,8 @@ class GenericSearch(Search):
         del self.f[current]
 
         self.nominated = False
-        MyLogger.add_message("{} updated!".format(self.id), __name__, "DEBUG")
+        # MyLogger.add_message("{} updated!".format(self.id), __name__, "DEBUG")
+        my_logger.debug("{} updated!".format(self.id))
 
 
     def boundary_nodes(self):

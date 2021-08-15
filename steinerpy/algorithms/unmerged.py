@@ -1,11 +1,14 @@
 import numpy as np
+import logging
 
 from steinerpy.framework import Framework
 from .common import Common
 import steinerpy.config as cfg
 from steinerpy.library.animation import AnimateV2
 from steinerpy.library.search.search_utils import reconstruct_path, CycleDetection
-from steinerpy.library.logger import MyLogger
+# from steinerpy.library.logger import MyLogger
+
+my_logger = logging.getLogger(__name__)
 
 class Unmerged(Framework):
     def __init__(self, graph, terminals):
@@ -27,7 +30,7 @@ class Unmerged(Framework):
         in a queue variable called nodeQueue.
         
         """
-        MyLogger.add_message("performing nominate() ", __name__, "INFO")
+        my_logger.info("Performing nomination")
 
         for ndx, c in self.comps.items():
             if ndx not in self.nodeQueue.elements:
@@ -43,7 +46,7 @@ class Unmerged(Framework):
         """
         # Get best ndx from priority queue
         # print(self.run_debug)
-        MyLogger.add_message("performing update() ", __name__, "INFO")
+        my_logger.info("Performing update")
 
         # if not self.nodeQueue.empty():
         best_priority, best_ndx = self.nodeQueue.get()  
@@ -63,8 +66,7 @@ class Unmerged(Framework):
         self.selData.update({'to': bestParent, 'terminalInd': best_ndx, 'gcost': bestGVal, 'fcost':bestFVal, 'status':'closed'})
 
 
-        MyLogger.add_message("updated {} with node {}".format(best_ndx, bestCurrent), __name__, "Debug")
-
+        my_logger.debug("updated {} with node {}".format(best_ndx, bestCurrent))
 
         ##############################
         ### NEW FUNCTIONALITY HERE ###
@@ -236,7 +238,7 @@ class Unmerged(Framework):
                 # ## End update destination list and rep ###
                 # ##########################################  
 
-                MyLogger.add_message("paths in solution set: {}".format(len(self.S['dist'])), __name__, "INFO")
+                my_logger.info("paths in solution set: {}".format(len(self.S['dist'])))
 
                 # # Set another lower bound on components due to declared shortest path
                 # if dist > 0 and dist < self.comps[t1].lmin or self.comps[t1].lmin == 0:
@@ -252,11 +254,10 @@ class Unmerged(Framework):
                 # self.pathQueue.put( ((t1,t2), term_actual, tuple(path), dist), dist)
                 self.pathQueue.put((t1,t2), UFeas)
 
-                MyLogger.add_message("Added path to pathQueue", __name__, "DEBUG")
+                my_logger.debug("Added path to pathQueue")
+                my_logger.info("pathQueue len now: {}".format(len(self.pathQueue.elements)))
 
-                MyLogger.add_message("pathQueue len now: {}".format(len(self.pathQueue.elements)), __name__, "INFO")
-
-                if cfg.Misc.console_level == "DEBUG":
+                if cfg.Misc.DEBUG_MODE:
                     self.debug_fmin()
                     self.debug_gmin()
                     self.debug_pmin()
@@ -303,8 +304,7 @@ class Unmerged(Framework):
 
     def tree_update(self):
         """override tree_update because we need cycle detection and no merging """
-        MyLogger.add_message("performing tree_update() ", __name__, "INFO")
-
+        my_logger.info("Performing Tree Update")
         # Empty path queue, gather up the solutions
         sol = Common.solution_handler(comps=self.comps, path_queue=self.pathQueue, cycle_detector=self.cd, \
             terminals=self.terminals, criteria=self.path_queue_criteria, merging=False)

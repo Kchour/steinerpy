@@ -5,8 +5,12 @@ Todo:
 """
 
 import numpy as np
-from steinerpy.library.logger import MyLogger
+import logging
+
+# from steinerpy.library.logger import MyLogger # deprecated
 import steinerpy.config as cfg
+
+my_logger = logging.getLogger(__name__)
 
 class Common:
 
@@ -129,7 +133,7 @@ class Common:
                     # edge = poppedQ[1]['term_actual']
                     # terms = poppedQ[1]['terms']
                     sol.append({'dist':dist, 'components':comps_ind})
-                    MyLogger.add_message("Added poppedQ path to sol!", __name__, "DEBUG")
+                    my_logger.debug("Added poppedQ path to sol!") 
 
                 else:
                     path_queue.put(poppedQ[1], poppedQ[0])
@@ -183,7 +187,7 @@ class Common:
             solution_set['dist'].append(dist)
             solution_set['path'].append(path)
             solution_set['sol'].append(edge)
-            MyLogger.add_message("Added edge no.: {}".format(len(solution_set['sol'])), __name__, "DEBUG")
+            my_logger.debug("Added edge no.: {}".format(len(solution_set['sol']))) 
 
     @staticmethod
     def get_shortest_path(comps, term_edge, f_costs_func):
@@ -312,7 +316,10 @@ class Common:
 
     @staticmethod
     def path_queue_criteria(comps, path_distance):
-        """ Check to see if candidate path is shorter than estimates. Override if needed 
+        """ Check to see if candidate path is shorter than estimates. Override if needed
+
+        This method helps to preserve Kruskal's property, namely that path P is only considered
+        if and only if all paths cheaper than P have already been considerd! 
         
         Returns:
             True: if candidate path is shorter than every other path

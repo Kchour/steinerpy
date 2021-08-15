@@ -8,11 +8,13 @@ import math
 import itertools as it
 import multiprocessing as mp
 from functools import partial
+import logging
 
-from steinerpy.library.logger import MyLogger
 from steinerpy.context import Context
 import steinerpy.config as cfg
 from steinerpy.library.misc.utils import Progress
+
+my_logger = logging.getLogger(__name__)
 
 class GenerateResults:
     """Generate results based on baseline files, so that we can process the results.
@@ -174,8 +176,7 @@ class GenerateResults:
                 self.graph.set_obstacles(self.data['obstacles'])
 
             # Log terminals
-            MyLogger.add_message("terminals: {}".format(t), __name__, "INFO")
-
+            my_logger.info("terminals: {}".format(t))
             # Create context
             context = Context(self.graph, t)
 

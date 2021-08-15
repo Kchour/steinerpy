@@ -6,6 +6,7 @@ from timeit import default_timer as timer
 from typing import List
 from abc import ABC, abstractmethod
 import cProfile
+import logging, logging.config
 
 from steinerpy.library.misc.abc_utils import abstract_attribute, ABC as newABC
 from steinerpy.library.graphs.graph import IGraph
@@ -16,9 +17,11 @@ from steinerpy.library.search.generic_algorithms import GenericSearch
 import steinerpy.config as cfg
 from .abstract_algo import AbstractAlgorithm
 from .algorithms.common import Common
-from steinerpy.library.logger import MyLogger
+# from steinerpy.library.logger import MyLogger #deprecated
 from steinerpy.library.misc.utils import MyTimer
 
+# configure and create logger
+my_logger = logging.getLogger(__name__)
 
 class Framework(AbstractAlgorithm):
     """This class serves as a foundation for S*.
@@ -189,7 +192,8 @@ class Framework(AbstractAlgorithm):
         
         """
         # print(self.run_debug)
-        MyLogger.add_message("performing nominate() ", __name__, "INFO")
+        # MyLogger.add_message("performing nominate() ", __name__, "INFO")
+        my_logger.info("performing nomination")
 
         for ndx, c in self.comps.items():
             if ndx not in self.nodeQueue.elements:
@@ -202,7 +206,8 @@ class Framework(AbstractAlgorithm):
         Among all nominated nodes, choose the one with least f cost using a priority queue.
 
         """
-        MyLogger.add_message("performing update() ", __name__, "INFO")
+        # MyLogger.add_message("performing update() ", __name__, "INFO")
+        my_logger.info("performing update")
         # CONSIDER USING TRY CATCH FOR THIS ENTIRE LOOP
 
         try:
@@ -215,7 +220,8 @@ class Framework(AbstractAlgorithm):
 
             best_priority, best_ndx = self.nodeQueue.get()  
         except Exception as e:
-            MyLogger.add_message("nodeQueue has an error", __name__, "ERROR", "exc_info=True")
+            # MyLogger.add_message("nodeQueue has an error", __name__, "ERROR", "exc_info=True")
+            my_logger.error("nodeQueue has an error", exc_info=True)
             raise e
 
         # Get best ndx from priority queue
@@ -418,7 +424,8 @@ class Framework(AbstractAlgorithm):
                     except Exception as e_:
                         print(e_)
                         print("")
-                        MyLogger.add_message("Update goal error!", __name__, "ERROR", "exc_info=True")
+                        # MyLogger.add_message("Update goal error!", __name__, "ERROR", "exc_info=True")
+                        my_logger.error("Update goal error!", exc_info=True)
                         raise e_
 
                     # # reprioritze
@@ -441,7 +448,8 @@ class Framework(AbstractAlgorithm):
                     # ## End update destination list and rep ###
                     # ##########################################  
 
-                    MyLogger.add_message("paths in solution set: {}".format(len(self.S['dist'])), __name__, "INFO")
+                    # MyLogger.add_message("paths in solution set: {}".format(len(self.S['dist'])), __name__, "INFO")
+                    my_logger.info("paths in solution set: {}".format(len(self.S['dist'])))
 
                     # # Set another lower bound on components due to declared shortest path
                     # if dist > 0 and dist < self.comps[t1].lmin or self.comps[t1].lmin == 0:
@@ -458,11 +466,15 @@ class Framework(AbstractAlgorithm):
                     # self.pathQueue.put((( (t1,t2), term_actual, tuple(path), dist)), dist)
                     self.pathQueue.put((t1,t2), UFeas)
 
-                    MyLogger.add_message("Added path to pathQueue", __name__, "DEBUG")
+                    # MyLogger.add_message("Added path to pathQueue", __name__, "DEBUG")
 
-                    MyLogger.add_message("pathQueue len now: {}".format(len(self.pathQueue.elements)), __name__, "INFO")
+                    # MyLogger.add_message("pathQueue len now: {}".format(len(self.pathQueue.elements)), __name__, "INFO")
 
-                    if cfg.Misc.console_level == "DEBUG":
+                    my_logger.debug("Added path to pathQueue")
+                    my_logger.info("pathQueue len now: {}".format(len(self.pathQueue.elements)))
+
+
+                    if cfg.Misc.DEBUG_MODE:
                         self.debug_fmin()
                         self.debug_gmin
                         self.debug_pmin()
@@ -665,19 +677,19 @@ class Framework(AbstractAlgorithm):
         As soon as a solution set is updated, we allow for a `tree_check` in the future.
 
         """
-        MyLogger.add_message("performing tree_update() ", __name__, "INFO")
+        my_logger.info("performing tree_update")
 
         # Empty path queue, gather up the solutions in solution queue (FIFO)
         solQueue = Common.solution_handler(comps=self.comps, path_queue=self.pathQueue, cycle_detector=None, \
             terminals=self.terminals, criteria=self.path_queue_criteria, merging=True, use_depots=self.use_depots)
         
-        MyLogger.add_message("solQueue len: {}".format(len(solQueue)), __name__, "INFO")
+        my_logger.info("solQueue len: {}".format(len(solQueue)))
 
         # add paths to solution set
         for ndx, s in enumerate(solQueue):
             # self.add_solution(s['path'], s['dist'], s['terms'])
             # t1,t2 = s['terms']
-            MyLogger.add_message("emptying solQueue iter: {}".format(ndx+1), __name__, "DEBUG")
+            my_logger.debug("emptying solQueue iter: {}".format(ndx+1))
 
             # t1, t2 = Common.subsetFinder(s['terms'], self.comps)
             # MyLogger.add_message("Inspecting path {}. Old Comps {}. New Comps {}. Terminals {}. length {}".format(s['path'], s['terms'], (t1,t2), s['term_actual'], s['dist']), __name__, "DEBUG")
@@ -819,20 +831,18 @@ class Framework(AbstractAlgorithm):
                     pass
 
             except Exception as e:
-                MyLogger.add_message("Merging Error!", __name__, "ERROR", "exc_info=True")
+                my_logger.error("Merging error!", exc_info=True)
                 print(self.terminals)
                 raise e
 
-            MyLogger.add_message("Total Tree edges now: {}".format(len(self.S['dist'])), __name__, "INFO")
-
+            my_logger.info("Total tree edges now: {}".format(len(self.S['dist'])))
                    
-        MyLogger.add_message("pathQueue len now: {}".format(len(self.pathQueue.elements)), __name__, "INFO")
-
+        my_logger.info("pathQueue len now: {}".format(len(self.pathQueue.elements)))
 
     def tree_check(self):
         """When at least one solution has been added to the solution set, check to see if we have a complete tree"""
 
-        MyLogger.add_message("performing tree_check() ", __name__, "INFO")
+        my_logger.info("Performing tree_check")
 
         if cfg.Animation.visualize:
             # Don't plot every thing for large graphs
@@ -846,7 +856,8 @@ class Framework(AbstractAlgorithm):
                 # Algorithm has finished
                 self.FLAG_STATUS_completeTree = True
                 totalLen = sum(np.array(self.S['dist']))
-                MyLogger.add_message("Finished: "+ str(totalLen), __name__, "INFO")
+
+                my_logger.info("Finished: {}".format(totalLen))
 
                 # Add expanded node stats
                 self.S['stats']['expanded_nodes'] = GenericSearch.total_expanded_nodes
@@ -921,69 +932,73 @@ class Framework(AbstractAlgorithm):
             self.FLAG_STATUS_pathConverged = False
 
     def debug_nongoals(self):
-        MyLogger.add_message("SHOWING EXCLUDED GOALS", __name__, "DEBUG")
-        MyLogger.add_message("GGGGGGGGGGGGGGGGGGGGGG", __name__, "DEBUG")
+        my_logger.debug("SHOWING EXCLUDED GOALS")
+        my_logger.debug("GGGGGGGGGGGGGGGGGGGGGG")
         for c in self.comps:
             c_terms= [self.terminals[t] for t in c]
             nongoals = set(range(len(self.terminals))) - set(self.comps[c].goal)
             nongoal_terms = [self.terminals[t] for t in nongoals]
-            MyLogger.add_message("comp: {}, not in goal: {}, comp_terms: {}, goal_terms: {}".format(c, nongoals, c_terms, nongoal_terms), __name__, "DEBUG")
-
+            # MyLogger.add_message("comp: {}, not in goal: {}, comp_terms: {}, goal_terms: {}".format(c, nongoals, c_terms, nongoal_terms), __name__, "DEBUG")
+            my_logger.debug("comp: {}, not in goal: {}, comp_terms: {}, goal_terms: {}".format(c, nongoals, c_terms, nongoal_terms))
     def debug_bounds(self, c):
         print("comp: ", c, "fmin: ", self.comps[c].fmin, "gmin: ", self.comps[c].gmin, "lmin: ", self.comps[c].lmin)
 
     def debug_fmin(self):
         # Log f-values
-        MyLogger.add_message("SHOWING FMIN VALUES", __name__, "DEBUG")
-        MyLogger.add_message("FFFFFFFFFFFFFFFFFFF", __name__, "DEBUG")
-
+        my_logger.debug("SHOWING FMIN GOALS")
+        my_logger.debug("FFFFFFFFFFFFFFFFFFF")
         minVal = None
         for i,j in self.comps.items(): 
-            MyLogger.add_message("comp: {}, terminals: {}, fmin: {}".format(i, [self.terminals[k] for k in i], j.fmin), __name__, "DEBUG")
+            # MyLogger.add_message("comp: {}, terminals: {}, fmin: {}".format(i, [self.terminals[k] for k in i], j.fmin), __name__, "DEBUG")
+            my_logger.debug("comp: {}, terminals: {}, fmin: {}".format(i, [self.terminals[k] for k in i], j.fmin))
             if minVal is None or j.fmin < minVal:
                 minVal= j.fmin
         return minVal
 
     def debug_gmin(self):
         # Log g-values
-        MyLogger.add_message("SHOWING GMIN VALUES", __name__, "DEBUG")
-        MyLogger.add_message("GGGGGGGGGGGGGGGGGGG", __name__, "DEBUG")
+        my_logger.debug("SHOWING GMIN VALUES")
+        my_logger.debug("GGGGGGGGGGGGGGGGGGG")
         minVal = None
         for i,j in self.comps.items(): 
-            MyLogger.add_message("comp: {}, terminals: {}, gmin: {}".format(i, [self.terminals[k] for k in i], j.gmin), __name__, "DEBUG")
+            # MyLogger.add_message("comp: {}, terminals: {}, gmin: {}".format(i, [self.terminals[k] for k in i], j.gmin), __name__, "DEBUG")
+            my_logger.debug("comp: {}, terminals: {}, gmin: {}".format(i, [self.terminals[k] for k in i], j.gmin))
             if minVal is None or j.gmin < minVal:
                 minVal= j.gmin
         return minVal
 
     def debug_pmin(self):
         # Log p-values
-        MyLogger.add_message("SHOWING PMIN VALUES", __name__, "DEBUG")
-        MyLogger.add_message("PPPPPPPPPPPPPPPPPPP", __name__, "DEBUG")
+        my_logger.debug("SHOWING PMIN VALUES")
+        my_logger.debug("PPPPPPPPPPPPPPPPPPP")
         minVal = None
         for i,j in self.comps.items(): 
-            MyLogger.add_message("comp: {}, terminals: {}, pmin: {}".format(i, [self.terminals[k] for k in i], j.pmin), __name__, "DEBUG")
+            # MyLogger.add_message("comp: {}, terminals: {}, pmin: {}".format(i, [self.terminals[k] for k in i], j.pmin), __name__, "DEBUG")
+            my_logger.debug("comp: {}, terminals: {}, pmin: {}".format(i, [self.terminals[k] for k in i], j.pmin))
             if minVal is None or j.pmin < minVal:
                 minVal= j.pmin
         return minVal
 
     def debug_lmin(self):
-        MyLogger.add_message("SHOWING LMIN VALUES", __name__, "DEBUG")
-        MyLogger.add_message("LLLLLLLLLLLLLLLLLLL", __name__, "DEBUG")
+        my_logger.debug("SHOWING LMIN VALUES")
+        my_logger.debug("LLLLLLLLLLLLLLLLLLL")
         minVal = None
         for i,j in self.comps.items(): 
-            MyLogger.add_message("comp: {}, terminals: {}, lmin: {}".format(i, [self.terminals[k] for k in i], j.lmin), __name__, "DEBUG")
+            # MyLogger.add_message("comp: {}, terminals: {}, lmin: {}".format(i, [self.terminals[k] for k in i], j.lmin), __name__, "DEBUG")
+            my_logger.debug("comp: {}, terminals: {}, lmin: {}".format(i, [self.terminals[k] for k in i], j.lmin))
             if minVal is None or j.lmin < minVal:
                 minVal= j.lmin
         return minVal
 
     def debug_rmin(self):
-        MyLogger.add_message("SHOWING RMIN VALUES", __name__, "DEBUG")
-        MyLogger.add_message("RRRRRRRRRRRRRRRRRRR", __name__, "DEBUG")
+        my_logger.debug("SHOWING RMIN VALUES")
+        my_logger.debug("RRRRRRRRRRRRRRRRRRR")
         minVal = None
         for i,j in self.comps.items(): 
-                MyLogger.add_message("comp: {}, terminals: {}, rmin: {}".format(i, [self.terminals[k] for k in i], j.rmin), __name__, "DEBUG")
-                if minVal is None or j.rmin < minVal:
-                    minVal= j.rmin
+            # MyLogger.add_message("comp: {}, terminals: {}, rmin: {}".format(i, [self.terminals[k] for k in i], j.rmin), __name__, "DEBUG")
+            my_logger.debug("comp: {}, terminals: {}, rmin: {}".format(i, [self.terminals[k] for k in i], j.rmin))
+            if minVal is None or j.rmin < minVal:
+                minVal = j.rmin
         return minVal    
 
     @abstractmethod
@@ -1053,8 +1068,8 @@ class Framework(AbstractAlgorithm):
             # self.bound_tests[2].append(self.debug_lmin())
             # self.bound_tests[3].append(self.debug_gmin())
 
-            MyLogger.add_message("============================================================", __name__, "Debug")
-            MyLogger.add_message("Start of Loop: {}".format(self.run_debug), __name__, "Debug")
+            my_logger.debug("============================================================")
+            my_logger.debug("Start of Loop: {}".format(self.run_debug))
 
             # self.fmin_test.append(self.debug_fmin())
             # if (49, 34, 5) in self.comps:
@@ -1090,7 +1105,7 @@ class Framework(AbstractAlgorithm):
             MyTimer.add_time("tree_check()_time", end - start )
             
             # keep track of loops (debugging purposes)
-            MyLogger.add_message("End of Loop: {}".format(self.run_debug), __name__, "Debug")
+            my_logger.debug("End of Loop: {}".format(self.run_debug))
             self.run_debug += 1
 
 

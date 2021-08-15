@@ -1,4 +1,4 @@
-"""This module provides an interface to the built-in logging module"""
+"""DEPRECATED: This module provides an interface to the built-in logging module"""
 
 import logging 
 import steinerpy.config as cfg

@@ -1,8 +1,16 @@
 import unittest
 
 import steinerpy.config as cfg
-cfg.Animation.visualize = True
+cfg.Animation.visualize = False
 cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+
+# change logging type test
+# cfg.Misc.log_conf["handlers"]["console"]["formatter"] = "default"
+
+# change console level
+# cfg.Misc.log_conf["handlers"]["console"]["level"] = "DEBUG"
+# reload log conf
+# cfg.reload_log_conf()
 
 from steinerpy.library.graphs.graph import GraphFactory
 from steinerpy.algorithms import SstarHS, SstarHS0, SstarBS

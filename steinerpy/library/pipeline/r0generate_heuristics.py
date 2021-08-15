@@ -8,7 +8,9 @@ For larger graphs (i.e > 700 nodes), we will have to resort to using "landmarks"
 a running limited number of Dijkstra search. Doing so will give a set of "lower bounds".
 
 """
-from steinerpy.library.logger import MyLogger
+import logging
+
+my_logger = logging.getLogger(__name__)
 
 class GenerateHeuristics:
     #user preloaded
@@ -22,12 +24,12 @@ class GenerateHeuristics:
         # STOP THE USER IF THERE ARE TOO MANY NODES
         if n > 800:
             # use landmark heuristic method
-            MyLogger.add_message("GENERATING LANDMARKS", __name__, "INFO")
+            my_logger.info("GENERATING LANDMARKS")
 
             return cls.gen_landmark_heuristic(graph, processes=processes)
         else:
             # find all pairs shortest distance
-            MyLogger.add_message("ALL PAIRS SHORTEST DISTANCE", __name__, "INFO")
+            my_logger.info("Computing ALL PAIRS SHORTEST DISTANCE")
             return cls.gen_all_pairs_shortest_dist(graph, processes=processes)
 
     @staticmethod

@@ -3,7 +3,6 @@ import math
 import numpy as np
 from functools import partial
 
-from steinerpy.library.logger import MyLogger
 from steinerpy.library.search.search_algorithms import AStarSearch
 from steinerpy.library.misc.utils import Progress
 

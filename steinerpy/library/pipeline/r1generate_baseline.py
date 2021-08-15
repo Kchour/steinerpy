@@ -9,14 +9,17 @@ import math
 import numpy as np
 import itertools as it
 from functools import partial
+import logging
 
 from steinerpy.library.search.all_pairs_shortest_path import AllPairsShortestPath
 from steinerpy.library.search.search_algorithms import AStarSearch
-from steinerpy.library.logger import MyLogger
+# from steinerpy.library.logger import MyLogger
 from steinerpy.context import Context
 import steinerpy.config as cfg
 from steinerpy.library.misc.utils import Progress
 # from steinerpy.algorithms.kruskal import Kruskal
+
+my_logger = logging.getLogger(__name__)
 
 class GenerateBaseLine:
     """Generate a baseline file using Kruskal's algorithm, to help compare with S* algorithm
@@ -164,7 +167,7 @@ class GenerateBaseLine:
         # Run Kruskals on each and save results
         solution = []
         for ndx, t in enumerate(self._terminals):
-            MyLogger.add_message("Running terminals: {}".format(t), __name__, "INFO")
+            my_logger.info("Running terminals: {}".format(t))
 
             # ko = Kruskal(self.graph, t)
             # ko.run_algorithm()
@@ -178,7 +181,7 @@ class GenerateBaseLine:
                     solution.append(context.return_solutions())
                     keepRunning = False
                 except:
-                    MyLogger.add_message("one or more terminals is landlocked! In ndx {}, with terminals: {}".format(ndx,t), __name__, "CRITICAL")
+                    my_logger.error("one or more terminals is landlocked! In ndx {}, with terminals: {}".format(ndx,t))
                     # Generate new terminals and replace the ones we have right now
                     t = [list(i) for i in self.create_terminals()][0]
                     self._terminals[ndx] = t

@@ -10,7 +10,7 @@ profiler = cProfile.Profile()
 random.seed(123)    # 50 terminal
 # random.seed(1234)    # 2 terminal
 
-
+# THE USER CAN SPECIFY A CUSTOM LOCATION AS DESIRED
 cwfd = os.path.dirname(os.path.abspath(__file__))
 # heu_path = os.path.join(cwfd, "..", "heuristic")
 heu_path = "/tmp"
@@ -25,7 +25,7 @@ import steinerpy.config as cfg                              # to ensure heuristi
 from steinerpy.context import Context                       # helper to load graph and run algorithms
 
 # Visualize things
-# cfg.Animation.visualize = True
+cfg.Animation.visualize = True
 
 # location to save preproessed heuristics (in tmp)
 save_file = os.path.join(heu_path, "den312d.map.pkl")
@@ -51,20 +51,23 @@ T = list(T)
 
 further_save_file = os.path.join(heu_path, "den312d.map.land-to-apsp.pkl")
 
-# generate heuristics for den312d.map if not found 
-if not os.path.exists(save_file):
+class TestCreateAndRunHeuristics(unittest.TestCase):
 
-    # generate heuristics and save it to the desired file_location
-    gh = GenerateHeuristics.gen_and_save_results(graph, file_location=heu_path, file_name="den312d.map.pkl", processes=cpu_count)
-    
-    # convert landmarks to apsp for efficiency
-    if gh['type'] == "LAND":
-        GenerateHeuristics.convert_land_to_apsp(data=gh, output=further_save_file)
-
-
-class TestGenerateHeuristics(unittest.TestCase):
-
+    @unittest.skip("SKIPPING due to length of time")
     def test_load_heuristics_from_disk_run_sstar(self):
+     
+        # generate heuristics for den312d.map if not found 
+        # THIS IS TIME CONSUMING
+        if not os.path.exists(save_file):
+
+            # generate heuristics and save it to the desired file_location
+            gh = GenerateHeuristics.gen_and_save_results(graph, file_location=heu_path, file_name="den312d.map.pkl", processes=cpu_count)
+            
+            # convert landmarks to apsp for efficiency
+            if gh['type'] == "LAND":
+                GenerateHeuristics.convert_land_to_apsp(data=gh, output=further_save_file)
+
+
 
         # load preprocessed heuristic from disk
         GenerateHeuristics.load_results(further_save_file)

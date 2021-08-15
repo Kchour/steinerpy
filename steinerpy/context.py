@@ -1,8 +1,11 @@
 """ This module allows the user to select an algorithm to run"""
 
-from steinerpy.library.logger import MyLogger
+import logging
+
 from .algorithms import Unmerged, SstarHS, SstarHS0, Kruskal, SstarBS, SstarMM, SstarMM0
 from steinerpy.library.graphs.graph import GraphFactory
+
+my_logger = logging.getLogger(__name__)
 
 class Context:
     """ The Context class is responsible for passing a user's request to run a specific algorithm
@@ -73,7 +76,7 @@ class Context:
         else:
             raise ValueError("Strategy {} is not found".format(self.strategy))
         # Log run
-        MyLogger.add_message("Running: "+self.strategy, __name__, "INFO")
+        my_logger.info("Running {}".format(self.strategy))
         self.instances[self.strategy].run_algorithm(**kwargs)
         # Return True when no errors
         return True
