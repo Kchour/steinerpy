@@ -4,12 +4,18 @@ import os
 import sys
 import logging
 
+# FOR DETERMINSTIC BEHAVIOR
+import random 
+random.seed(456)
+
 import steinerpy.config as cfg
 cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 cfg.Animation.visualize = False
 
 from steinerpy.library.graphs.graph import GraphFactory
 from steinerpy.library.pipeline.r2generate_results import GenerateResultsMulti, GenerateResults
+
+
 
 # Create square grid using GraphFactory
 minX = -15			# [m]
@@ -37,7 +43,7 @@ class TestGenerateResults(unittest.TestCase):
         algs_to_run = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0"]
         gen_mr = GenerateResults(graph=sq, save_path=save_path, file_behavior="OVERWRITE", algs_to_run=algs_to_run)
 
-        gen_mr.randomly_generate_instances(2, 10)
+        gen_mr.randomly_generate_instances(5, 25)
 
         res = gen_mr.run()
 
@@ -55,11 +61,13 @@ class TestGenerateResults(unittest.TestCase):
         algs_to_run = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0"]
         gen_mr = GenerateResultsMulti(graph=sq, save_path=save_path, file_behavior="OVERWRITE", algs_to_run=algs_to_run)
 
-        gen_mr.randomly_generate_instances(100, 25)
+        gen_mr.randomly_generate_instances(5, 25)
+
+        instances = gen_mr.instances
+        print(instances)
 
         res = gen_mr.run()
 
-        instances = res['terminals']
 
         for ndx in range(len(instances)):
             mst_values = []

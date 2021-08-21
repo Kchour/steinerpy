@@ -6,6 +6,10 @@ cfg.Animation.visualize = False
 from steinerpy.library.graphs.graph import GraphFactory
 from steinerpy.library.pipeline.r1generate_baseline import GenerateBaseLine
 
+# FOR DETERMINSTIC BEHAVIOR
+import random 
+random.seed(456)
+
 # Create square grid using GraphFactory
 minX = -15			# [m]
 maxX = 15   
@@ -29,11 +33,15 @@ class TestGenerateBaseline(unittest.TestCase):
         save_path = os.path.join(cwd, "baseline_test_single.pkl")
         gen_bs = GenerateBaseLine(graph=sq, save_path=save_path, file_behavior="OVERWRITE", cache_dir=None)
         # Generate random instances
-        gen_bs.randomly_generate_instances(num_of_inst=2, num_of_terms=3)
-        # run and store solution
-        res1 = gen_bs.run()
+        gen_bs.randomly_generate_instances(num_of_inst=5, num_of_terms=25)
+        
         # get instances
         instances = gen_bs.instances
+        print(instances)
+
+        # run and store solution
+        res1 = gen_bs.run()
+
 
         # now try seeing if FileExistError is raised
         # get previous instances
