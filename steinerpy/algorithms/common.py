@@ -364,7 +364,7 @@ class Common:
                 lh = c.lmin
 
             # DEBUG PRINT
-            c_lb = max(c.fmin, 2*c.rmin, lh)
+            c_lb = max(c.fmin, 2*c.rmin)
             if c_lb < min_g_lb:
                 min_g_lb = c_lb
             # print(path_distance, c.id, c.fmin, c.rmin, c.lmin, c_lb)
@@ -407,9 +407,9 @@ class Common:
         comp2 = comps[t2]    
 
         # This is Nicholson's Criteria
-        # if bestVal <= comp1.g[comp1.current] + comp2.g[comp2.current]:
-        # if bestVal < comp1.currentF + comp2.currentF:    
-        # if bestVal <= max(comp1.currentF, comp2.currentF): 
+        # if bestVal <= comp1.gmin + comp2.gmin:
+
+        # This is Pohl's Criteria
         if bestVal <= max(comp1.fmin, comp2.fmin):
             # Shortest path is 
             return True

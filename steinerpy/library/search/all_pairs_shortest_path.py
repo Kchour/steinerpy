@@ -2,12 +2,16 @@ import multiprocessing as mp
 import math
 import numpy as np
 from functools import partial
+import logging
+from timeit import default_timer as timer
 
 from steinerpy.library.search.search_algorithms import AStarSearch
 from steinerpy.library.misc.utils import Progress
 
 # DEBUG
 import os
+
+my_logger = logging.getLogger(__name__)
 
 class AllPairsShortestPath:
 
@@ -30,6 +34,7 @@ class AllPairsShortestPath:
         graph = G
 
         D = {}
+        STATS = {"time": 0, "expanded_nodes": 0}
 
 
         # Run Dijkstra based on sampling technique:
@@ -83,8 +88,11 @@ class AllPairsShortestPath:
                 flatten_results = True
                 
         try:
+            my_logger.info("Running Parallel Dijkstra: ")
             for result in pool.imap_unordered(cls._run_dijkstra, node_tasks):
                 D[result[0]] = result[1]
+                STATS["expanded_nodes"] += result[2]
+                STATS["time"] += result[3]
                 job_progress.next()
                 pass
         except Exception as e:
@@ -93,6 +101,7 @@ class AllPairsShortestPath:
             pool.join()
             raise e
 
+        job_progress.finish()
         pool.close()
         pool.join()    
         if flatten_results:
@@ -100,15 +109,19 @@ class AllPairsShortestPath:
                 for vkey, vval in value.items():
                     D[(key, vkey)] = vval
                 del D[key]
-        return dict(D)
+        return dict(D), STATS
 
     @staticmethod
     def _run_dijkstra(start):
         search = AStarSearch(graph, start, None, "zero", False)
         # print(os.getpid(), start)
+        start_time = timer()
         search.use_algorithm()
-        return start, search.g
-
+        # number of nodes expanded
+        num_of_expanded = AStarSearch.total_expanded_nodes
+        # time
+        total_time = timer() - start_time
+        return start, search.g, num_of_expanded, total_time
 
     @classmethod
     def floyd_warshall_simple_slow(cls, G):

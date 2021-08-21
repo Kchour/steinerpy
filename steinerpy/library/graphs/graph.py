@@ -24,6 +24,8 @@ Todo:
 from abc import ABC, abstractmethod
 import numpy as np
 import copy
+
+from steinerpy.library.graphs import graph
 from .grid_utils import init_grid
 from .grid_utils import get_index
 from .grid_utils import get_world
@@ -53,7 +55,7 @@ class IGraph(ABC):
     def edge_count(self):
         pass
     
-class GraphFactory(ABC):
+class GraphFactory:
     """ A factory class used to create graph objects
     
     Create a square grid
@@ -127,10 +129,14 @@ class SquareGrid(IGraph):
         - Fix height and width
 
     """
-    def __init__(self, grid=None, grid_dim=None, grid_size=None, n_type=4, obstacles=None):
+    def __init__(self, grid=None, grid_dim=None, grid_size=None, n_type=4, obstacles=None, name=None, graph_type="undirected"):
+        self.name = None
+
         self.obstacles = obstacles
         self.xwidth = grid_dim[1] - grid_dim[0]  + 1
         self.yheight = grid_dim[3] - grid_dim[2] + 1
+
+        self.graph_type = graph_type
 
         # FIXME: the corrected width and height
         # self.xwidth = grid_dim[1] - grid_dim[0] +  1
@@ -396,11 +402,11 @@ class SquareGridDepot(SquareGrid):
         zero-cost edges between depots
     
     """
-    def __init__(self, grid=None, grid_dim=None, grid_size=None, n_type=4, obstacles=None, depots=None):
+    def __init__(self, grid=None, grid_dim=None, grid_size=None, n_type=4, obstacles=None, depots=None, name=None, graph_type="undirected"):
         if depots is None:
             raise ValueError("keyword 'depots' is empty")
 
-        super().__init__(grid, grid_dim, grid_size, n_type, obstacles)
+        super().__init__(grid, grid_dim, grid_size, n_type, obstacles, name=name, graph_type=graph_type)
 
         # Save depots
         self.depots = depots
@@ -483,9 +489,12 @@ class MyGraph(IGraph):
         - Need to update Adjaceny list, whenever cost table is updated!
 
     """
-    def __init__(self, edge_dict=None, graph_type="undirected", visualize=False):
+    def __init__(self, edge_dict=None, graph_type="undirected", visualize=False, name=None):
+        self.name = name
         self.adjList = {}
         self.edge_dict = copy.deepcopy(edge_dict) 
+        self.graph_type = graph_type
+        
         if graph_type is "undirected":
             for key in edge_dict.keys():
                 self.edge_dict[(key[1], key[0])] = edge_dict[key]

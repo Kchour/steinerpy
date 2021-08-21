@@ -8,7 +8,6 @@ from steinerpy.context import Context
 
 import steinerpy.config as cfg
 
-cwd = cfg.pkg_dir
 cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 cfg.Animation.visualize = True
 
@@ -53,12 +52,8 @@ class TestParser(unittest.TestCase):
         # mapf
 
         # define filename to use
-        # filename = "results/online_data/mapf/Berlin_1_256.map"
-        # filename = "results/online_data/mapf/maze-32-32-2.map"
-        filename = os.path.join(cfg.data_dir,"mapf", "maze-32-32-2.map")
-        # Get package file location
-        # cwd = os.path.dirname(os.path.realpath(steinerpy.__file__))+"/../"
-        filepath = os.path.join(cwd, filename)
+        filepath = os.path.join(cfg.data_dir,"mapf", "maze-32-32-2.map")
+        # filepath = os.path.join(cfg.data_dir,"mapf", "Berlin_1_256.map")
 
         # Return edge dictionary and terminal list
         # obs, height, width = DataParser.parse(filepath, dataset_type="mapf")

@@ -679,3 +679,6 @@ venv
 
 # ignore large preprocessed heuristic files
 tests/heuristic
+
+# ignore cache files
+tests/advanced/randomized_tests/temp/

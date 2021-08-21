@@ -1,4 +1,4 @@
-from .r1generate_baseline import GenerateBaseLine, GenerateBaseLineMulti
+from .r1generate_baseline import GenerateBaseLine
 from .r2generate_results import GenerateResults, GenerateResultsMulti
 from .r1agenerate_baseline_obstacles import GenerateBaselineObstacles
 
