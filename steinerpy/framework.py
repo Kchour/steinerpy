@@ -348,8 +348,6 @@ class Framework(AbstractAlgorithm):
                         else:                           
                             self.UFeasPath.update({t2: {t1: [UFeas, commonNode]}})  
 
-
-
             # UFeas = None                
             # # updateSet = set(updatedComp.frontier.elements)
             # for k in updateSet:
@@ -428,18 +426,23 @@ class Framework(AbstractAlgorithm):
                         my_logger.error("Update goal error!", exc_info=True)
                         raise e_
 
-                    # # reprioritze
-                    if self.comps[t1].goal:
-                        self.comps[t1].reprioritize()
+                    #################################
+                    # reprioritze
+                    # Adds overhead
+                    #################################
+                    if cfg.Algorithm.reprioritize_after_sp:
+                        if self.comps[t1].goal:
+                            self.comps[t1].reprioritize()
 
-                    if self.comps[t2].goal:
-                        self.comps[t2].reprioritize()  
+                        if self.comps[t2].goal:
+                            self.comps[t2].reprioritize()  
 
-                    # # Delete respective components from nodeQueue
-                    if t1 in self.nodeQueue.elements:
-                        self.nodeQueue.delete(t1)
-                    if t2 in self.nodeQueue.elements:
-                        self.nodeQueue.delete(t2)
+                        # Delete respective components from nodeQueue
+                        if t1 in self.nodeQueue.elements:
+                            self.nodeQueue.delete(t1)
+                        if t2 in self.nodeQueue.elements:
+                            self.nodeQueue.delete(t2)
+                    #################################
 
                     # MyLogger.add_message("goals(POST) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
                     # MyLogger.add_message("goals(POST) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
@@ -1122,7 +1125,7 @@ class Framework(AbstractAlgorithm):
 
         if cfg.Misc.profile_frame:
             cpr.disable()
-            cpr.print_stats(sort='time')
+            cpr.print_stats(sort='cumtime')
 
         # DEBUG
         # for a in zip(self.bound_tests[0], self.bound_tests[1], self.bound_tests[2], self.bound_tests[3]): print(a)

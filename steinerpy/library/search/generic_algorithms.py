@@ -650,10 +650,15 @@ class GenericSearch(Search):
 
             # Try updating the F costs here explicitly if mergedGoal is not empty
             # if mergedGoal:
-            ################ COMMENT AS NEEDED ##############
-            priority = self.fCosts(mergedGS, mergedG, next)
+            ################################################
+            # REPRIORTIZING AFTER MERGE
+            ################################################
+            if cfg.Algorithm.reprioritize_after_merge:
+                priority = self.fCosts(mergedGS, mergedG, next)
+            ################################################
 
             mergedF.put(next, priority)
+
             # Also update the gmin, rmin, fmin heaps
             mergedGS.gmin_heap.put(next, mergedG[next])
             if current is None:
@@ -663,7 +668,6 @@ class GenericSearch(Search):
             mergedGS.fmin_heap.put(next, mergedGS.f[next])
 
             mergedP[next] = current
-            # mergedG[next] = g_next
 
         # removed start="Temp" from frontier and related heaps
         mergedGS.frontier.delete('Temp')
@@ -724,7 +728,11 @@ class GenericSearch(Search):
             dataClosedSet = np.array(list(closedSet)).T.tolist()
             dataSetF = np.array(list(setF)).T.tolist()
             AnimateV2.add_line("closed_{}".format(mergedGS.id), dataClosedSet[0], dataClosedSet[1], 'mo', markersize=10)
-            AnimateV2.add_line("neighbors_{}".format(mergedGS.id), dataSetF[0], dataSetF[1], 'cD', markersize=7, draw_clean=True)
+            # if for some reason the open set is empty, don't draw
+            if dataSetF:
+                AnimateV2.add_line("neighbors_{}".format(mergedGS.id), dataSetF[0], dataSetF[1], 'cD', markersize=7, draw_clean=True)
+            else:
+                AnimateV2.add_line("neighbors_{}".format(mergedGS.id), [], [], 'cD', markersize=7, draw_clean=True)
 
         return mergedGS
         

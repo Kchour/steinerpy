@@ -13,7 +13,7 @@ cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 # cfg.reload_log_conf()
 
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy.algorithms import SstarHS, SstarBS
+from steinerpy.algorithms import SstarHS, SstarBS, SstarMM, SstarMM0
 
  # Spec out our squareGrid
 minX = -15			# [m]

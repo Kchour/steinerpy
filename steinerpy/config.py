@@ -136,6 +136,20 @@ class Algorithm:
     hFactor = 1.0    # Scalng factor for heuristics (located in common.grid_based_heuristics)
     graph_domain = "grid" # grid, generic
     
+    ########################################################
+    # The following operations change a component's frontier costs
+    # which theoretically helps reduce node expansions.
+    # In practice, this increases overhead. 
+    # Works well when heuristics are really good. 
+    # Ultimately performance depends on the problem instance with
+    # factors like how close terminals are, obstacle positions, etc..
+    #########################################################
+
+    # Change the 2 components' frontier costs corresponding to a merge
+    reprioritize_after_merge = True     
+    # Change the 2 components' frontier costs corresponding to a shortest path
+    reprioritize_after_sp = False       
+    
 
 ########################################################
 # DEFAULT SETTINGS
