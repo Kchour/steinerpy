@@ -5,7 +5,7 @@ cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 
 from steinerpy.context import Context
 from steinerpy.library.graphs.graph import GraphFactory, SquareGridDepot
-from steinerpy.algorithms import SstarHS, SstarHS0, SstarBS
+from steinerpy.algorithms import SstarHS, SstarBS
 from steinerpy.library.graphs.parser import DataParser
 
 class TestSteinerSstar(unittest.TestCase):

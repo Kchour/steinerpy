@@ -16,7 +16,6 @@ from steinerpy.context import Context
 import steinerpy.config as cfg
 from steinerpy.library.misc.utils import Progress
 from steinerpy.library.graphs import IGraph
-# from steinerpy.algorithms.kruskal import Kruskal
 
 my_logger = logging.getLogger(__name__)
 
@@ -65,7 +64,7 @@ class GenerateBaseLine(Generate):
     reconstruct_path_ornot = True
 
     def __init__(self, graph: IGraph, save_path: str="", file_behavior: Union["SKIP", "HALT", "RENAME", "OVERWRITE"]="HALT", 
-                cache_dir: str=""):
+                cache_dir: str="", load_from_disk=False):
         """
         This class will behave differently depending on the number and type of inputs
 
@@ -81,7 +80,7 @@ class GenerateBaseLine(Generate):
             Figure out caching
 
         """        
-        super().__init__(graph, save_path, file_behavior)
+        super().__init__(graph, save_path, file_behavior, load_from_disk)
         self.cache_dir = cache_dir   
         self.solution = []
 

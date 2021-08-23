@@ -131,8 +131,10 @@ class Animation:
 
 class Algorithm:
     # Algo runtime settings
-    sstar_heuristic_type = "diagonal_uniform" #grid-based heuristics (manhattan, euclidean, diagonal_uniform, diagonal_nonuniform, preprocess, custom)
+    sstar_heuristic_type = "diagonal_uniform" # grid-based heuristics (manhattan, euclidean, diagonal_uniform, diagonal_nonuniform, preprocess, custom)
+                                              # zero otherwise
     hFactor = 1.0    # Scalng factor for heuristics (located in common.grid_based_heuristics)
+    graph_domain = "grid" # grid, generic
     
 
 ########################################################

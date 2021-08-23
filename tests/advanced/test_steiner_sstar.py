@@ -1,7 +1,7 @@
 import unittest
 
 import steinerpy.config as cfg
-cfg.Animation.visualize = True
+# cfg.Animation.visualize = True
 cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 
 # change logging type test
@@ -13,7 +13,7 @@ cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 # cfg.reload_log_conf()
 
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy.algorithms import SstarHS, SstarHS0, SstarBS
+from steinerpy.algorithms import SstarHS, SstarBS
 
  # Spec out our squareGrid
 minX = -15			# [m]

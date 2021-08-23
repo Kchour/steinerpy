@@ -9,43 +9,43 @@ from steinerpy.context import Context
 import steinerpy.config as cfg
 
 cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
-cfg.Animation.visualize = True
+# cfg.Animation.visualize = True
 
 class TestParser(unittest.TestCase):
 
-    # def test_simple_parser_steinlib(self):
-    #     # define filename to use
-    #     filename = os.path.join(cfg.data_dir,"steinlib/B/b01.stp")
-    #     # Get package file location
-    #     filepath = os.path.join(cwd, filename)
-    #     # Return edge dictionary and terminal list
-    #     g, T = DataParser.parse(filepath, dataset_type="steinlib")        
-    #     # Create context, run and store results
-    #     context = Context(g, T)
-    #     context.run('Kruskal')
-    #     results1 = context.return_solutions()
-    #     context.run('S*-HS0')
-    #     results2 = context.return_solutions()
-    #     # assert results
-    #     self.assertEqual(sum(results1['dist']), sum(results2['dist']))
+    def test_simple_parser_steinlib(self):
+        # define filename to use
+        filename = os.path.join(cfg.data_dir,"steinlib/B/b01.stp")
+        # Get package file location
+        # filepath = os.path.join(cwd, filename)
+        # Return edge dictionary and terminal list
+        g, T = DataParser.parse(filename, dataset_type="steinlib")        
+        # Create context, run and store results
+        context = Context(g, T)
+        context.run('Kruskal')
+        results1 = context.return_solutions()
+        context.run('S*-BS')
+        results2 = context.return_solutions()
+        # assert results
+        self.assertEqual(sum(results1['dist']), sum(results2['dist']))
 
-    # def test_simple_parser_steinlib_format(self):
-    #     # Some online_data options
+    def test_simple_parser_steinlib_format(self):
+        # Some online_data options
         
-    #     # define filename to use
-    #     filename = os.path.join(cfg.data_dir,"simple/test.stp")
-    #     # Get package file location
-    #     filepath = os.path.join(cwd, filename)
-    #     # Return edge dictionary and terminal list
-    #     g, T = DataParser.parse(filepath, dataset_type="steinlib")        
-    #     # Create context, run and store results
-    #     context = Context(g, T)
-    #     context.run('Kruskal')
-    #     results1 = context.return_solutions()
-    #     context.run('S*-HS0')
-    #     results2 = context.return_solutions()
-    #     # assert results
-    #     self.assertEqual(sum(results1['dist']), sum(results2['dist'])) 
+        # define filename to use
+        filename = os.path.join(cfg.data_dir,"simple/test.stp")
+        # Get package file location
+        # filepath = os.path.join(cwd, filename)
+        # Return edge dictionary and terminal list
+        g, T = DataParser.parse(filename, dataset_type="steinlib")        
+        # Create context, run and store results
+        context = Context(g, T)
+        context.run('Kruskal')
+        results1 = context.return_solutions()
+        context.run('S*-BS')
+        results2 = context.return_solutions()
+        # assert results
+        self.assertEqual(sum(results1['dist']), sum(results2['dist'])) 
 
     def test_simple_parser_mapf(self):
         # Some online_data options

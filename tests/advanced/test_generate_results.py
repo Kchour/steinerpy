@@ -4,7 +4,7 @@ import os
 import sys
 import logging
 
-# FOR DETERMINSTIC BEHAVIOR
+# TO KEEP THE TERMINALS THE SAME
 import random 
 random.seed(456)
 
@@ -43,7 +43,7 @@ class TestGenerateResults(unittest.TestCase):
         algs_to_run = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0"]
         gen_mr = GenerateResults(graph=sq, save_path=save_path, file_behavior="OVERWRITE", algs_to_run=algs_to_run)
 
-        gen_mr.randomly_generate_instances(5, 25)
+        gen_mr.randomly_generate_instances(5, 5)
 
         res = gen_mr.run()
 
@@ -61,13 +61,12 @@ class TestGenerateResults(unittest.TestCase):
         algs_to_run = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0"]
         gen_mr = GenerateResultsMulti(graph=sq, save_path=save_path, file_behavior="OVERWRITE", algs_to_run=algs_to_run)
 
-        gen_mr.randomly_generate_instances(5, 25)
+        gen_mr.randomly_generate_instances(5, 5)
 
         instances = gen_mr.instances
         print(instances)
 
         res = gen_mr.run()
-
 
         for ndx in range(len(instances)):
             mst_values = []
@@ -80,7 +79,8 @@ class TestGenerateResults(unittest.TestCase):
                     raise ValueError("Uh oh mst values don't match {} {} {}".format(algs_to_run, mst_values, instances[ndx]))
             except:
                 my_logger.warn("test_main_results_generate_multi", exc_info=True)
-
+                raise
+            
             # self.assertTrue(all(mst_values[0] == ele for ele in mst_values))   
     # def test_generate_results_multi(self):
     #     load_directory = os.path.dirname(__file__)

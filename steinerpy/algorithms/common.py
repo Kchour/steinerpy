@@ -356,15 +356,15 @@ class Common:
             # if fmin is None or c.fmin < fmin:
             #     fmin = c.fmin
             
-            # # if gmin1 is None or gmin1_c < gmin1:
-            # #     gmin1 = c.gmin
-            if c.lmin == 0:
-                lh = 2*c.gmin
-            else:
-                lh = c.lmin
+            # # # if gmin1 is None or gmin1_c < gmin1:
+            # # #     gmin1 = c.gmin
+            # if c.lmin == 0:
+            #     lh = 2*c.gmin
+            # else:
+            #     lh = c.lmin
 
             # DEBUG PRINT
-            c_lb = max(c.fmin, 2*c.rmin)
+            c_lb = max(c.fmin, 2*c.rmin, 2*c.gmin)
             if c_lb < min_g_lb:
                 min_g_lb = c_lb
             # print(path_distance, c.id, c.fmin, c.rmin, c.lmin, c_lb)
@@ -429,6 +429,13 @@ class Common:
         pass
 
     @staticmethod
+    def heuristic_func_wrap(*args, **kwargs):
+        if cfg.Algorithm.graph_domain == "grid":
+            return Common.grid_based_heuristics(*args, **kwargs)
+        elif cfg.Algorithm.graph_domain == "generic":
+            return Common.custom_heuristics(*args, **kwargs)
+
+    @staticmethod
     def grid_based_heuristics(type_, next, goal):
             """ Heuristics for a flat grid graph
 
@@ -439,12 +446,15 @@ class Common:
 
             Todo:
                 * Add support for 3D graphs
+                * Use a dict to map str keys to a heuristic function for speed!
 
             """
             try: 
                 (x1, y1) = next
                 (x2, y2) = goal
-                if type_ == 'manhattan':
+                if type_ == "zero":
+                    heuristic = 0.0
+                elif type_ == 'manhattan':
                     heuristic = abs(x1 - x2) + abs(y1 - y2)
                 elif type_ == 'euclidean':
                     v = [x2 - x1, y2 - y1]

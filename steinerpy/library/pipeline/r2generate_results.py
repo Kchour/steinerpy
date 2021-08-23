@@ -81,7 +81,7 @@ class GenerateResults(Generate):
         >>> gr.run_func()
 
     """
-    def __init__(self, graph: IGraph, save_path: str="", file_behavior: Union["SKIP", "HALT", "RENAME", "OVERWRITE"]="HALT", algs_to_run:List[str]=None):
+    def __init__(self, graph: IGraph, save_path: str="", file_behavior: Union["SKIP", "HALT", "RENAME", "OVERWRITE"]="HALT", algs_to_run:List[str]=None, load_from_disk=False):
         
         if algs_to_run is None:
             raise ValueError("No algorithms were specified!")
@@ -92,7 +92,7 @@ class GenerateResults(Generate):
 
         self.solution = {alg: [] for alg in self.algs_to_run}
 
-        super().__init__(graph, save_path, file_behavior)
+        super().__init__(graph, save_path, file_behavior, load_from_disk)
 
     def _generate(self):
         """Generate results defined by algs_to_run

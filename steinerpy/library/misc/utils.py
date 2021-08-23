@@ -193,7 +193,7 @@ class Progress:
         # the exact output you're looking for:
         # sys.stdout.write("[%-20s] %d%%" % ('='*i, 5*i))
         # incremental bar ===, length of bar, percentage 
-        perc = (100/(self.n-1)*self.i)
+        perc = (100/(self.n)*self.i+1)
         sys.stdout.write("[{:{}}] {:.1f}%".format("="*int(perc*self.bar_length/100), self.bar_length, perc))
         sys.stdout.flush()
         self.i+=1

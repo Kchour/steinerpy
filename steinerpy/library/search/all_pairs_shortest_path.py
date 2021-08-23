@@ -16,7 +16,7 @@ my_logger = logging.getLogger(__name__)
 class AllPairsShortestPath:
 
     @classmethod
-    def dijkstra_in_parallel(cls,G, processes=4, maxtasksperchild=1000, flatten_results=False, **kwargs):
+    def dijkstra_in_parallel(cls,G, processes=4, maxtasksperchild=1000, flatten_results=False, return_stats=False, **kwargs):
         """Solve APSP problem with running Dijkstra on each node. Alternatively,
         the user can specify a subset of nodes or a random percentage of all nodes
         to consider
@@ -28,6 +28,9 @@ class AllPairsShortestPath:
             random_sampling_percentage (int): optional
             nodes (list of IGraph nodes): optional
             random_sampling_limit (int): optional
+
+        Returns:
+            results (dict), stats (dict)
 
         """
         global graph
@@ -109,7 +112,10 @@ class AllPairsShortestPath:
                 for vkey, vval in value.items():
                     D[(key, vkey)] = vval
                 del D[key]
-        return dict(D), STATS
+        if return_stats:
+            return dict(D), STATS
+        else:
+            return dict(D)
 
     @staticmethod
     def _run_dijkstra(start):

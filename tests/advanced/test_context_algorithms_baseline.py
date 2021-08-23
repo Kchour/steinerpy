@@ -44,18 +44,13 @@ class TestAlgorithmsBaseLine(unittest.TestCase):
         # Use contextualizer to run algorithms (make sure debug visualizer is off)
         results = {
             'S*-unmerged': [],
-            'S*-HS':[], 
-            'S*-HS0': [], 
+            'S*-HS':[],  
         }
 
         # Fill 'Kruskal' results from baseline file
         for ndx, t in enumerate(data['terminals']):
             # Create context
             context = Context(graph, t)
-
-               #formerly dijkstra
-            context.run('S*-HS0')
-            results['S*-HS0'].append(context.return_solutions())
 
             # astar unmerged
             context.run('S*-unmerged')

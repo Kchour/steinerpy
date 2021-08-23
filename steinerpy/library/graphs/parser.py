@@ -40,7 +40,7 @@ class DataParser:
             edgeDict, terminalList = cls._regex_steinlib(lines, patterns)
 
             # Use GraphFactory class to create desired graph           
-            graph = GraphFactory.create_graph(type_="Generic", edge_dict=edgeDict)
+            graph = GraphFactory.create_graph(type_="Generic", edge_dict=edgeDict, graph_type="undirected")
 
             # return graph and terminalList
             print("parsed steinlib file!")

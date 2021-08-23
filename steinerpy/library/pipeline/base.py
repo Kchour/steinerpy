@@ -2,16 +2,21 @@ from typing import Union, List, Tuple
 import os
 import logging
 import random as rd
+import pickle
 
 from steinerpy.library.graphs import IGraph
 
 my_logger = logging.getLogger(__name__)
 
 class AFileHandle:
-
-    def __init__(self, save_path, file_behavior, ):
+    """
+        Load from disk only applicable during "skip" file behavior
+    """
+    def __init__(self, save_path:str, file_behavior:str, load_from_disk=False):
         self.file_behavior = file_behavior
         self.save_path = save_path
+        self.results = None
+        self.load_from_disk = load_from_disk
 
     def run(self):
         """Behavior specified by `file_behavior`
@@ -21,13 +26,26 @@ class AFileHandle:
             # halt program if file exists already!
             if os.path.exists(self.save_path):
                 raise FileExistsError('{} already exists!'.format(self.save_path))   
+            else:
+                self.results = self._generate()
+                return self.results
         elif self.file_behavior == "SKIP":
             # Simply move on, no need to halt
             if os.path.exists(self.save_path):
-                my_logger.info("".join(self.save_path, "already exists, but skipping"))
+                my_logger.info("".join((self.save_path, "already exists, but skipping")))
+                # try loading from disk if enabled
+                if self.load_from_disk == True:
+                    self.results = self._load()
+                    # make sure instances are loaded from disk too
+                    self.instances = self.results['terminals']
+                    return self.results
+            else:
+                self.results = self._generate()
+                return self.results
         elif self.file_behavior == "OVERWRITE":
             # Ignore existing baseline file and just run
-            return self._generate()
+            self.results = self._generate()
+            return self.results
         elif self.file_behavior == "RENAME":
             # rename output file by appending a counter. Increment by 1 if previous counter value exists!
             cnt = 1
@@ -39,18 +57,28 @@ class AFileHandle:
                 else:
                     self.save_path = temp
                     break
-            return self._generate()  
-    
+            self.results = self._generate()
+            return self.results
+
+    def _load(self):
+        """Load result from disk if desired
+        
+        """
+        with open(self.save_path, 'rb') as f:
+            my_logger.info("Loading results from file {}".format(self.save_path))
+            results = pickle.load(f)
+        
+        return results
     def _generate(self):
         """Run your generator here i.e. create results, output file etc.
         """
         pass
     
 class Generate(AFileHandle):
-    def __init__(self, graph: IGraph, save_path: str="", file_behavior: Union["SKIP", "HALT", "RENAME", "OVERWRITE"]="HALT"):
+    def __init__(self, graph: IGraph, save_path: str="", file_behavior: Union["SKIP", "HALT", "RENAME", "OVERWRITE"]="HALT", load_from_disk=False):
+        super().__init__(save_path, file_behavior, load_from_disk)
+        
         self.graph = graph
-        self.save_path = save_path
-        self.file_behavior = file_behavior
         self.instances: List[List[Tuple]] = None
 
     def randomly_generate_instances(self, num_of_inst: int, num_of_terms: int):
@@ -70,55 +98,36 @@ class Generate(AFileHandle):
 
     def _generate_random_instances_func(self, num_of_inst: int, num_of_terms: int):
 
-        minX, maxX, minY, maxY = self.graph.grid_dim
+
 
         list_of_instances = []
         for _ in range(num_of_inst):
             terminal_set = set()
             while len(terminal_set) < num_of_terms:
                 # randomly generate a point
-                pt = (rd.randint(minX, maxX), rd.randint(minY, maxY))
-                # make sure point is unique using set and not an obstacle!
-                if self.graph.obstacles is not None :
-                    if  pt not in self.graph.obstacles:
+                if "Square" in str(type(self.graph)):
+                    # SquareGrid based
+                    minX, maxX, minY, maxY = self.graph.grid_dim
+                    pt = (rd.randint(minX, maxX), rd.randint(minY, maxY))
+                     # make sure point is unique using set and not an obstacle!
+                    if self.graph.obstacles is not None :
+                        if  pt not in self.graph.obstacles:
+                            terminal_set.add(pt)
+                    else:
+                        # adding to set ensures unique-ness
                         terminal_set.add(pt)
                 else:
+                    # Generic graph
+                    pt = rd.choice(list(self.graph.vertices.keys()))
+                    # adding to set ensures unique-ness
                     terminal_set.add(pt)
             list_of_instances.append(list(terminal_set))
 
         return list_of_instances
 
-    def run(self):
-        """Behavior specified by `file_behavior`
-        
-        """
-        if self.file_behavior == "HALT":
-            # halt program if file exists already!
-            if os.path.exists(self.save_path):
-                raise FileExistsError('{} already exists!'.format(self.save_path))   
-        elif self.file_behavior == "SKIP":
-            # Simply move on, no need to halt
-            if os.path.exists(self.save_path):
-                my_logger.info("".join(self.save_path, "already exists, but skipping"))
-        elif self.file_behavior == "OVERWRITE":
-            # Ignore existing baseline file and just run
-            return self._generate()
-        elif self.file_behavior == "RENAME":
-            # rename output file by appending a counter. Increment by 1 if previous counter value exists!
-            cnt = 1
-            while True:
-                temp = self.save_path
-                if os.path.exists(temp):
-                    temp += str(cnt)
-                    cnt += 1
-                else:
-                    self.save_path = temp
-                    break
-            return self._generate()  
-
     def _generate(self):
         """
-            must return 
+            must return the following 
                {
                 'terminals': self.instances,
                 'solution': self.solution,

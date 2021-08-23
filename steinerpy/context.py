@@ -2,7 +2,7 @@
 
 import logging
 
-from .algorithms import Unmerged, SstarHS, SstarHS0, Kruskal, SstarBS, SstarMM, SstarMM0
+from .algorithms import Unmerged, SstarHS, Kruskal, SstarBS, SstarMM, SstarMM0
 from steinerpy.library.graphs.graph import GraphFactory
 
 my_logger = logging.getLogger(__name__)
@@ -63,8 +63,6 @@ class Context:
             self.instances[self.strategy] = Unmerged(self._graph, self._terminals)
         elif self.strategy == "S*-HS":
             self.instances[self.strategy] = SstarHS(self._graph, self._terminals)
-        elif self.strategy == "S*-HS0":
-            self.instances[self.strategy] = SstarHS0(self._graph, self._terminals)
         elif  self.strategy == "Kruskal":
             self.instances[self.strategy] = Kruskal(self._graph, self._terminals)
         elif self.strategy == "S*-BS":

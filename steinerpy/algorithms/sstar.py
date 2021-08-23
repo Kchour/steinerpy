@@ -51,8 +51,9 @@ class SstarHS(Framework):
         # hju = list(map(lambda goal: htypes(type_, next, goal), terminals))
         # hju = list(map(lambda goal: htypes(type_, next, goal), [terminals[i] for i in comps[object_.id]['destinations']]))
         # hju = list(map(lambda goal: htypes(type_, next, goal), [dest for dest in object_.goal]))
-        hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
-        
+        # hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
+        hju = list(map(lambda goal: Common.heuristic_func_wrap(type_=type_, next=next, goal=goal), object_.goal.values()))
+
         minH = min(hju)
         minInd = hju.index(minH)
         minGoal = object_.goal[list(object_.goal)[minInd]]
@@ -62,6 +63,7 @@ class SstarHS(Framework):
 
         return minH
 
+    # See Common class
     # def path_queue_criteria(self, comps, path_distance, comp_edge):
     #     """ Check to see if candidate path is shorter than estimates. Override if needed 
         
@@ -70,80 +72,6 @@ class SstarHS(Framework):
     #         False: otherwise
 
     #     """
-    #     # for c in comps.values():
-    #     #     if path_distance > c.fmin and len(comps)>2:
-    #     #         return False
-
-    #     # return True
-    #     fmin = None
-    #     for c in comps.values():
-
-    #         if fmin is None or c.fmin < fmin:
-    #             fmin = c.fmin
-            
-    #     if path_distance > fmin:
-    #     # if path_distance > fmin:
-    #             # if path_distance > c.fmin:
-    #             # if path_distance > 2*min(minF1, minF2):    
-    #             return False
-       
-    #     return True
-
-class SstarHS0(Framework):
-    """S* Merged with no Heuristics (Dijkstra) """
-    def __init__(self, G, T):
-        super().__init__(G, T)
-
-    def f_costs_func(self, component, cost_so_far, next):
-        """fcost(n) = gcost(n) + hcost(n, goal)        
-        
-        Parameters:
-            component (GenericSearch): Generic Search class object (get access to all its variables)
-            cost_so_far (dict): Contains all nodes with finite g-cost
-            next (tuple): The node in the neighborhood of 'current' to be considered 
-
-        Returns:
-            fcost (float): The priority value for the node 'next'
-
-        """
-        # fCost= cost_so_far[next] +  self.h_costs_func(next, component) 
-        fCost= cost_so_far[next] 
-
-        # Keep track of Fcosts
-        component.f[next] = fCost
-
-        return fCost
-
-    def h_costs_func(self, next, object_):
-        # return 0
-        pass
-
-    # def path_queue_criteria(self, comps, path_distance, comp_edge):
-    #     """ Check to see if candidate path is shorter than estimates. Override if needed 
-        
-    #     Returns:
-    #         True: if candidate path is shorter than every other path
-    #         False: otherwise
-
-    #     """
-    #     # for c in comps.values():
-    #     #     if path_distance > c.fmin and len(comps)>2:
-    #     #         return False
-
-    #     # return True
-    #     fmin = None
-    #     for c in comps.values():
-
-    #         if fmin is None or c.fmin < fmin:
-    #             fmin = c.fmin
-            
-    #     if path_distance > fmin:
-    #     # if path_distance > fmin:
-    #             # if path_distance > c.fmin:
-    #             # if path_distance > 2*min(minF1, minF2):    
-    #             return False
-       
-    #     return True
 
 class SstarBS(Framework):
     def __init__(self, G, T):
@@ -189,7 +117,7 @@ class SstarBS(Framework):
 
         # if bestVal <= comp1.gmin() + comp2.gmin():
         # if bestVal <= comp1.currentF + comp2.currentF:
-        if bestVal <= comp1.gmin + comp2.gmin+eps:
+        if bestVal <= comp1.gmin + comp2.gmin:
             # if bestVal < sum(min(pp)):
             # if bestVal <= comp1.minimum_radius() + comp2.minimum_radius() + 1:
             return True
@@ -245,10 +173,8 @@ class SstarMM(Framework):
         type_ = cfg.Algorithm.sstar_heuristic_type
   
         # need to look at current object's destination...which changes
-        # hju = list(map(lambda goal: htypes(type_, next, goal), terminals))
-        # hju = list(map(lambda goal: htypes(type_, next, goal), [terminals[i] for i in comps[object_.id]['destinations']]))
-        # hju = list(map(lambda goal: htypes(type_, next, goal), [dest for dest in object_.goal]))
-        hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
+        # hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
+        hju = list(map(lambda goal: Common.heuristic_func_wrap(type_=type_, next=next, goal=goal), object_.goal.values()))
         
         minH = min(hju)
         minInd = hju.index(minH)
@@ -265,7 +191,7 @@ class SstarMM(Framework):
         t1, t2 = term_edge
         comp1 = comps[t1]
         comp2 = comps[t2]
-        eps = 1        # cheapest edge cost HARD-CODED 
+        # eps = 1        # cheapest edge cost HARD-CODED 
 
         # a1, a2 = comp1.frontier.get_test()[0], comp2.frontier.get_test()[0]
         # b1, b2 = comp1.minimum_radius(), comp2.minimum_radius()
@@ -278,7 +204,7 @@ class SstarMM(Framework):
         # if bestVal <= max(C, comp1.currentF, comp2.currentF, \
         #     comp1.g[comp1.current]+comp2.g[comp2.current] + eps):
         if bestVal <= max(C, comp1.fmin, comp2.fmin, \
-            comp1.gmin + comp2.gmin + eps):
+            comp1.gmin + comp2.gmin):
             # if bestVal < sum(min(pp)):
             # if bestVal <= comp1.minimum_radius() + comp2.minimum_radius() + 1:
             return True
@@ -347,7 +273,7 @@ class SstarMM0(Framework):
     
         # from paper
         if bestVal <= max(C, comp1.fmin, comp2.fmin, \
-            comp1.gmin + comp2.gmin + eps):
+            comp1.gmin + comp2.gmin):
             # if bestVal < sum(min(pp)):
             # if bestVal <= comp1.minimum_radius() + comp2.minimum_radius() + 1:
             return True
