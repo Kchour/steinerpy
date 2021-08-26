@@ -3,21 +3,22 @@ All notable changes to this project will be documented in this file. Furthermore
 
 ## [1.0.5] - 2021-08-25
 ### Added
-- Generic plot setting added `config.py`
-- Randomized terminal unittest for MAPF instances. However SteinLib still not passing
-- Data structures in `generic_search` to keep track of root and children nodes 
+- Generic plot setting added `config.py`.
+- Randomized terminal unittest for MAPF instances. However SteinLib still not passing.
+- Data structures in `generic_search` to keep track of root and children nodes.
 
 ### Changed
-- Allow S*-unmerged to detect paths inbetween components, instead of at the destination 
-- Animation in `Framework.py` to allow generic plotting
-- AnimateV2 class set axis equal syntax changed
-- In S*-unmerged, do not break out of solution handler if cycle detected; instead only break when tree criteria not satisfied
-- Progress Bar can now handle 1 instance correctly
-- Default grid-based heuristic is "diagonal_nonuniform" for mapf instances
-- unittest "test_steiner_sstar" is more complete now
+- Allow S*-unmerged to detect paths inbetween components, instead of at the destination. 
+- S*-unmerged functions nominate(), update(), and path_check() are no longer overriding; Directly use from `Framework`. 
+- Animation in `Framework.py` to allow generic plotting.
+- AnimateV2 class set axis equal syntax changed.
+- In S*-unmerged, do not break out of solution handler if cycle detected; instead only break when tree criteria not satisfied.
+- Progress Bar can now handle 1 instance correctly.
+- Default grid-based heuristic is "diagonal_nonuniform" for mapf instances.
+- unittest "test_steiner_sstar" is more complete now.
 
 ### Removed
-- Load of old comments
+- Load of old comments.
 
 ## [1.0.0] - Prior 2021-08-2
 ### Added
