@@ -502,7 +502,9 @@ class MyGraph(IGraph):
                     edge_dict.update({(i,j): val})
         return edge_dict
 
-    def __init__(self, edge_dict=None, vertex_dict=None, graph_type="directed", deep_copy=True, graph_name=None):
+    def __init__(self, edge_dict=None, vertex_dict=None, graph_type="directed", deep_copy=True, graph_name=None, visualize=False):
+        """Visualize not implemented
+        """
         self.adjList = {}
         self.graph_type = graph_type
         self.graph_name=None

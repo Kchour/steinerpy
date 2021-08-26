@@ -103,7 +103,7 @@ class AllPairsShortestPath:
             pool.close()
             pool.join()
             raise e
-
+        
         job_progress.finish()
         pool.close()
         pool.join()    

@@ -183,18 +183,21 @@ class Progress:
 
     def __init__(self, num_of_iter):
         
-        self.n = num_of_iter
+        self.n = num_of_iter 
         self.i = 0
         self.bar_length = 21
-    
+
     def next(self):
         # for i in range(self.n):
         sys.stdout.write('\r')
         # the exact output you're looking for:
         # sys.stdout.write("[%-20s] %d%%" % ('='*i, 5*i))
         # incremental bar ===, length of bar, percentage 
-        perc = (100/(self.n)*self.i+1)
-        sys.stdout.write("[{:{}}] {:.1f}%".format("="*int(perc*self.bar_length/100), self.bar_length, perc))
+        if self.n - 1 == 0:
+            perc = 100
+        else:
+            perc = (100/(self.n-1)*self.i)
+        sys.stdout.write("[{:{}}] {:.1f}%".format("="*int(perc*(self.bar_length)/100), self.bar_length, perc))
         sys.stdout.flush()
         self.i+=1
         # sleep(0.25)
@@ -206,7 +209,9 @@ class Progress:
 
 
 if __name__ == "__main__":
-    p = Progress(574)
-    for i in range(574):
+    p = Progress(1)
+    for i in range(1):
         p.next()
         time.sleep(0.25)
+    
+    p.finish()

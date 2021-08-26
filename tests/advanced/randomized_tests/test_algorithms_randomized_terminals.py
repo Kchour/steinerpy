@@ -19,7 +19,7 @@ my_logger = logging.getLogger(__name__)
 # from steinerpy import context
 
 # set seed if desired
-random.seed(123)
+random.seed(12)
 
 # Create square grid using GraphFactory
 minX = -25			# [m]
@@ -80,8 +80,8 @@ class TestGenerateAndCompareResults(unittest.TestCase):
         # cfg.Algorithm.reprioritize_after_sp = False       #default
         # cfg.Algorithm.reprioritize_after_merge = True       #default
 
-        num_of_inst = 50
-        num_of_terms = 13
+        num_of_inst = 2
+        num_of_terms = 50
         for _map in test_maps_mapf:
             baseline_save_path = os.path.join(cwd, "".join((_map.name, "_baseline.pkl")))
             gen_bs = GenerateBaseLine(graph=_map, save_path=baseline_save_path, file_behavior="OVERWRITE", load_from_disk=True)
@@ -94,7 +94,7 @@ class TestGenerateAndCompareResults(unittest.TestCase):
 
             # Generate results
             main_save_path = os.path.join(cwd, "".join((_map.name, "_main_results.pkl")))
-            algs_to_run = ["S*-BS", "S*-HS", "S*-MM", "S*-MM0"]
+            algs_to_run = ["S*-BS", "S*-HS", "S*-MM", "S*-MM0", "S*-unmerged"]
 
             gen_rm = GenerateResultsMulti(graph=_map, save_path=main_save_path, file_behavior="OVERWRITE", algs_to_run=algs_to_run)
             # specify instances

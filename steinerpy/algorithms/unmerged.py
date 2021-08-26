@@ -21,286 +21,256 @@ class Unmerged(Framework):
         # cycle detection required in Astar unmerged
         self.cd = CycleDetection([(t,) for t in range(len(terminals))])
 
-    def nominate(self):
-        """Each component nominates a node from its open set
+    # def nominate(self):
+    #     """Each component nominates a node from its open set
                
-        For each component in `comps`, we nominate a single node. 
-        If the nominate function returns a `True`, we move on to
-        storing the nominated node and its priority value (Fcost)
-        in a queue variable called nodeQueue.
+    #     For each component in `comps`, we nominate a single node. 
+    #     If the nominate function returns a `True`, we move on to
+    #     storing the nominated node and its priority value (Fcost)
+    #     in a queue variable called nodeQueue.
         
-        """
-        my_logger.info("Performing nomination")
+    #     """
+    #     my_logger.info("Performing nomination")
 
-        for ndx, c in self.comps.items():
-            if ndx not in self.nodeQueue.elements:
-                if c.nominate():
-                    self.nodeQueue.put(ndx, c.currentP)
+    #     for ndx, c in self.comps.items():
+    #         if ndx not in self.nodeQueue.elements:
+    #             if c.nominate():
+    #                 self.nodeQueue.put(ndx, c.currentP)
 
-    # Optional: Check for collisions and update destination list before update
-    def update(self):
-        """Update the component pertaining to the least fcost-valued node
+    # # Optional: Check for collisions and update destination list before update
+    # def update(self):
+    #     """Update the component pertaining to the least fcost-valued node
         
-        Among all nominated nodes, choose the one with least f cost using a priority queue
+    #     Among all nominated nodes, choose the one with least f cost using a priority queue
 
-        """
-        # Get best ndx from priority queue
-        # print(self.run_debug)
-        my_logger.info("Performing update")
+    #     """
+    #     # Get best ndx from priority queue
+    #     # print(self.run_debug)
+    #     my_logger.info("Performing update")
 
-        # if not self.nodeQueue.empty():
-        best_priority, best_ndx = self.nodeQueue.get()  
+    #     # if not self.nodeQueue.empty():
+    #     best_priority, best_ndx = self.nodeQueue.get()  
         
-        # get best component object, and g cost of best node
-        bestC = self.comps[best_ndx]
-        bestCurrent = bestC.current
-        bestGVal = bestC.g[bestCurrent]  
-        bestFVal = bestC.currentF
+    #     # get best component object, and g cost of best node
+    #     bestC = self.comps[best_ndx]
+    #     bestCurrent = bestC.current
+    #     bestGVal = bestC.g[bestCurrent]  
+    #     bestFVal = bestC.currentF
         
-        # Get parent (if possible)
-        bestParent = bestC.parent.get(bestCurrent, None)
+    #     # Get parent (if possible)
+    #     bestParent = bestC.parent.get(bestCurrent, None)
 
-        # Store and return the selected node(s)
-        self.selNode = bestCurrent
-        self.selData = {} 
-        self.selData.update({'to': bestParent, 'terminalInd': best_ndx, 'gcost': bestGVal, 'fcost':bestFVal, 'status':'closed'})
+    #     # Store and return the selected node(s)
+    #     self.selNode = bestCurrent
+    #     self.selData = {} 
+    #     self.selData.update({'to': bestParent, 'terminalInd': best_ndx, 'gcost': bestGVal, 'fcost':bestFVal, 'status':'closed'})
 
 
-        my_logger.debug("updated {} with node {}".format(best_ndx, bestCurrent))
+    #     my_logger.debug("updated {} with node {}".format(best_ndx, bestCurrent))
 
-        ##############################
-        ### NEW FUNCTIONALITY HERE ###
-        ##############################
-        # destination list
-        # dest = self.comps[self.selData['terminalInd']].goal.values()
+    #     ##############################
+    #     ### NEW FUNCTIONALITY HERE ###
+    #     ##############################
+    #     # destination list
+    #     # dest = self.comps[self.selData['terminalInd']].goal.values()
 
-        # # Check for complete path
-        # self.iscollided = Common.set_collision_check(sel_node=self.selNode, sel_data=self.selData,\
-        #     target_list=dest, cache=self.F)
+    #     # # Check for complete path
+    #     # self.iscollided = Common.set_collision_check(sel_node=self.selNode, sel_data=self.selData,\
+    #     #     target_list=dest, cache=self.F)
 
-        # if self.iscollided:
-        #     # Define terminal indices
-        #     t1 = self.selData['terminalInd']
-        #     t2 = (self.terminals.index(self.selNode), ) 
+    #     # if self.iscollided:
+    #     #     # Define terminal indices
+    #     #     t1 = self.selData['terminalInd']
+    #     #     t2 = (self.terminals.index(self.selNode), ) 
 
-        #     MyLogger.add_message("goals(PRE) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
-        #     MyLogger.add_message("goals(PRE) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
+    #     #     MyLogger.add_message("goals(PRE) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
+    #     #     MyLogger.add_message("goals(PRE) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
             
-        #     # update destination list TEST THIS
-        #     del self.comps[t1].goal[t2[0]]
-        #     del self.comps[t2].goal[t1[0]]
+    #     #     # update destination list TEST THIS
+    #     #     del self.comps[t1].goal[t2[0]]
+    #     #     del self.comps[t2].goal[t1[0]]
 
-        #     # reprioritize
-        #     if self.comps[t2].goal:
-        #         self.comps[t2].reprioritize()
+    #     #     # reprioritize
+    #     #     if self.comps[t2].goal:
+    #     #         self.comps[t2].reprioritize()
 
-        #     MyLogger.add_message("goals(POST) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
-        #     MyLogger.add_message("goals(POST) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
+    #     #     MyLogger.add_message("goals(POST) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
+    #     #     MyLogger.add_message("goals(POST) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
 
 
-        ###############################
-        ###  END NEW FUNCTIONALITY  ###
-        ###############################
+    #     ###############################
+    #     ###  END NEW FUNCTIONALITY  ###
+    #     ###############################
 
-        # Now update the closed/open list for the 'best' component
-        # make sure goals are not empty!
-        # if self.comps[best_ndx].goal:
-        bestC.update()
+    #     # Now update the closed/open list for the 'best' component
+    #     # make sure goals are not empty!
+    #     # if self.comps[best_ndx].goal:
+    #     bestC.update()
 
-        # if cfg.visualize:
-        #     self.plotCurrent.update_clean(self.selNode)
-        # print('selected Node: ', self.selNode)
-        # print('selected Data: ', self.selData)
+    #     # if cfg.visualize:
+    #     #     self.plotCurrent.update_clean(self.selNode)
+    #     # print('selected Node: ', self.selNode)
+    #     # print('selected Data: ', self.selData)
 
     # override path_check because target_list is different
-    def path_check(self):     
-        """  
-        1. Check for set collision
-        2. Find shortest path among two colliding sets
+    # def path_check(self):     
+    #     """  
+    #     1. Check for set collision
+    #     2. Find shortest path among two colliding sets
 
-        """    
-        # MyLogger.add_message("performing path_check() ", __name__, "INFO")
-        # t1 = self.selData['terminalInd']
-        # updatedComp = self.comps[t1]
-        # for t2, c in self.comps.items():
-        #     # skip if trying to intersect with itself
-        #     if t1 == t2:
-        #         continue
-            
-        #     updateSet = set(updatedComp.current)
-        #     # # Add updated component recent open and closed list
-        #     # updateSet = set(updatedComp.currentNeighs)
-        #     # # updateSet = set(updatedComp.frontier.elements)
-        #     # updateSet.add(updatedComp.current)
-        #     # if c.currentNeighs:
-        #     #     updateSet.union(set(c.currentNeighs))
-        #     # updateSet.add(c.current)
+    #     """    
+    #     # Destination based path detection
+    #     # UFeas = None
+    #     # t1 = self.selData['terminalInd']
+    #     # k = self.comps[t1].current
+    #     # if k in self.comps[t1].goal.values():
+    #     #     t2 = (self.terminals.index(k),)
+    #     #     if (t1,t2) not in self.pathQueue.entry_table or (t2,t1) not in self.pathQueue.entry_table: 
+    #     #         UFeas = self.comps[t1].g[k]
+    #     #         commonNode = k
 
+    #     #         # set lmins for each comp
+    #     #         # self.comps[t1].lmin = UFeas
+    #     #         # self.comps[t2].lmin = UFeas
 
-        #     UFeas = None
-        #     for k in updateSet:
-        #         if k in self.comps[t1].goal.values():
-        #             candU = self.comps[t1].g[k]
-        #             if  UFeas is None or candU < UFeas:
-        #                 UFeas = candU
-        #                 commonNode = k
-           
-        #     # if UFeas is not None:
-        #     #     updateSet = set(updatedComp.frontier.elements)
-        #     #     for k in updateSet:
-        #     #         if k in self.comps[t1].g and k in self.comps[t2].g:
-        #     #             candU = self.comps[t1].g[k] + self.comps[t2].g[k]
-        #     #             if  UFeas is None or candU < UFeas:
-        #     #                 UFeas = candU
-        #     #                 commonNode = k
-
-        #     ######################################################################################    
-        #     # try:
-        #     #     jointSet = ((c.g[k] + updatedComp.g[k], k) for k in set(c.g).intersection(set(updatedComp.frontier.elements)))
-        #     #     minItem = min(jointSet)
-        #     #     # UFeas = minItem[0]
-        #     #     # commonNode = minItem[1]
-        #     #     del jointSet
-        #     # except:
-        #     #     # UFeas, commonNode = None, None
-        #     #     pass
-        #     ######################################################################################
-        #     # if abs(UFeas - 11.656) < 1e-3:
-        #     #     self.testone.append(UFeas)
-
-        UFeas = None
-        t1 = self.selData['terminalInd']
-        k = self.comps[t1].current
-        if k in self.comps[t1].goal.values():
-            t2 = (self.terminals.index(k),)
-            if (t1,t2) not in self.pathQueue.entry_table or (t2,t1) not in self.pathQueue.entry_table: 
-                UFeas = self.comps[t1].g[k]
-                commonNode = k
-
-                # set lmins for each comp
-                # self.comps[t1].lmin = UFeas
-                # self.comps[t2].lmin = UFeas
-
-                #update feasible path table
-                if t1 in self.UFeasPath:
-                    self.UFeasPath[t1].update({t2: [UFeas, commonNode]})
-                else:
-                    self.UFeasPath.update({t1: {t2: [UFeas, commonNode]}})
+    #     #         #update feasible path table
+    #     #         if t1 in self.UFeasPath:
+    #     #             self.UFeasPath[t1].update({t2: [UFeas, commonNode]})
+    #     #         else:
+    #     #             self.UFeasPath.update({t1: {t2: [UFeas, commonNode]}})
                 
-                if t2 in self.UFeasPath:
-                    self.UFeasPath[t2].update({t1: [UFeas, commonNode]})
-                else:                           
-                    self.UFeasPath.update({t2: {t1: [UFeas, commonNode]}})  
+    #     #         if t2 in self.UFeasPath:
+    #     #             self.UFeasPath[t2].update({t1: [UFeas, commonNode]})
+    #     #         else:                           
+    #     #             self.UFeasPath.update({t2: {t1: [UFeas, commonNode]}})  
 
-        if UFeas is not None:
-            # set lmins for each component
-            if UFeas < self.comps[t1].lmin or self.comps[t1].lmin == 0:
-                self.comps[t1].lmin = UFeas
-            if UFeas < self.comps[t2].lmin or self.comps[t2].lmin == 0:
-                self.comps[t2].lmin = UFeas
-            # Subtract some slack due to numerical issues
-            # t1, t2 = t1feas, t2feas
-            sp = self.shortest_path_check(comps=self.comps, term_edge=(t1,t2), bestVal=UFeas)
-            if sp:
-                # if criteria is satisfied, update the path queue               
-                # Get path based on sel_node
 
-                # path, dist, term_actual = Common.get_path(comps=self.comps, sel_node=commonNode, term_edge=(t1,t2),\
-                #     reconstruct_path_func = reconstruct_path)
+    #     t1 = self.selData['terminalInd']
+    #     updatedComp = self.comps[t1]
+    #     for t2, c in self.comps.items():
+    #         # skip if trying to intersect with itself
+    #         if t1 == t2:
+    #             continue
+        
+    #         # duplicates = False
+    #         # for p in self.pathQueue.elements.values():
+    #         #     terms_ind, terms_actual, path, dist = p[2] 
+    #         #     if set((t1,t2)).issubset(set(terms_ind)):
+    #         #         duplicates = True
+    #         #         break
+    #         # if duplicates:
+    #         #     continue
+    #         # Avoid adding duplicate paths to the path PriorityQueue
+    #         if (t1,t2) in self.pathQueue.elements or (t2,t1) in self.pathQueue.elements:
+    #             continue
 
-                ###########################################
-                ### # update destination list TEST THIS ###
-                ###########################################
-                # MyLogger.add_message("goals(PRE) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
-                # MyLogger.add_message("goals(PRE) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
-   
-                # update destination list TEST THIS
-                del self.comps[t1].goal[t2[0]]
-                del self.comps[t2].goal[t1[0]]
+    #         # Add updated component recent open and closed list
+    #         updateSet = set(updatedComp.currentNeighs)
+    #         # updateSet = set(updatedComp.frontier.elements)
+    #         updateSet.add(updatedComp.current)
+    #         # if c.currentNeighs:
+    #         #     updateSet.union(set(c.currentNeighs))
+    #         # updateSet.add(c.current)
 
-                # reprioritize
-                if self.comps[t2].goal:
-                    self.comps[t2].reprioritize()
-                if self.comps[t1].goal:
-                    self.comps[t1].reprioritize()
-                # # for ndx, c in self.comps.items(): print(ndx, c.fmin_heap.pq, "\n")
+    #         # # look at previous results
+    #         if t1 in self.UFeasPath and t2 in self.UFeasPath[t1]:
+    #             # UFeas, commonNode = self.UFeasPath[(t1,t2)][0], self.UFeasPath[(t1,t2)][1]
+    #             if self.UFeasPath[t1][t2][0] < self.UFeasPath[t2][t1][0]:
+    #                 UFeas, commonNode = self.UFeasPath[t1][t2][0], self.UFeasPath[t1][t2][1]
+    #                 self.UFeasPath[t2][t1] = [UFeas, commonNode]
+    #             else:
+    #                 UFeas, commonNode = self.UFeasPath[t2][t1][0], self.UFeasPath[t2][t1][1]
+    #                 self.UFeasPath[t1][t2] = [UFeas, commonNode]
+    #             # # ensure symmetry
+    #             # if t2 in self.UFeasPath:
+    #             #     self.UFeasPath[t2].update({t1: [UFeas, commonNode]})
+    #             # else:                           
+    #             #     self.UFeasPath.update({t2: {t1: [UFeas, commonNode]}})                          
+    #         else:
+    #             UFeas = None
+         
+    #         for k in updateSet:
+    #             if k in self.comps[t1].g and k in self.comps[t2].g:
+    #                 candU = self.comps[t1].g[k] + self.comps[t2].g[k]
+    #                 if  UFeas is None or candU < UFeas:
+    #                     UFeas = candU
+    #                     commonNode = k
+  
+                        
+    #                     if t1 in self.UFeasPath:
+    #                         self.UFeasPath[t1].update({t2: [UFeas, commonNode]})
+    #                     else:
+    #                         self.UFeasPath.update({t1: {t2: [UFeas, commonNode]}})
+                        
+    #                     if t2 in self.UFeasPath:
+    #                         self.UFeasPath[t2].update({t1: [UFeas, commonNode]})
+    #                     else:                           
+    #                         self.UFeasPath.update({t2: {t1: [UFeas, commonNode]}})  
 
-                # Delete respective components from nodeQueue
-                if t1 in self.nodeQueue.elements:
-                    self.nodeQueue.delete(t1)
-                if t2 in self.nodeQueue.elements:
-                    self.nodeQueue.delete(t2)     
+    #         if UFeas is not None:
+    #             # set lmins for each component
+    #             if UFeas < self.comps[t1].lmin or self.comps[t1].lmin == 0:
+    #                 self.comps[t1].lmin = UFeas
+    #             if UFeas < self.comps[t2].lmin or self.comps[t2].lmin == 0:
+    #                 self.comps[t2].lmin = UFeas
+    #             # Subtract some slack due to numerical issues
+    #             # t1, t2 = t1feas, t2feas
+    #             sp = self.shortest_path_check(comps=self.comps, term_edge=(t1,t2), bestVal=UFeas)
+    #             if sp:
+    #                 # if criteria is satisfied, update the path queue               
+    #                 # Get path based on sel_node
 
-                # MyLogger.add_message("goals(POST) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
-                # MyLogger.add_message("goals(POST) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
+    #                 # path, dist, term_actual = Common.get_path(comps=self.comps, sel_node=commonNode, term_edge=(t1,t2),\
+    #                 #     reconstruct_path_func = reconstruct_path)
 
-                ############################################
-                # ## End update destination list and rep ###
-                # ##########################################  
-
-                my_logger.info("paths in solution set: {}".format(len(self.S['dist'])))
-
-                # # Set another lower bound on components due to declared shortest path
-                # if dist > 0 and dist < self.comps[t1].lmin or self.comps[t1].lmin == 0:
-                #     self.comps[t1].lmin = dist
-
-                # if dist > 0 and dist < self.comps[t2].lmin or self.comps[t2].lmin == 0:
-                #     self.comps[t2].lmin = dist
-
-                # self.comps[t1].lmin = dist
-                # self.comps[t2].lmin = dist            
+    #                 ###########################################
+    #                 ### # update destination list TEST THIS ###
+    #                 ###########################################
+    #                 # MyLogger.add_message("goals(PRE) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
+    #                 # MyLogger.add_message("goals(PRE) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
     
-                # self.pathQueue.put({'terms': (t1,t2), 'term_actual': term_actual, 'path':path, 'dist':dist}, dist)
-                # self.pathQueue.put( ((t1,t2), term_actual, tuple(path), dist), dist)
-                self.pathQueue.put((t1,t2), UFeas)
+    #                 # update destination list TEST THIS
+    #                 del self.comps[t1].goal[t2[0]]
+    #                 del self.comps[t2].goal[t1[0]]
 
-                my_logger.debug("Added path to pathQueue")
-                my_logger.info("pathQueue len now: {}".format(len(self.pathQueue.elements)))
 
-                if cfg.Misc.DEBUG_MODE:
-                    self.debug_fmin()
-                    self.debug_gmin()
-                    self.debug_pmin()
-                    # self.debug_lmin()
-                    self.debug_rmin()
-                    testtesttest=1
-        # # destination list
-        # # dest = self.comps[self.selData['terminalInd']].goal.values()
+    #                 ########################################
+    #                 # reprioritize
+    #                 ########################################
+    #                 if cfg.Algorithm.reprioritize_after_sp:
+    #                     if self.comps[t2].goal:
+    #                         self.comps[t2].reprioritize()
+    #                     if self.comps[t1].goal:
+    #                         self.comps[t1].reprioritize()
+    #                     # # for ndx, c in self.comps.items(): print(ndx, c.fmin_heap.pq, "\n")
 
-        # # # Check for complete path
-        # # self.iscollided = Common.set_collision_check(sel_node=self.selNode, sel_data=self.selData,\
-        # #     target_list=dest, cache=self.F)  
+    #                     # Delete respective components from nodeQueue
+    #                     if t1 in self.nodeQueue.elements:
+    #                         self.nodeQueue.delete(t1)
+    #                     if t2 in self.nodeQueue.elements:
+    #                         self.nodeQueue.delete(t2)     
 
-        # if self.iscollided:
-        #     # Define terminal indices
-        #     t1 = self.selData['terminalInd']            
-        #     t2 = (self.terminals.index(self.selNode), )      #### THIS CHANGED TOO #### 
+    #                 # MyLogger.add_message("goals(POST) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
+    #                 # MyLogger.add_message("goals(POST) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
 
-        #     # # update destination list
-        #     # del self.comps[t1].goal[t2[0]]
-        #     # del self.comps[t2].goal[t1[0]]
+    #                 ############################################
+    #                 # ## End update destination list and rep ###
+    #                 # ##########################################  
 
-        #     # # reprioritize
-        #     # if self.comps[t2].goal:
-        #     #     self.comps[t2].reprioritize()
-            
-        #     # Get path based on sel_node
-        #     path, dist, term_actual = Common.get_path(comps=self.comps, sel_node=self.selNode, term_edge=(t1,t2),\
-        #          reconstruct_path_func = reconstruct_path)
+    #                 my_logger.info("paths in solution set: {}".format(len(self.S['dist'])))
 
-        #     # Logging information
-        #     MyLogger.add_message("Collision between {},{}".format(t1, t2), __name__, "Debug")
-        #     MyLogger.add_message("Feasible Path dist {}".format(dist), __name__, "Debug")
-        #     MyLogger.add_message("sel node n {}".format(self.selNode), __name__, "Debug")
-        #     MyLogger.add_message("{} gcosts(n) {}".format(t1, self.comps[t1].g[self.selNode] ), __name__, "Debug")
-        #     MyLogger.add_message("{} gcosts(n) {}".format(t2, self.comps[t2].g[self.selNode]), __name__, "Debug")
-        #     MyLogger.add_message("{} current f {}".format(t1, self.comps[t1].currentF), __name__, "Debug")
-        #     MyLogger.add_message("{} current f {}".format(t2, self.comps[t2].currentF), __name__, "Debug")
+    #                 self.pathQueue.put((t1,t2), UFeas)
 
-        #     # Update the path Queue, but don't add duplicates
-        #     # print(self.run_debug)
-        #     # if (t1,t2) not in [p[2]['terms'] for p in self.pathQueue.elements]: 
-        #     self.pathQueue.put({'terms': (t1,t2), 'term_actual': term_actual, 'path':path, 'selData':self.selData, 'selNode': self.selNode, 'dist':dist}, dist)
+    #                 my_logger.debug("Added path to pathQueue")
+    #                 my_logger.info("pathQueue len now: {}".format(len(self.pathQueue.elements)))
+
+    #                 if cfg.Misc.DEBUG_MODE:
+    #                     self.debug_fmin()
+    #                     self.debug_gmin()
+    #                     self.debug_pmin()
+    #                     # self.debug_lmin()
+    #                     self.debug_rmin()
+    #                     testtesttest=1
 
     def tree_update(self):
         """override tree_update because we need cycle detection and no merging """
@@ -341,7 +311,7 @@ class Unmerged(Framework):
             # TODO find a better way to animate path
             if cfg.Animation.visualize:
                 # self.animateS.update_clean(np.vstack(self.S['path']).T.tolist())
-                AnimateV2.add_line("solution", np.vstack(self.S['path']).T.tolist(), 'ro', markersize=10, zorder=10, alpha=0.5)
+                AnimateV2.add_line("solution", np.vstack(self.S['path']).T.tolist(), 'yo', markersize=10, zorder=10)
 
     # cost and heuristic function definition
     def f_costs_func(self, object_, cost_so_far, next):
@@ -376,7 +346,10 @@ class Unmerged(Framework):
         # hju = list(map(lambda goal: htypes(type_, next, goal), terminals))
         # hju = list(map(lambda goal: htypes(type_, next, goal), [terminals[i] for i in comps[object_.id]['destinations']]))
         # hju = list(map(lambda goal: htypes(type_, next, goal), [dest for dest in object_.goal]))
-        hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
+        # hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
+        # hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
+        hju = list(map(lambda goal: Common.heuristic_func_wrap(type_=type_, next=next, goal=goal), object_.goal.values()))
+
         
         if hju:
             minH = min(hju)

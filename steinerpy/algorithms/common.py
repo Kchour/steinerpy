@@ -90,17 +90,13 @@ class Common:
                 # if merge
                 iscycle = False               
 
-            if iscycle:
-                break
-            else:
-                # if not a cycle, then add the edge!
-                if not merging:
-                    cycle_detector.add_edge(*comps_ind)
+            if not iscycle:
                 # Check tree criteria to know when to add path 
-                minPathF = criteria(comps=comps, path_distance = dist)
-                
-                if minPathF: 
+                if criteria(comps=comps, path_distance = dist): 
                     if not merging:
+                        # if not a cycle, then add the edge!
+                        cycle_detector.add_edge(*comps_ind)
+                        
                         # # Update the destination list, priority of components with path added between them
                         # for ndx, c in comps.items():
                             
@@ -117,15 +113,15 @@ class Common:
                         #         comps[(c,)].goal = new_goals
                         #         comps[(c,)].reprioritize()
 
-                        findset = cycle_detector.parent_table[comps_ind[0]]
-                        new_goals = {i: terminals[i] for i in set(range(len(terminals)))-set(findset)}
-                        for c in findset:
-                            comps[(c,)].goal = new_goals
-                            comps[(c,)].reprioritize()
-                        # comps[comps_ind[0]].goal = new_goals
-                        # comps[comps_ind[0]].reprioritize()
-                        pass
-                        
+                        if cfg.Algorithm.reprioritize_after_merge:
+                            findset = cycle_detector.parent_table[comps_ind[0]]
+                            new_goals = {i: terminals[i] for i in set(range(len(terminals)))-set(findset)}
+                            for c in findset:
+                                comps[(c,)].goal = new_goals
+                                comps[(c,)].reprioritize()
+                            # comps[comps_ind[0]].goal = new_goals
+                            # comps[comps_ind[0]].reprioritize()
+                            pass
                     
                     # Add solution
                     # path = poppedQ[1]['path']
@@ -410,7 +406,7 @@ class Common:
         # if bestVal <= comp1.gmin + comp2.gmin:
 
         # This is Pohl's Criteria
-        if bestVal <= max(comp1.fmin, comp2.fmin):
+        if bestVal <= max(comp1.fmin, comp2.fmin, comp1.gmin+comp2.gmin):
             # Shortest path is 
             return True
         else:

@@ -131,6 +131,8 @@ class AnimateV2:
         """Allow the user to manually initialize the figure, they must pass in handles
 
         """
+        plt.show(block=False)   
+        plt.pause(0.1)
 
         #resize to prevent marker clipping on the edges
         if xlim != None and ylim != None:
@@ -138,12 +140,9 @@ class AnimateV2:
             ax.set_ylim(ylim[0], ylim[1])
         cls.prevent_clipping()
 
-        # try setting equal axis?
-        ax.axis('equal')
-
-        plt.show(block=False)   
-        plt.pause(0.1)
-
+        # # try setting equal axis?
+        ax.set_aspect("equal")
+        
         # Store the background in new class instance
         o = AnimateV2(figure_number=1, figure_name=figure_name)
         # o.background = fig.canvas.copy_from_bbox(ax.bbox)

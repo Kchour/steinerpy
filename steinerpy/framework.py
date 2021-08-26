@@ -7,6 +7,7 @@ from typing import List
 from abc import ABC, abstractmethod
 import cProfile
 import logging, logging.config
+import matplotlib.pyplot as plt
 
 from steinerpy.library.misc.abc_utils import abstract_attribute, ABC as newABC
 from steinerpy.library.graphs.graph import IGraph
@@ -131,55 +132,53 @@ class Framework(AbstractAlgorithm):
         # self.cd = CycleDetection([(t,) for t in range(len(terminals))])
 
         # TODO: FIX THIS UP, plot related
-        if cfg.Animation.visualize:
-            minX, maxX, minY, maxY = self.graph.grid_dim
-            # grid_size = self.graph.grid_size
-            # # plot terminals
-            # self.plotTerminals = Animate(number=1, xlim=(minX, maxX), ylim=(minY, maxY), gridSize=grid_size, linewidth=5, markerType='ko', markerSize=20, sleep=0.000, order=1)
-            # self.plotTerminals.update(np.array(self.terminals).T.tolist())
-
-            # # plot update current
-            # self.plotCurrent = Animate(number=1, xlim=(minX, maxX), ylim=(minY, maxY), gridSize=grid_size, linewidth=5, markerType='wo', markerSize=10, sleep=0.000, order=5)
-
-            # # plot solution
-            # self.animateS = Animate(number=1, xlim=(minX, maxX), ylim=(minY, maxY), gridSize=grid_size, linewidth=5, markerType='ro', markerSize=10, sleep=0.000, order=50)
-
-            # # if any obstacles
-            # if self.graph.obstacles:
-            #     self.plotObstacle = Animate(number=1, xlim=(minX, maxX), ylim=(minY, maxY), gridSize=grid_size, linewidth=5, markerType='o', markerSize=2, sleep=0.5, order=50)
-            #     self.plotObstacle.update(np.array(self.graph.obstacles).T.tolist())
-
-        
+        if cfg.Animation.visualize:        
             if self.run_debug <= 1:
+                if not plt.fignum_exists(1):
+                    # if figure doesn't exist yet, create it
+                    fig, ax = AnimateV2.create_new_plot(num=1, figsize=(7,7))
+                else:
+                    # get ax and fig if they exist
+                    ax = plt.gca()
+                    fig = plt.gcf()
 
-                # Add obstacles
-                if self.graph.obstacles:
-                    # AnimateV2.add_line("obstacles", np.array(self.graph.obstacles).T.tolist(), markersize=5, marker='o', color='k')
-                    # fig, ax = plt.subplots()
-                        
-                    fig, ax = AnimateV2.create_new_plot(num=1)
-                    #ax.matshow(grid_data, cmap='seismic')
-                    im_artist = ax.imshow(self.graph.grid, cmap='Greys', origin='lower')
-
+                if cfg.Algorithm.graph_domain == "grid":
+                    # get dimensions of grid
+                    minX, maxX, minY, maxY = self.graph.grid_dim
                     AnimateV2.init_figure(fig, ax, xlim=(minX, maxX), ylim=(minY,maxY))
+                    # ax.autoscale()
 
-                    AnimateV2.add_artist_ex(im_artist, "obstacles")
+                     # Add obstacles
+                    if self.graph.obstacles:
+                        AnimateV2.add_line("obstacles", np.array(self.graph.obstacles).T.tolist(), markersize=5, marker='o', color='k')
+                            
+                        #ax.matshow(grid_data, cmap='seismic')
+                        im_artist = ax.imshow(self.graph.grid, cmap='Greys', origin='lower')
+
+                        AnimateV2.add_artist_ex(im_artist, "obstacles")
+               
+                elif cfg.Algorithm.graph_domain == "generic":
+
+                    ax.autoscale()
+                    AnimateV2.init_figure(fig,ax)
+                    AnimateV2.update()
+                
+                # Add terminal points ("terminals")
+                data = np.array(self.terminals)
+                terminal_artist = ax.plot(data[:,0], data[:,1], markersize=15, mew=5, marker="x", linestyle="", color='red',zorder=9)    
     
-                # Add terminal points using add_line function
-                AnimateV2.add_line("terminals", np.array(self.terminals).T.tolist(), xlim=(minX, maxX), ylim=(minY,maxY), markersize=15, mew=5, marker="x", color='red',zorder=11)
+                # we can only call add_artist_ex() after init_figure() is called
+                # keep track of terminal artist
+                # also plot will return an array[artist]
+                # whereas scatter does not
+                AnimateV2.add_artist_ex(terminal_artist[0], "terminal")
 
                 if self.depots is not None:
-                    AnimateV2.add_line("depots", np.array(self.depots).T.tolist(), markersize=14, marker='o', color='b', zorder=12)
+                    data = np.array(self.depots)
+                    blah = ax.plot(data[:,0], data[:,1], markersize=14, linestyle="", marker='o', color='b', zorder=12)
+                    AnimateV2.add_artist_ex(blah[0], "depots")
 
-                # # Add stuff to figure 2
-                # AnimateV2.add("terminals",  np.array(self.terminals).T.tolist(), figure_number=2,xlim=(minX, maxX), ylim=(minY,maxY), markersize=15, marker="x", color='r',zorder=11)
-                # if self.graph.obstacles:
-                #     AnimateV2.add("obstacles", np.array(self.graph.obstacles).T.tolist(), figure_number=2, markersize=5, marker='o', color='k')
-                
-                # if self.depots is not None:
-                #     AnimateV2.add("depots", np.array(self.depots).T.tolist(), figure_number=2, markersize=14, marker='o', color='b')
-
-                # AnimateV2.update(figure_number=2)    
+                # render to screen
                 AnimateV2.update()       
 
     def nominate(self):
@@ -268,18 +267,6 @@ class Framework(AbstractAlgorithm):
             * Try adding all nodes with finite g-cost value
 
         """
-        # newNodes = {}
-        # for k in self.comps[self.selData['terminalInd']].currentNeighs:
-        #     comp = self.comps[self.selData['terminalInd']]
-        #     bestParent = comp.parent[k]
-        #     best_ndx = comp.id
-        #     gcost = comp.g[k]
-        #     pcost = comp.frontier.elements[k]
-
-        #     newNodes[k] = {'to': bestParent, 'terminalInd': best_ndx, 'gcost': gcost, 'pcost': pcost, 'status':'open'}
-
-        # # add recently closed node from previous function
-        # newNodes[self.selNode] = self.selData
 
         t1 = self.selData['terminalInd']
         updatedComp = self.comps[t1]
@@ -331,12 +318,7 @@ class Framework(AbstractAlgorithm):
                     if  UFeas is None or candU < UFeas:
                         UFeas = candU
                         commonNode = k
-                        # if (t1,t2) in self.UFeasPath:
-                        #     self.UFeasPath[(t1,t2)] = [candU, k]
-                        # elif (t2, t1) in self.UFeasPath:
-                        #     self.UFeasPath[(t2,t1)] = [candU, k]
-                        # else:
-                        #     self.UFeasPath[(t1,t2)] = [candU, k]
+  
                         
                         if t1 in self.UFeasPath:
                             self.UFeasPath[t1].update({t2: [UFeas, commonNode]})
@@ -348,28 +330,6 @@ class Framework(AbstractAlgorithm):
                         else:                           
                             self.UFeasPath.update({t2: {t1: [UFeas, commonNode]}})  
 
-            # UFeas = None                
-            # # updateSet = set(updatedComp.frontier.elements)
-            # for k in updateSet:
-            #     if k in self.comps[t1].g and k in self.comps[t2].g:
-            #         candU = self.comps[t1].g[k] + self.comps[t2].g[k]
-            #         if  UFeas is None or candU < UFeas:
-            #             UFeas = candU
-            #             commonNode = k
-
-            ######################################################################################    
-            # try:
-            #     jointSet = ((c.g[k] + updatedComp.g[k], k) for k in set(c.g).intersection(set(updatedComp.frontier.elements)))
-            #     minItem = min(jointSet)
-            #     # UFeas = minItem[0]
-            #     # commonNode = minItem[1]
-            #     del jointSet
-            # except:
-            #     # UFeas, commonNode = None, None
-            #     pass
-            ######################################################################################
-            # if abs(UFeas - 11.656) < 1e-3:
-            #     self.testone.append(UFeas)
             if UFeas is not None:
                 # set lmins for each component
                 if UFeas < updatedComp.lmin or updatedComp.lmin == 0:
@@ -380,28 +340,17 @@ class Framework(AbstractAlgorithm):
                 # Subtract some slack due to numerical issues
                 # t1, t2 = t1feas, t2feas
                 sp = self.shortest_path_check(comps=self.comps, term_edge=(t1,t2), bestVal=UFeas)
+
+                if cfg.Misc.DEBUG_MODE:
+                    self.debug_fmin()
+                    self.debug_gmin()
+                    self.debug_pmin()
+                    # self.debug_lmin()
+                    self.debug_rmin()
+                    testtesttest=1
+
                 if sp:
-                    # try:
-                    #     jointSet = ((c.g[k] + updatedComp.g[k], k) for k in set(c.g).intersection(set(updatedComp.g)))
-                    #     minItem = min(jointSet)
-                    #     UFeas = minItem[0]
-                    #     commonNode = minItem[1]
-                    #     del jointSet
-                    # except:
-                    #     # UFeas, commonNode = None, None
-                    #     pass
-
-                    # if criteria is satisfied, update the path queue               
-                    # Get path based on sel_node
-
-
-
-                    # path, dist, term_actual = Common.get_path(comps=self.comps, sel_node=commonNode, term_edge=(t1,t2),\
-                    #     reconstruct_path_func = reconstruct_path)
-
-
-
-
+   
                     ###########################################
                     ### # update destination list TEST THIS ###
                     ###########################################
@@ -475,202 +424,6 @@ class Framework(AbstractAlgorithm):
 
                     my_logger.debug("Added path to pathQueue")
                     my_logger.info("pathQueue len now: {}".format(len(self.pathQueue.elements)))
-
-
-                    if cfg.Misc.DEBUG_MODE:
-                        self.debug_fmin()
-                        self.debug_gmin
-                        self.debug_pmin()
-                        # self.debug_lmin()
-                        self.debug_rmin()
-                        testtesttest=1
-        # MyLogger.add_message("performing path_check() ", __name__, "INFO")
-
-        # ### We check for set collisions using a cache F
-        # # Add neighbors
-        # newNodes = {}
-        # for k in self.comps[self.selData['terminalInd']].currentNeighs:
-        #     comp = self.comps[self.selData['terminalInd']]
-        #     bestParent = comp.parent[k]
-        #     best_ndx = comp.id
-        #     gcost = comp.g[k]
-        #     pcost = comp.frontier.elements[k]
-
-        #     newNodes[k] = {'to': bestParent, 'terminalInd': best_ndx, 'gcost': gcost, 'pcost': pcost, 'status':'open'}
-
-        # # add recently closed node from previous function
-        # newNodes[self.selNode] = self.selData
-
-        # # check updated component's newly added nodes
-        # for ndx, nodeInfo in enumerate(newNodes.items()):
-        #     node, data = nodeInfo
-        #     # Node to be looked at
-        #     MyLogger.add_message("Looking at node {}".format(node), __name__, "Debug")
-
-        #     # check for meet collision
-        #     self.iscollided = Common.set_collision_check(sel_node=node, sel_data=data,\
-        #         target_list=self.F, cache=self.F )
-
-        #     # verify meet criteria
-        #     if self.iscollided:
-        #         # Define terminal indices
-        #         t1 = data['terminalInd']            
-        #         t2 = self.F[node]['terminalInd']    
-
-        #         # Update cache with lower valued gcost
-        #         if data['gcost'] < self.F[node]['gcost']:
-        #             self.F[node] = data
-
-        #         if t1 == t2:
-        #             continue
-
-        #         # Check for duplicates, but allow at least 1 duplicate if node is closed in both directions
-        #         duplicates = False
-        #         for p in self.pathQueue.elements:
-        #             if set((t1,t2)).issubset(set(p[2]['terms'])):
-        #                 duplicates = True
-        #                 break
-                
-        #         # Check for shortest paths (i.e nicholsons or similar)
-        #         sp = False
-        #         if not duplicates:
-        #             # Get shortest path and perform criteria check
-        #             bestVal, bestNode, bestDict = Common.get_shortest_path(comps=self.comps, term_edge=(t1, t2),\
-        #                 f_costs_func=self.f_costs_func)
-        #             sp = self.shortest_path_check(comps=self.comps, term_edge=(t1,t2), bestVal=bestVal)
-                    
-        #             ################### TEST
-        #             # self.t1test, self.t2test = Common.subsetFinder(((5,),(33,)), self.comps)
-
-        #             # if abs(bestVal - 1.414) <1e-3:
-        #             #                     # Get path based on sel_node
-        #             #     path, dist, term_actual = Common.get_path(comps=self.comps, sel_node=bestNode, term_edge=(t1,t2),\
-        #             #         reconstruct_path_func = reconstruct_path)
-        #             #     # if 5 not in self.comps[self.t1test].goal and 33 not in self.comps[self.t2test].goal and \
-        #             #     #     5 not in self.comps[self.t2test].goal and 33 not in self.comps[self.t1test].goal:
-        #             #     #     print("destination changed?")
-        #             #     self.testone += 1
-        #                 # self.tester = 1
-        #             ####################
-        #             # Set another lower bound on components due to declared shortest path
-        #             # if bestVal > 0 and bestVal < self.comps[t1].lmin or self.comps[t1].lmin == 0:
-        #             #     self.comps[t1].lmin = bestVal
-
-        #             # if bestVal > 0 and bestVal < self.comps[t2].lmin or self.comps[t2].lmin == 0:
-        #             #     self.comps[t2].lmin = bestVal
-
-        #             if cfg.console_level == "DEBUG":
-        #                 MyLogger.add_message("Collision between {},{}".format(t1, t2), __name__, "Debug")
-        #                 MyLogger.add_message("t1 {} has terminals {}".format(t1, [self.terminals[k] for k in t1]), __name__, "Debug")
-        #                 MyLogger.add_message("t2 {} has terminals {}".format(t2, [self.terminals[k] for k in t2]), __name__, "Debug")
-        #                 MyLogger.add_message("Feasible Path dist {}".format(bestVal), __name__, "Debug")
-        #                 MyLogger.add_message("sel node n {}".format(node), __name__, "Debug")
-        #                 MyLogger.add_message("{} gcosts(n) {}".format(t1, self.comps[t1].g[node] ), __name__, "Debug")
-        #                 MyLogger.add_message("{} gcosts(n) {}".format(t2, self.comps[t2].g[node]), __name__, "Debug")
-        #                 MyLogger.add_message("{} current fmin {}".format(t1, self.comps[t1].fmin), __name__, "Debug")
-        #                 MyLogger.add_message("{} current fmin {}".format(t2, self.comps[t2].fmin), __name__, "Debug")
-        #                 MyLogger.add_message("{} current gmin {}".format(t1, self.comps[t1].gmin), __name__, "Debug")
-        #                 MyLogger.add_message("{} current gmin {}".format(t2, self.comps[t2].gmin), __name__, "Debug")
-        #                 MyLogger.add_message("{} current pmin {}".format(t1, self.comps[t1].pmin), __name__, "Debug")
-        #                 MyLogger.add_message("{} current pmin {}".format(t2, self.comps[t2].pmin), __name__, "Debug")
-                    
-        #             if sp: 
-        #                 MyLogger.add_message("Feasible path TO BE ADDED with dist {}".format(bestVal), __name__, "DEBUG")
-        #             else:
-        #                 MyLogger.add_message("Feasible path NOT ADDED with dist {}".format(bestVal), __name__, "DEBUG")
-
-        #             # update
-        #             # self.selNode, self.selData = bestNode, bestDict
-                
-        #     # if criteria is satisfied, update the path queue
-        #     if self.iscollided and sp and not duplicates:      
-                
-        #         # Get path based on sel_node
-        #         path, dist, term_actual = Common.get_path(comps=self.comps, sel_node=bestNode, term_edge=(t1,t2),\
-        #             reconstruct_path_func = reconstruct_path)
-
-        #         ###########################################
-        #         ### # update destination list TEST THIS ###
-        #         ###########################################
-        #         MyLogger.add_message("goals(PRE) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
-        #         MyLogger.add_message("goals(PRE) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
-        #         try:
-        #             # # Consider not deleting me from you
-        #             pass
-        #             # test =1
-        #             for t in t2:
-        #                 if t in self.comps[t1].goal:
-        #                     del self.comps[t1].goal[t]
-                    
-        #             for t in t1:
-        #                 if t in self.comps[t2].goal:
-        #                     del self.comps[t2].goal[t]
-        #             # # test = len(set(self.comps[t1].goal).union(set(self.comps[t2].goal)))
-        #             # del self.comps[t1].goal[t2[0]]
-        #             # del self.comps[t2].goal[t1[0]]
-        #             # united_goals = set(self.comps[t2].goal).intersection(set(self.comps[t1].goal))
-        #             # # # # # # if self.comps[t1].goal:
-        #             # self.comps[t1].goal = {i:self.terminals[i] for i in united_goals}
-        #             # # # # # # if self.comps[t2].goal:
-        #             # self.comps[t2].goal = {i:self.terminals[i] for i in united_goals}
-        #             # self.comps[self.selData['terminalInd']].update()
-
-        #             # for t in map(lambda x: self.terminals.index(x),term_actual):
-        #             #     if t in self.comps[t1].goal:
-        #             #         del self.comps[t1].goal[t]
-        #                 # if t in self.comps[t2].goal:
-        #                 #     del self.comps[t2].goal[t]
-
-        #         except Exception as e_:
-        #             print(e_)
-        #             print("")
-        #             MyLogger.add_message("Update goal error!", __name__, "ERROR", "exc_info=True")
-        #             raise
-
-        #         # reprioritze
-        #         if self.comps[t1].goal:
-        #             self.comps[t1].reprioritize()
-
-        #         if self.comps[t2].goal:
-        #             self.comps[t2].reprioritize()  
-
-        #         # # Delete respective components from nodeQueue
-        #         self.nodeQueue.delete(t1)
-        #         self.nodeQueue.delete(t2)
-
-        #         MyLogger.add_message("goals(POST) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
-        #         MyLogger.add_message("goals(POST) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
-
-        #         ############################################
-        #         # ## End update destination list and rep ###
-        #         # ##########################################  
-
-        #         MyLogger.add_message("paths in solution set: {}".format(len(self.S['dist'])), __name__, "INFO")
-
-        #         # # Set another lower bound on components due to declared shortest path
-        #         # if dist > 0 and dist < self.comps[t1].lmin or self.comps[t1].lmin == 0:
-        #         #     self.comps[t1].lmin = dist
-
-        #         # if dist > 0 and dist < self.comps[t2].lmin or self.comps[t2].lmin == 0:
-        #         #     self.comps[t2].lmin = dist
-
-        #         self.comps[t1].lmin = dist
-        #         self.comps[t2].lmin = dist            
-    
-        #         self.pathQueue.put({'terms': (t1,t2), 'term_actual': term_actual, 'path':path, 'selData':bestDict, 'selNode': bestNode, 'dist':dist}, dist)
-        #         MyLogger.add_message("Added path to pathQueue", __name__, "DEBUG")
-
-        #         MyLogger.add_message("pathQueue len now: {}".format(len(self.pathQueue.elements)), __name__, "INFO")
-
-        #         if cfg.console_level == "DEBUG":
-        #             self.debug_fmin()
-        #             self.debug_gmin
-        #             self.debug_pmin()
-        #             self.debug_lmin()
-        #             self.debug_rmin()
-        #             testtesttest=1
-        # # self.comps[self.selData['terminalInd']].update()
-
 
     def tree_update(self):
         """ Empty the pathQueue if possible, then update the solution set `S`

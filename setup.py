@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="steinerpy", # Replace with your own username
-    version="0.0.1",
+    version="1.0.0",
     author="Kenny Chour",
     author_email="ckennyc@tamu.edu",
     description="Algorithms to find steiner tree",

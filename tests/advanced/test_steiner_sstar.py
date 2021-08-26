@@ -2,7 +2,8 @@ import unittest
 
 import steinerpy.config as cfg
 # cfg.Animation.visualize = True
-cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+# cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+# cfg.Algorithm.sstar_heuristic_type = "zero"
 
 # change logging type test
 # cfg.Misc.log_conf["handlers"]["console"]["formatter"] = "default"
@@ -13,7 +14,7 @@ cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 # cfg.reload_log_conf()
 
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy.algorithms import SstarHS, SstarBS, SstarMM, SstarMM0
+from steinerpy.algorithms import SstarHS, SstarBS, SstarMM, SstarMM0, Unmerged
 
  # Spec out our squareGrid
 minX = -15			# [m]
@@ -47,16 +48,8 @@ class TestSteinerSstar(unittest.TestCase):
         #Store Tree values
         dist = []
 
-        # # Create Astar object
-        # ao = SstarHS(graph, terminals)
-        # # test comps type
-        # self.assertIsInstance(ao.comps, dict)
-        # # run algorithm
-        # self.assertTrue(ao.run_algorithm())
-        # dist.append(sum(ao.return_solutions()['dist']))
 
-        # Test Primal Dual
-        # Create Astar object
+        # Test Primal Dual or S*-Bi-BS
         ao = SstarBS(graph, terminals)
         # test comps type
         self.assertIsInstance(ao.comps, dict)
@@ -64,54 +57,33 @@ class TestSteinerSstar(unittest.TestCase):
         self.assertTrue(ao.run_algorithm())
         dist.append(sum(ao.return_solutions()['dist']))
 
-        # # Test Dijkstra
-        # ao = SstarHS0(graph, terminals)
-        # # test comps type
-        # self.assertIsInstance(ao.comps, dict)
-        # # Run algorithm, does it return true?
-        # self.assertTrue(ao.run_algorithm())
-        # # Save dist
-        # dist.append(sum(ao.return_solutions()['dist']))
+        # HS
+        ao = SstarHS(graph, terminals)
+        self.assertIsInstance(ao.comps, dict)
+        self.assertTrue(ao.run_algorithm())
+        dist.append(sum(ao.return_solutions()['dist']))
 
-        # Test equivalence
-        self.assertTrue(abs(max(dist) - min(dist))<=1e-9)
+        # MM
+        ao = SstarMM(graph, terminals)
+        self.assertIsInstance(ao.comps, dict)
+        self.assertTrue(ao.run_algorithm())
+        dist.append(sum(ao.return_solutions()['dist']))
 
-    # def test_sstar_dijkstra(self):
+        # MM0
+        ao = SstarMM0(graph, terminals)
+        self.assertIsInstance(ao.comps, dict)
+        self.assertTrue(ao.run_algorithm())
+        dist.append(sum(ao.return_solutions()['dist']))
 
-    #     # Create Astar object
-    #     ao = SstarDijkstra(graph, terminals)
+        # unmerged
+        ao = Unmerged(graph, terminals)
+        self.assertIsInstance(ao.comps, dict)
+        self.assertTrue(ao.run_algorithm())
+        dist.append(sum(ao.return_solutions()['dist']))
 
-    #     # test comps type
-    #     self.assertIsInstance(ao.comps, dict)
-
-    #     # run algorithm
-    #     self.assertTrue(ao.run_algorithm())
-
-    # def test_sstar_astar(self):
-
-    #     # Create Astar object
-    #     ao = SstarAstar(graph, terminals)
-
-    #     # test comps type
-    #     self.assertIsInstance(ao.comps, dict)
-
-    #     # run algorithm
-    #     self.assertTrue(ao.run_algorithm())
-
-    # def test_sstar_primaldual(self):
-
-    #     # Create Astar object
-    #     ao = SstarPrimalDual(graph, terminals)
-
-    #     # test comps type
-    #     self.assertIsInstance(ao.comps, dict)
-
-    #     # run algorithm
-    #     self.assertTrue(ao.run_algorithm())
-
-    # def test_context(self):
-    #     ''' test contextualizer '''
-    #     print("wip, context=Context()")
-
+        # make sure tree values are the same
+        # wuthin margin of floating point error
+        self.assertTrue(all([abs(dist[0] - ele)<1e-6 for ele in dist]))
+ 
 if __name__ == "__main__":
     unittest.main()
