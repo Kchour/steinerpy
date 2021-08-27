@@ -9,8 +9,6 @@ import random
 random.seed(456)
 
 import steinerpy.config as cfg
-cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
-cfg.Animation.visualize = False
 
 from steinerpy.library.graphs.graph import GraphFactory
 from steinerpy.library.pipeline.r2generate_results import GenerateResultsMulti, GenerateResults
@@ -39,6 +37,8 @@ class TestGenerateResults(unittest.TestCase):
 
     # @unittest.skip("TESTING PURPOSES")
     def test_main_results_generate_single(self):
+        cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+
         save_path = os.path.join(cwd, "main_results_test_single.pkl")
         algs_to_run = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0"]
         gen_mr = GenerateResults(graph=sq, save_path=save_path, file_behavior="OVERWRITE", algs_to_run=algs_to_run)
@@ -57,6 +57,8 @@ class TestGenerateResults(unittest.TestCase):
             self.assertTrue(all(mst_values[0] == ele for ele in mst_values))     
                
     def test_main_results_generate_multi(self):
+        cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+
         save_path = os.path.join(cwd, "main_results_test_multi.pkl")
         algs_to_run = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0"]
         gen_mr = GenerateResultsMulti(graph=sq, save_path=save_path, file_behavior="OVERWRITE", algs_to_run=algs_to_run)
@@ -72,7 +74,7 @@ class TestGenerateResults(unittest.TestCase):
             mst_values = []
             for alg in algs_to_run:
                 mst_values.append(sum(res['solution'][alg][ndx]['dist']))
-                print(ndx, alg, mst_values)
+                print(ndx, alg, mst_values ,cfg.Algorithm.sstar_heuristic_type)
 
             try:
                 if not all(abs(mst_values[0] - ele)<1e-6  for ele in mst_values):

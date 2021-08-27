@@ -25,7 +25,7 @@ import steinerpy.config as cfg                              # to ensure heuristi
 from steinerpy.context import Context                       # helper to load graph and run algorithms
 
 # Visualize things
-cfg.Animation.visualize = True
+# cfg.Animation.visualize = True
 
 # location to save preproessed heuristics (in tmp)
 save_file = os.path.join(heu_path, "den312d.map.pkl")
@@ -40,7 +40,7 @@ obs = graph.obstacles
 
 # generate random unique set of terminals
 T = set()
-while len(T) < 50:
+while len(T) < 15:
     x = random.randint(minX, maxX)
     y = random.randint(minY, maxY)
     if (x,y) not in obs:
@@ -53,9 +53,15 @@ further_save_file = os.path.join(heu_path, "den312d.map.land-to-apsp.pkl")
 
 class TestCreateAndRunHeuristics(unittest.TestCase):
 
+    def setUp(self):
+        self.old_setting = cfg.Algorithm.sstar_heuristic_type
+        cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+
+    def tearDown(self):
+        cfg.Algorithm.sstar_heuristic_type = self.old_setting  
+
     @unittest.skip("SKIPPING due to length of time")
     def test_load_heuristics_from_disk_run_sstar(self):
-     
         # generate heuristics for den312d.map if not found 
         # THIS IS TIME CONSUMING
         if not os.path.exists(save_file):
@@ -94,6 +100,28 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
         stats.print_stats()
 
         print(results)
+
+    def test_try_different_heuristics(self):
+        # Run all 2d grid based heuristics except preprocess
+        # Make sure `grid` is selected as graph domain
+        cfg.Algorithm.graph_domain = "grid"
+
+        # try to use custom heuristics
+        from steinerpy.algorithms.common import CustomHeuristics
+        CustomHeuristics.bind(lambda x,y: 0) 
+
+        algorithms = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0", "S*-unmerged"]
+        heuristics = ["custom", "manhattan", "diagonal_nonuniform", "diagonal_uniform", "euclidean", "zero"]
+        for h in heuristics:
+            # set heuristic configuration
+            cfg.Algorithm.sstar_heuristic_type = h
+            print("")
+            print("Using {}".format(h))
+            # run each algorithm
+            for alg in algorithms:
+                context = Context(graph, T)
+                print("Running {}".format(alg))
+                context.run(alg)
 
 if __name__ == "__main__":
     unittest.main() 

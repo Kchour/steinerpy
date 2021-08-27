@@ -88,3 +88,18 @@ class Context:
         # return latest strategy
         return self.instances[self.strategy].return_solutions()
 
+    def return_data_structures(self):
+        """Return gcosts, parent, children, and root data structures
+            for each component. 
+
+        """
+        data_structures = {}
+        for c, v in self.instances[self.strategy].comps.items():
+            data_structures.update({
+                c: {"gcosts": v.g, 
+                    "parent": v.parent,
+                    "children": v.children,
+                    "root": v.root}
+            })
+
+        return data_structures

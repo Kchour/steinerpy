@@ -43,16 +43,13 @@ class SstarHS(Framework):
         # If we don't have any goals...
         if not object_.goal:
             return 0
-
-        # type_ = 'diagonal_nonuniform'
-        type_ = cfg.Algorithm.sstar_heuristic_type
   
         # need to look at current object's destination...which changes
         # hju = list(map(lambda goal: htypes(type_, next, goal), terminals))
         # hju = list(map(lambda goal: htypes(type_, next, goal), [terminals[i] for i in comps[object_.id]['destinations']]))
         # hju = list(map(lambda goal: htypes(type_, next, goal), [dest for dest in object_.goal]))
         # hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
-        hju = list(map(lambda goal: Common.heuristic_func_wrap(type_=type_, next=next, goal=goal), object_.goal.values()))
+        hju = list(map(lambda goal: Common.heuristic_func_wrap(next=next, goal=goal), object_.goal.values()))
 
         minH = min(hju)
         minInd = hju.index(minH)
@@ -168,13 +165,10 @@ class SstarMM(Framework):
         # If we don't have any goals...
         if not object_.goal:
             return 0
-
-        # type_ = 'diagonal_nonuniform'
-        type_ = cfg.Algorithm.sstar_heuristic_type
   
         # need to look at current object's destination...which changes
         # hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
-        hju = list(map(lambda goal: Common.heuristic_func_wrap(type_=type_, next=next, goal=goal), object_.goal.values()))
+        hju = list(map(lambda goal: Common.heuristic_func_wrap(next=next, goal=goal), object_.goal.values()))
         
         minH = min(hju)
         minInd = hju.index(minH)

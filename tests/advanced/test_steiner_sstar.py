@@ -44,6 +44,13 @@ terminals = [(-8, -4), (0, -13), (1, -5), (10, 10),(-11, 12)]
 
 class TestSteinerSstar(unittest.TestCase):
     
+    def setUp(self):
+        self.old_setting = cfg.Algorithm.sstar_heuristic_type
+        cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+
+    def tearDown(self):
+        cfg.Algorithm.sstar_heuristic_type = self.old_setting  
+
     def test_returned_tree_values(self):
         #Store Tree values
         dist = []

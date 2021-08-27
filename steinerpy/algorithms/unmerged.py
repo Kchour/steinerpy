@@ -46,7 +46,7 @@ class Unmerged(Framework):
             
             if abs(pdist-dist)>0.1 or abs(pdist-_)>0.1:
                 # print("")
-                raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist)
+                raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist, _)
 
             Common.add_solution(path=path, dist=dist, edge=term_actual,\
                 solution_set=self.S, terminals=self.terminals)
@@ -87,17 +87,14 @@ class Unmerged(Framework):
         """ 
         h_i(u) = min{h_j(u)}  for all j in Destination(i), and for some node 'u'
         
-        """
-        # type_ = 'diagonal_nonuniform'
-        type_ = cfg.Algorithm.sstar_heuristic_type
-  
+        """  
         # need to look at current object's destination...which changes
         # hju = list(map(lambda goal: htypes(type_, next, goal), terminals))
         # hju = list(map(lambda goal: htypes(type_, next, goal), [terminals[i] for i in comps[object_.id]['destinations']]))
         # hju = list(map(lambda goal: htypes(type_, next, goal), [dest for dest in object_.goal]))
         # hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
         # hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
-        hju = list(map(lambda goal: Common.heuristic_func_wrap(type_=type_, next=next, goal=goal), object_.goal.values()))
+        hju = list(map(lambda goal: Common.heuristic_func_wrap(next=next, goal=goal), object_.goal.values()))
 
         
         if hju:

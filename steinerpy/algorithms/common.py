@@ -12,6 +12,88 @@ import steinerpy.config as cfg
 
 my_logger = logging.getLogger(__name__)
 
+class CustomHeuristics:
+    """Allow users to specify their own heuristic func
+
+    """
+    @staticmethod
+    def h_func(next, goal):
+        """The heuristic function take in two params and return a float
+        
+        Parameters:
+            next (tuple):
+            goal (tuple):
+
+        """
+        pass
+
+    @staticmethod
+    def bind(func):
+        """Rebind custom heuristic function
+            and also update the mapping!
+        """
+        CustomHeuristics.h_func = func
+        HeuristicMap.grid_based_heuristic_mapper["custom"] = func
+
+class GridBasedHeuristics2D:
+    """
+    Heuristics for a flat grid graph
+
+    Parameters:
+        next (tuple): The source vertex  
+        goal (tuple): The destination vertex
+
+    """
+    @staticmethod
+    def _gbh_manhattan(next: tuple, goal: tuple):
+        (x1, y1) = next
+        (x2, y2) = goal
+        return  abs(x1 - x2) + abs(y1 - y2)
+
+    @staticmethod
+    def _gbh_euclidean(next, goal):
+        (x1, y1) = next
+        (x2, y2) = goal
+        v = [x2 - x1, y2 - y1]
+        return np.hypot(v[0], v[1])
+
+    @staticmethod
+    def _gbh_diagonal_uniform(next, goal):
+        (x1, y1) = next
+        (x2, y2) = goal
+        return max(abs(x1 - x2), abs(y1 - y2))
+    
+    @staticmethod
+    def _gbh_diagonal_nonuniform(next, goal):
+        (x1, y1) = next
+        (x2, y2) = goal
+        dmax = max(abs(x1 - x2), abs(y1 - y2))
+        dmin = min(abs(x1 - x2), abs(y1 - y2))
+        return 1.414*dmin + (dmax - dmin)
+
+    @staticmethod
+    def _gbh_preprocess(next, goal):
+        from steinerpy.library.pipeline import GenerateHeuristics
+        return GenerateHeuristics.heuristic_wrap(next, goal)    
+
+    @staticmethod
+    def _gbh_zero(next, goal):
+        return 0
+
+
+# If additional heuristic functions are defined in this module, then we must add them below
+# so that we can select it from a global variable given in `config` module
+class HeuristicMap:
+
+    # Map each key to a function above
+    grid_based_heuristic_mapper = {"manhattan": GridBasedHeuristics2D._gbh_manhattan,
+                                    "zero": GridBasedHeuristics2D._gbh_zero,
+                                    "euclidean": GridBasedHeuristics2D._gbh_euclidean,
+                                    "diagonal_uniform": GridBasedHeuristics2D._gbh_diagonal_uniform,
+                                    "diagonal_nonuniform": GridBasedHeuristics2D._gbh_diagonal_nonuniform,
+                                    "preprocess": GridBasedHeuristics2D._gbh_preprocess,
+                                    "custom": CustomHeuristics.h_func}
+
 class Common:
 
     @staticmethod
@@ -413,26 +495,16 @@ class Common:
             #skip merging if this is the case
             return False
 
-    @staticmethod
-    def custom_heuristics(next, goal):
-        """Allow user to define heuristic
-        
-        Parameters:
-            next (tuple):
-            goal (tuple):
-
-        """
-        pass
 
     @staticmethod
     def heuristic_func_wrap(*args, **kwargs):
         if cfg.Algorithm.graph_domain == "grid":
             return Common.grid_based_heuristics(*args, **kwargs)
         elif cfg.Algorithm.graph_domain == "generic":
-            return Common.custom_heuristics(*args, **kwargs)
+            return CustomHeuristics.h_func(*args, **kwargs)
 
     @staticmethod
-    def grid_based_heuristics(type_, next, goal):
+    def grid_based_heuristics(next: tuple, goal: tuple):
             """ Heuristics for a flat grid graph
 
             Parameters:
@@ -445,31 +517,11 @@ class Common:
                 * Use a dict to map str keys to a heuristic function for speed!
 
             """
-            try: 
-                (x1, y1) = next
-                (x2, y2) = goal
-                if type_ == "zero":
-                    heuristic = 0.0
-                elif type_ == 'manhattan':
-                    heuristic = abs(x1 - x2) + abs(y1 - y2)
-                elif type_ == 'euclidean':
-                    v = [x2 - x1, y2 - y1]
-                    heuristic = np.hypot(v[0], v[1])
-                elif type_ == 'diagonal_uniform':
-                    heuristic = max(abs(x1 - x2), abs(y1 - y2))
-                elif type_ == 'diagonal_nonuniform':
-                    dmax = max(abs(x1 - x2), abs(y1 - y2))
-                    dmin = min(abs(x1 - x2), abs(y1 - y2))
-                    heuristic = 1.414*dmin + (dmax - dmin)
-                elif type_ == 'preprocess':
-                    from steinerpy.library.pipeline import GenerateHeuristics
-                    heuristic = GenerateHeuristics.heuristic_wrap(next, goal)     
-                elif type_ == 'custom':
-                    heuristic = Common.custom_heuristics(next, goal)
-                else:
-                    raise Exception("Please select an available heuristic type: 'manhattan', 'euclidean', 'diagonal_uniform', 'diagonal_nonuniform', 'preprocess'")
+            try:
+                # look up table for selected heuristic to use. Pass next and goal nodes 
+                heuristic = HeuristicMap.grid_based_heuristic_mapper[cfg.Algorithm.sstar_heuristic_type](next, goal)
             except Exception as e:
-                raise e
+                raise e("Please select an available heuristic type: 'manhattan', 'euclidean', 'diagonal_uniform', 'diagonal_nonuniform', 'preprocess', 'custom'")
 
             return cfg.Algorithm.hFactor*heuristic 
 
@@ -490,4 +542,4 @@ class Common:
         return subs
 
 
- 
+

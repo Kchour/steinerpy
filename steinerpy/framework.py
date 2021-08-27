@@ -679,7 +679,7 @@ class Framework(AbstractAlgorithm):
 
                     plt.tight_layout()  #to make legend fit
                     ax = plt.gca()
-                    ax.axis('equal')
+                    # ax.axis('equal')
                     # ax.set_aspect('equal', 'box')
 
                     plt.draw()

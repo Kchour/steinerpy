@@ -7,12 +7,19 @@ cpu_count = int(multiprocessing.cpu_count()/2)
 from steinerpy.library.pipeline import GenerateHeuristics
 from steinerpy.library.graphs.graph import GraphFactory
 from steinerpy.library.graphs.parser import DataParser
+import steinerpy.config as cfg
 
 class TestGenerateHeuristics(unittest.TestCase):
 
+    def setUp(self):
+        self.old_setting = cfg.Algorithm.sstar_heuristic_type
+        cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+
+    def tearDown(self):
+        cfg.Algorithm.sstar_heuristic_type = self.old_setting  
+
     @unittest.skip("SKIPPING")
     def test_generate_all_shortest_pairs_distance(self):
-        
         # Spec out our squareGrid
         minX = 0			# [m]
         maxX = 5         
