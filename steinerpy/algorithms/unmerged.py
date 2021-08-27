@@ -18,7 +18,7 @@ class Unmerged(Framework):
         # self.S = {'sol':[], 'dist':[], 'path':[]}
         # self.FLAG_STATUS_completeTree = False
         
-        # cycle detection required in Astar unmerged
+        # cycle detection required in S*-unmerged
         self.cd = CycleDetection([(t,) for t in range(len(terminals))])
 
     def tree_update(self):

@@ -89,7 +89,7 @@ class Misc:
     # This can be configured by the user!
     log_conf = {
         'version': 1,
-        'disable_existing_loggers': True,
+        'disable_existing_loggers': False,
         'formatters': {
             'default': {
                 'format': '%(asctime)-15s %(levelname)-8s %(name)-8s %(message)s'
