@@ -56,6 +56,9 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
     def setUp(self):
         self.old_setting = cfg.Algorithm.sstar_heuristic_type
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+        # cfg.Misc.log_conf["handlers"]['console']['level'] = "DEBUG"
+        # cfg.reload_log_conf()
+        # cfg.Animation.visualize = True
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
@@ -72,8 +75,6 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
             # convert landmarks to apsp for efficiency
             if gh['type'] == "LAND":
                 GenerateHeuristics.convert_land_to_apsp(data=gh, output=further_save_file)
-
-
 
         # load preprocessed heuristic from disk
         GenerateHeuristics.load_results(further_save_file)
@@ -110,9 +111,13 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
         from steinerpy.algorithms.common import CustomHeuristics
         CustomHeuristics.bind(lambda x,y: 0) 
 
-        algorithms = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0", "S*-unmerged"]
-        heuristics = ["custom", "manhattan", "diagonal_nonuniform", "diagonal_uniform", "euclidean", "zero"]
+        # algorithms = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0", "S*-unmerged"]
+        # heuristics = ["manhattan", "custom", "diagonal_nonuniform", "diagonal_uniform", "euclidean", "zero"]        
+        algorithms = ["Kruskal", "S*-unmerged"]
+        heuristics = ["diagonal_nonuniform"]
         for h in heuristics:
+
+            dist = []
             # set heuristic configuration
             cfg.Algorithm.sstar_heuristic_type = h
             print("")
@@ -122,6 +127,20 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
                 context = Context(graph, T)
                 print("Running {}".format(alg))
                 context.run(alg)
+
+                dist.append(sum(context.return_solutions()['dist']))
+
+                # check monotonicity, not guaranteed if h is not admissible
+                try:
+                    assert all( y-x>=0 for x,y in zip(context.return_solutions()['dist'], context.return_solutions()['dist'][1:] ))
+                except:
+                    print(context.return_solutions()['dist'])
+            
+            try: 
+                assert all ( abs(x-y)< 1e-6 for x,y in zip(dist, dist[1:]))
+            except:
+                print(dist)
+
 
 if __name__ == "__main__":
     unittest.main() 

@@ -213,7 +213,6 @@ class GenerateResultsMulti(Generate):
 
     def _run_individual_algs(self, inputs):
         job_id, data = inputs
-        print("r2generate_results {} {}".format(cfg.Algorithm.sstar_heuristic_type, cfg.Algorithm.graph_domain))
         # print("starting job id: ", job_id)
         terminals, alg = data
         context = Context(self.graph, terminals)

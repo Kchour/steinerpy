@@ -44,9 +44,12 @@ class Unmerged(Framework):
             path, _, term_actual = Common.get_path(comps=self.comps, sel_node=commonNode, term_edge=(t1,t2),\
                 reconstruct_path_func = reconstruct_path)
             
-            if abs(pdist-dist)>0.1 or abs(pdist-_)>0.1:
+            if abs(pdist-dist)/pdist>0.01 or abs(pdist-_)/pdist>0.01:
                 # print("")
-                raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist, _)
+                my_logger.warn("inconsistent edge between terminals: {} {}".format(t1, t2))
+
+                # may be due to inadmissible heuristic?
+                # raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist, _)
 
             Common.add_solution(path=path, dist=dist, edge=term_actual,\
                 solution_set=self.S, terminals=self.terminals)
@@ -63,7 +66,7 @@ class Unmerged(Framework):
                 AnimateV2.add_line("solution", np.vstack(self.S['path']).T.tolist(), 'yo', markersize=10, zorder=10)
 
     # cost and heuristic function definition
-    def f_costs_func(self, object_, cost_so_far, next):
+    def p_costs_func(self, object_, cost_so_far, next):
         """fcost(n) = gcost(n) + hcost(n, goal)        
         
         Parameters:

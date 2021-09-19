@@ -131,6 +131,8 @@ class Animation:
 
 class Algorithm:
     # Algo runtime settings
+
+    # sstar_heuristic_type is only applicable to grid based domains
     sstar_heuristic_type = "diagonal_nonuniform" # grid-based heuristics (manhattan, euclidean, diagonal_uniform, diagonal_nonuniform, preprocess, custom)
                                               # zero otherwise
     hFactor = 1.0    # Scalng factor for heuristics (located in common.grid_based_heuristics)

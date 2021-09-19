@@ -189,7 +189,7 @@ class Process(AFileHandle):
             # # save stats to excel
             # statsDF_Full.to_excel(os.path.join(directory, 'processed.xlsx'), "stats")
 
-            print("wrote to spreadsheet!")
+            print("Process: wrote {}!".format(self.save_path))
             if cfg.Misc.sound_alert == True:
                 os.system('spd-say "Finished! Wrote to spreadsheet!"')
         

@@ -22,7 +22,7 @@ from .algorithms.common import Common
 from steinerpy.library.misc.utils import MyTimer
 
 # configure and create logger
-my_logger = logging.getLogger(__name__)
+my_logger = logging.getLogger(__name__) 
 
 class Framework(AbstractAlgorithm):
     """This class serves as a foundation for S*.
@@ -88,7 +88,7 @@ class Framework(AbstractAlgorithm):
         # Create search algorithm objects
         self.comps = Common.create_search_objects(search_class=GenericSearch, 
                                                 graph=self.graph, 
-                                                f_costs_func=self.f_costs_func,
+                                                p_costs_func=self.p_costs_func,
                                                 frontier_type=PriorityQueueHeap, 
                                                 terminals=self.terminals, 
                                                 visualize=cfg.Animation.visualize
@@ -195,7 +195,7 @@ class Framework(AbstractAlgorithm):
         my_logger.info("performing nomination")
 
         for ndx, c in self.comps.items():
-            if ndx not in self.nodeQueue.elements:
+            if ndx not in self.nodeQueue:
                 if c.nominate():
                     self.nodeQueue.put(ndx, c.currentP)
 
@@ -207,7 +207,6 @@ class Framework(AbstractAlgorithm):
         """
         # MyLogger.add_message("performing update() ", __name__, "INFO")
         my_logger.info("performing update")
-        # CONSIDER USING TRY CATCH FOR THIS ENTIRE LOOP
 
         try:
             # TEST 
@@ -238,6 +237,10 @@ class Framework(AbstractAlgorithm):
         self.selNode = bestCurrent
         self.selData = {t:{} for t in self.terminals} 
         self.selData.update({'to': bestParent, 'terminalInd': best_ndx, 'gcost': bestGVal, 'pcost':bestPVal, 'status': 'closed'})
+
+        # log the gcost for debugging
+        my_logger.info("updated node {}, gcost {}".format(bestCurrent, bestGVal))        
+
 
         # print('selected Node: ', self.selNode)
         # print('selected Data: ', self.selData)
@@ -283,8 +286,8 @@ class Framework(AbstractAlgorithm):
             #         break
             # if duplicates:
             #     continue
-            # Avoid adding duplicate paths to the path PriorityQueue
-            if (t1,t2) in self.pathQueue.elements or (t2,t1) in self.pathQueue.elements:
+            # # Avoid adding duplicate paths to the path PriorityQueue
+            if (t1,t2) in self.pathQueue or (t2,t1) in self.pathQueue:
                 continue
 
             # Add updated component recent open and closed list
@@ -295,20 +298,15 @@ class Framework(AbstractAlgorithm):
             #     updateSet.union(set(c.currentNeighs))
             # updateSet.add(c.current)
 
-            # # look at previous results
+            # Obtain previous feasible path result
             if t1 in self.UFeasPath and t2 in self.UFeasPath[t1]:
                 # UFeas, commonNode = self.UFeasPath[(t1,t2)][0], self.UFeasPath[(t1,t2)][1]
                 if self.UFeasPath[t1][t2][0] < self.UFeasPath[t2][t1][0]:
-                    UFeas, commonNode = self.UFeasPath[t1][t2][0], self.UFeasPath[t1][t2][1]
+                    UFeas, commonNode = self.UFeasPath[t1][t2]
                     self.UFeasPath[t2][t1] = [UFeas, commonNode]
                 else:
-                    UFeas, commonNode = self.UFeasPath[t2][t1][0], self.UFeasPath[t2][t1][1]
-                    self.UFeasPath[t1][t2] = [UFeas, commonNode]
-                # # ensure symmetry
-                # if t2 in self.UFeasPath:
-                #     self.UFeasPath[t2].update({t1: [UFeas, commonNode]})
-                # else:                           
-                #     self.UFeasPath.update({t2: {t1: [UFeas, commonNode]}})                          
+                    UFeas, commonNode = self.UFeasPath[t2][t1]
+                    self.UFeasPath[t1][t2] = [UFeas, commonNode]                         
             else:
                 UFeas = None
          
@@ -317,8 +315,7 @@ class Framework(AbstractAlgorithm):
                     candU = self.comps[t1].g[k] + self.comps[t2].g[k]
                     if  UFeas is None or candU < UFeas:
                         UFeas = candU
-                        commonNode = k
-  
+                        commonNode = k  
                         
                         if t1 in self.UFeasPath:
                             self.UFeasPath[t1].update({t2: [UFeas, commonNode]})
@@ -339,6 +336,10 @@ class Framework(AbstractAlgorithm):
 
                 # Subtract some slack due to numerical issues
                 # t1, t2 = t1feas, t2feas
+
+                my_logger.debug("Observing edge between {} {} - cost {}, local fmin1 {} fmin2 {}, gmin1 {} gmin2 {} pathCriteria {}".\
+                    format(t1,t2, UFeas, self.comps[t1].fmin, self.comps[t2].fmin, self.comps[t1].gmin, self.comps[t2].gmin, Common.path_queue_criteria(self.comps, UFeas, True)))
+
                 sp = self.shortest_path_check(comps=self.comps, term_edge=(t1,t2), bestVal=UFeas)
 
                 if cfg.Misc.DEBUG_MODE:
@@ -350,7 +351,9 @@ class Framework(AbstractAlgorithm):
                     testtesttest=1
 
                 if sp:
-   
+                    my_logger.debug("Adding sp edge between {} {} - cost {}, local fmin1 {} fmin2 {}, gmin1 {} gmin2 {}".\
+                        format(t1,t2, UFeas, self.comps[t1].fmin, self.comps[t2].fmin, self.comps[t1].gmin, self.comps[t2].gmin))
+
                     ###########################################
                     ### # update destination list TEST THIS ###
                     ###########################################
@@ -435,6 +438,8 @@ class Framework(AbstractAlgorithm):
         """
         my_logger.info("performing tree_update")
 
+        my_logger.debug("global kruskal value {}".format( Common.path_queue_criteria(self.comps, 0, True) ) )
+
         # Empty path queue, gather up the solutions in solution queue (FIFO)
         solQueue = Common.solution_handler(comps=self.comps, path_queue=self.pathQueue, cycle_detector=None, \
             terminals=self.terminals, criteria=self.path_queue_criteria, merging=True, use_depots=self.use_depots)
@@ -445,7 +450,9 @@ class Framework(AbstractAlgorithm):
         for ndx, s in enumerate(solQueue):
             # self.add_solution(s['path'], s['dist'], s['terms'])
             # t1,t2 = s['terms']
-            my_logger.debug("emptying solQueue iter: {}".format(ndx+1))
+            # my_logger.debug("emptying solQueue iter: {}".format(ndx+1))
+
+            my_logger.debug("adding edge with value {}".format(s['dist']))
 
             # t1, t2 = Common.subsetFinder(s['terms'], self.comps)
             # MyLogger.add_message("Inspecting path {}. Old Comps {}. New Comps {}. Terminals {}. length {}".format(s['path'], s['terms'], (t1,t2), s['term_actual'], s['dist']), __name__, "DEBUG")
@@ -476,20 +483,22 @@ class Framework(AbstractAlgorithm):
             # Get common node between two components
             dist, commonNode = self.UFeasPath[t1][t2]
 
-            if abs(pdist-dist)>0.1:
+            if abs(pdist-dist)/pdist>0.1:
                 # print("")
-                raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist)
+                my_logger.warning("inconsistent edge between terminals (may be due to inadmissible h?): {} {}".format(t1, t2))
+
+                # This may be due to inadmissible heuristic?
+                # raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist)
 
             # reconstruct path
             path, _, term_actual = Common.get_path(comps=self.comps, sel_node=commonNode, term_edge=(t1,t2),\
             reconstruct_path_func = reconstruct_path)
 
-            try:
-                
-                # MyLogger.add_message("Just added path {}. Terminals {}. length {}".format(s['path'], s['term_actual'], s['dist']), __name__, "INFO")
-
+            try:              
                 Common.add_solution(path=path, dist=dist, edge=term_actual,\
                     solution_set=self.S, terminals=self.terminals)
+
+                my_logger.debug("Just added path no. {}. Terminals {}".format(len(self.S['dist']), term_actual))
 
                 # True as soon as we add a solution
                 self.FLAG_STATUS_pathConverged = True
@@ -687,6 +696,33 @@ class Framework(AbstractAlgorithm):
 
             self.FLAG_STATUS_pathConverged = False
 
+    def debug_get_comp_current_node(self, comp):
+        """Return min node from frontier without purging it """
+        return comp.frontier.get_min()
+
+    def debug_global_min(self):
+        return Common.path_queue_criteria(self.comps, 0, True)
+
+    def debug_UFeas(self):
+        """Print out sorted path lengths from UFeas
+
+        """
+        paths = {}
+        for u in self.UFeasPath:
+            for v in self.UFeasPath[u]:
+                paths[(u,v)]= self.UFeasPath[u][v][0]
+        # sort
+        paths = {k: paths[k] for k in sorted(paths, key=lambda x: paths[x] ) }
+        for k, v in paths.items():
+            print(k, v)
+
+    def debug_pathQueue(self):
+        """Print out sorted path lengths from path queue
+
+        """
+        paths = {k: self.UFeasPath[k[1]][k[0]]  for k in sorted(self.pathQueue.elements)}
+        
+
     def debug_nongoals(self):
         my_logger.debug("SHOWING EXCLUDED GOALS")
         my_logger.debug("GGGGGGGGGGGGGGGGGGGGGG")
@@ -696,6 +732,7 @@ class Framework(AbstractAlgorithm):
             nongoal_terms = [self.terminals[t] for t in nongoals]
             # MyLogger.add_message("comp: {}, not in goal: {}, comp_terms: {}, goal_terms: {}".format(c, nongoals, c_terms, nongoal_terms), __name__, "DEBUG")
             my_logger.debug("comp: {}, not in goal: {}, comp_terms: {}, goal_terms: {}".format(c, nongoals, c_terms, nongoal_terms))
+    
     def debug_bounds(self, c):
         print("comp: ", c, "fmin: ", self.comps[c].fmin, "gmin: ", self.comps[c].gmin, "lmin: ", self.comps[c].lmin)
 
@@ -706,9 +743,9 @@ class Framework(AbstractAlgorithm):
         minVal = None
         for i,j in self.comps.items(): 
             # MyLogger.add_message("comp: {}, terminals: {}, fmin: {}".format(i, [self.terminals[k] for k in i], j.fmin), __name__, "DEBUG")
-            my_logger.debug("comp: {}, terminals: {}, fmin: {}".format(i, [self.terminals[k] for k in i], j.fmin))
             if minVal is None or j.fmin < minVal:
                 minVal= j.fmin
+        my_logger.debug("comp: {}, terminals: {}, fmin: {}".format(i, [self.terminals[k] for k in i], j.fmin))
         return minVal
 
     def debug_gmin(self):
@@ -718,9 +755,10 @@ class Framework(AbstractAlgorithm):
         minVal = None
         for i,j in self.comps.items(): 
             # MyLogger.add_message("comp: {}, terminals: {}, gmin: {}".format(i, [self.terminals[k] for k in i], j.gmin), __name__, "DEBUG")
-            my_logger.debug("comp: {}, terminals: {}, gmin: {}".format(i, [self.terminals[k] for k in i], j.gmin))
             if minVal is None or j.gmin < minVal:
                 minVal= j.gmin
+
+        my_logger.debug("comp: {}, terminals: {}, gmin: {}".format(i, [self.terminals[k] for k in i], j.gmin))
         return minVal
 
     def debug_pmin(self):
@@ -730,9 +768,11 @@ class Framework(AbstractAlgorithm):
         minVal = None
         for i,j in self.comps.items(): 
             # MyLogger.add_message("comp: {}, terminals: {}, pmin: {}".format(i, [self.terminals[k] for k in i], j.pmin), __name__, "DEBUG")
-            my_logger.debug("comp: {}, terminals: {}, pmin: {}".format(i, [self.terminals[k] for k in i], j.pmin))
             if minVal is None or j.pmin < minVal:
                 minVal= j.pmin
+
+        my_logger.debug("comp: {}, terminals: {}, pmin: {}".format(i, [self.terminals[k] for k in i], j.pmin))
+
         return minVal
 
     def debug_lmin(self):
@@ -741,9 +781,11 @@ class Framework(AbstractAlgorithm):
         minVal = None
         for i,j in self.comps.items(): 
             # MyLogger.add_message("comp: {}, terminals: {}, lmin: {}".format(i, [self.terminals[k] for k in i], j.lmin), __name__, "DEBUG")
-            my_logger.debug("comp: {}, terminals: {}, lmin: {}".format(i, [self.terminals[k] for k in i], j.lmin))
             if minVal is None or j.lmin < minVal:
                 minVal= j.lmin
+        
+        my_logger.debug("comp: {}, terminals: {}, lmin: {}".format(i, [self.terminals[k] for k in i], j.lmin))
+
         return minVal
 
     def debug_rmin(self):
@@ -752,22 +794,24 @@ class Framework(AbstractAlgorithm):
         minVal = None
         for i,j in self.comps.items(): 
             # MyLogger.add_message("comp: {}, terminals: {}, rmin: {}".format(i, [self.terminals[k] for k in i], j.rmin), __name__, "DEBUG")
-            my_logger.debug("comp: {}, terminals: {}, rmin: {}".format(i, [self.terminals[k] for k in i], j.rmin))
             if minVal is None or j.rmin < minVal:
                 minVal = j.rmin
+        my_logger.debug("comp: {}, terminals: {}, rmin: {}".format(i, [self.terminals[k] for k in i], j.rmin))
         return minVal    
 
     @abstractmethod
-    def f_costs_func(self):
-        """An abstract method used to calculate the fcost of a node in the open set. Must be overriden! 
+    def p_costs_func(self, this:GenericSearch, gcosts: dict, next: tuple):
+        """An abstract method used to calculate the priority cost of a node in the open set. Must be overriden! 
         
         Typically, this is the sum of g and h, i.e. f=g+h, but may depend on the user's case
         
         """
+        # MUST KEEP TRACK OF FCOSTS !!!!!!!!!
+        # this.f = fcost(node)
         pass 
 
     @abstractmethod
-    def h_costs_func(self):
+    def h_costs_func(self, next: tuple, this: GenericSearch):
         """An abstract method used to calculate the heuristic cost of a node in the open set. Must be overriden! 
         
         See the `Common` class, which has a staticmethod for typical grid-based heuristics

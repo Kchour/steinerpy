@@ -181,7 +181,6 @@ class PriorityQueueHeap:
             entry = self.pq[0]
         raise KeyError('pop from an empty priority queue')
 
-
     # Only necessary for removing redundant items
     def delete(self, item):
         """Lazy delete """

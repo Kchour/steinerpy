@@ -48,6 +48,7 @@ test_maps_mapf = [sq, mapf_maze, mapf_den]
 # load steinlib graphs
 test_maps_steinlib = []
 test_terminals_steinlib = []
+stein_dir = {}
 for root, dirs, files in os.walk(os.path.join(cfg.data_dir, "steinlib", "B")):
     for fname in files:
         # ensure proper file extension
@@ -58,6 +59,7 @@ for root, dirs, files in os.walk(os.path.join(cfg.data_dir, "steinlib", "B")):
             # store 
             test_maps_steinlib.append(sl_g)
             test_terminals_steinlib.append(sl_terminals)
+            stein_dir[fname] = {'dir': os.path.join(root, fname), 'map': sl_g, 'terminals': sl_terminals}
 
 # location to save cache files! WARNING: generating cache can take a long time
 temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp")
@@ -65,13 +67,24 @@ temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp")
 # get current working directory (the test folder)
 cwd = os.path.dirname(os.path.abspath(__file__))
 
-class TestGenerateAndCompareResults(unittest.TestCase):
+class TestGenerateAndCompareResultsMAPFGridBase(unittest.TestCase):
     """Randomly generate terminals and see if the answers will match!
         You can have the option of skipping baseline generation
         if the "XXX_baseline.pkl" file has already been generated
         for a particular instance-term combination
     """
-    # @unittest.skip("TEST")
+
+    def setUp(self):
+        self.old_setting = cfg.Algorithm.sstar_heuristic_type
+        cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+        # cfg.Misc.log_conf["handlers"]['console']['level'] = "DEBUG"
+        # cfg.reload_log_conf()
+        # cfg.Animation.visualize = True
+
+    def tearDown(self):
+        cfg.Algorithm.sstar_heuristic_type = self.old_setting  
+
+    @unittest.skip("not testing right now")
     def test_generate_randomized_terminals_results_compare_mapf(self):
         # This heuristic is good for 8-neighbor square grids
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
@@ -125,17 +138,32 @@ class TestGenerateAndCompareResults(unittest.TestCase):
             pr.specify_files(baseline_save_path, main_save_path)
             pr.run()
 
-    @unittest.skip("Doesn't pass yet")
-    def test_generate_randomized_terminals_results_compare_steinlib(self):
-        from steinerpy.algorithms.common import Common
+
+class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
+
+    def setUp(self):
+        self.old_setting = cfg.Algorithm.sstar_heuristic_type
+        from steinerpy.algorithms.common import CustomHeuristics
         cfg.Algorithm.graph_domain = "generic"
-        zero_h = lambda *x, **kwargs: 0
-        Common.custom_heuristics = zero_h
+        cfg.Misc.log_conf["handlers"]['console']['level'] = "DEBUG"
+        cfg.reload_log_conf()
+        # cfg.Animation.visualize = True
+        CustomHeuristics.bind(lambda next, goal: 0)
+
+    def tearDown(self):
+        cfg.Algorithm.sstar_heuristic_type = self.old_setting  
+
+    @unittest.skip("some issues yet")
+    def test_generate_randomized_terminals_results_compare_steinlib(self):
+        # from steinerpy.algorithms.common import CustomHeuristics
+        # cfg.Algorithm.graph_domain = "generic"
+        # zero_h = lambda *x, **kwargs: 0
+        # CustomHeuristics.bind(zero_h)
 
         for _map, _terminals in zip(test_maps_steinlib, test_terminals_steinlib):
             baseline_save_path = os.path.join(cwd, "".join((_map.name, "_baseline.pkl")))
             gen_bs = GenerateBaseLine(graph=_map, save_path=baseline_save_path, file_behavior="SKIP", load_from_disk=True)
-            # generate random instances
+            # Get terminals
             gen_bs.input_specifed_instances([_terminals])
             # run the generator
             kruskal_results = gen_bs.run()
@@ -144,7 +172,7 @@ class TestGenerateAndCompareResults(unittest.TestCase):
 
             # Generate results
             main_save_path = os.path.join(cwd, "".join((_map.name, "_main_results.pkl")))
-            algs_to_run = ["S*-BS", "S*-HS", "S*-MM", "S*-MM0"]
+            algs_to_run = ["S*-BS", "S*-HS", "S*-MM", "S*-MM0", "S*-unmerged"]
             gen_rm = GenerateResultsMulti(graph=_map, save_path=main_save_path, file_behavior="OVERWRITE", algs_to_run=algs_to_run)
             # specify instances
             gen_rm.input_specifed_instances([_terminals])
@@ -156,6 +184,7 @@ class TestGenerateAndCompareResults(unittest.TestCase):
             kruskal_value = sum(kruskal_results['solution'][0]['dist'])
 
             # loop over algorithms
+            issue = False
             for alg in algs_to_run:
                 alg_value = sum(main_results['solution'][alg][0]['dist'])
                 # now compare all values in mst_values
@@ -166,6 +195,17 @@ class TestGenerateAndCompareResults(unittest.TestCase):
                 except:
                     my_logger.error("much badness during 'test_generate_randomized_terminals_results_compare_steinlib'", exc_info=True)
                     raise 
+
+                # test for monotonicity
+                try:
+                    assert all( y-x>=0 for x,y in zip(main_results['solution'][alg][0]['dist'],main_results['solution'][alg][0]['dist'][1:] ))
+                except:
+                    print("alg {} dist {}".format(alg, main_results['solution'][alg][0]['dist']))
+                    issue = True
+            
+            # print kruskal order for answer
+            if issue:
+                print("kruskal order: {}".format(kruskal_results['solution'][0]['dist'] ))
              
             # process them
             save_path = os.path.join(cwd, "".join((_map.name, "processed_rand_results_test.xlsx")))
@@ -173,6 +213,56 @@ class TestGenerateAndCompareResults(unittest.TestCase):
             pr.specify_files(baseline_save_path, main_save_path)
             pr.run()
 
+    def test_fixture_debug_issues(self):
+        # b15.stp, b18.stp
+        # stein_dir[fname] = {'dir': os.path.join(root, fname), 'map': sl_g, 'terminals': sl_terminals}
+        map_name = "b15.stp"
+        gen_bs = GenerateBaseLine(graph=stein_dir[map_name]['map'])
+        # get terminals
+        gen_bs.input_specifed_instances([stein_dir[map_name]['terminals']])
+        # run generator
+        kruskal_results = gen_bs.run()
+        
+        # generator results
+        # algs_to_run = ["S*-BS", "S*-HS", "S*-MM", "S*-MM0", "S*-unmerged"]
+        algs_to_run = ["S*-BS"]
+        gen_mr = GenerateResultsMulti(graph=stein_dir[map_name]["map"], algs_to_run=algs_to_run)
+        gen_mr.input_specifed_instances([stein_dir[map_name]["terminals"]])
+        main_results = gen_mr.run()
+
+        # loop over instances and compare mst values
+        # store mst values for instance
+        kruskal_value = sum(kruskal_results['solution'][0]['dist'])
+
+        # loop over algorithms
+        issue = False
+        for alg in algs_to_run:
+            alg_value = sum(main_results['solution'][alg][0]['dist'])
+            # now compare all values in mst_values
+            try:
+                if abs(kruskal_value-alg_value) > 1e-6:
+                    print (alg, main_results['terminals'][0], kruskal_value, alg_value)
+                    raise ValueError("MST VALUES DONT MATCH")
+            except:
+                my_logger.error("much badness during 'test_generate_randomized_terminals_results_compare_steinlib'", exc_info=True)
+                raise 
+
+            # test for monotonicity
+            try:
+                assert all( y-x>=0 for x,y in zip(main_results['solution'][alg][0]['dist'],main_results['solution'][alg][0]['dist'][1:] ))
+            except:
+                print("alg {} dist {}".format(alg, main_results['solution'][alg][0]['dist']))
+                issue = True
+        
+            # print kruskal order for answer
+            if issue:
+                print("Kruskal")
+                for e, cost in zip(kruskal_results['solution'][0]['sol'] , kruskal_results['solution'][0]['dist']):
+                    print(e, cost)
+
+                print("main alg")
+                for e, cost in zip(main_results['solution'][alg][0]['sol'] , main_results['solution'][alg][0]['dist']):
+                    print(e, cost)
 
 
 if __name__ == "__main__":

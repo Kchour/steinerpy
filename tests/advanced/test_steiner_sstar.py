@@ -1,6 +1,7 @@
 import unittest
-
+        
 import steinerpy.config as cfg
+
 # cfg.Animation.visualize = True
 # cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 # cfg.Algorithm.sstar_heuristic_type = "zero"
@@ -47,31 +48,30 @@ class TestSteinerSstar(unittest.TestCase):
     def setUp(self):
         self.old_setting = cfg.Algorithm.sstar_heuristic_type
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+        cfg.Animation.visualize = False
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
 
     def test_returned_tree_values(self):
+        """Test algorithm returned results"""
+
         #Store Tree values
         dist = []
 
-
-        # Test Primal Dual or S*-Bi-BS
         ao = SstarBS(graph, terminals)
-        # test comps type
-        self.assertIsInstance(ao.comps, dict)
-        # run algorithm
-        self.assertTrue(ao.run_algorithm())
-        dist.append(sum(ao.return_solutions()['dist']))
-
-        # HS
-        ao = SstarHS(graph, terminals)
         self.assertIsInstance(ao.comps, dict)
         self.assertTrue(ao.run_algorithm())
         dist.append(sum(ao.return_solutions()['dist']))
 
         # MM
         ao = SstarMM(graph, terminals)
+        self.assertIsInstance(ao.comps, dict)
+        self.assertTrue(ao.run_algorithm())
+        dist.append(sum(ao.return_solutions()['dist']))
+
+        # HS
+        ao = SstarHS(graph, terminals)
         self.assertIsInstance(ao.comps, dict)
         self.assertTrue(ao.run_algorithm())
         dist.append(sum(ao.return_solutions()['dist']))

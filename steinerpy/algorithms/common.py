@@ -18,14 +18,15 @@ class CustomHeuristics:
     """
     @staticmethod
     def h_func(next, goal):
-        """The heuristic function take in two params and return a float
+        """The heuristic function take in two params and return a float. This can
+            be rebinded using the function `bind` function below
         
         Parameters:
             next (tuple):
             goal (tuple):
 
         """
-        pass
+        raise ValueError("User needs to specify a heuristic function, i.e. call {}".format("CustomHeuristics.bind(lambda next,goal: 0)"))
 
     @staticmethod
     def bind(func):
@@ -154,7 +155,8 @@ class Common:
         # FLAG_STATUS_pathConverged = False
         while not path_queue.empty():
             # get the min fcost path
-            poppedQ = path_queue.get()
+            # poppedQ = path_queue.get()
+            poppedQ = path_queue.get_min()
             # terms_ind, terms_actual, path, dist = poppedQ[1]
             dist,comps_ind = poppedQ
                     
@@ -213,9 +215,15 @@ class Common:
                     sol.append({'dist':dist, 'components':comps_ind})
                     my_logger.debug("Added poppedQ path to sol!") 
 
+                    # remove next least cost edge
+                    path_queue.get()
+
                 else:
-                    path_queue.put(poppedQ[1], poppedQ[0])
+                    # path_queue.put(poppedQ[1], poppedQ[0])
                     break
+            else:
+                # remove the edge that induces a cycle
+                path_queue.get()
         return sol 
 
     @staticmethod
@@ -246,7 +254,7 @@ class Common:
         dist = distA + distB
 
         # print('terminals: ',pathA[0], pathB[-1])
-        term_actual = (tuple(pathA[0]),tuple(pathB[-1]))
+        term_actual = (tuple({pathA[0]}),tuple({pathB[-1]}))
         return path, dist, term_actual
     
     @staticmethod
@@ -371,13 +379,13 @@ class Common:
         #         k['terminalInd'] = mergedComp.id
 
     @staticmethod
-    def create_search_objects(search_class, graph, f_costs_func, frontier_type, terminals, visualize=False):
+    def create_search_objects(search_class, graph, p_costs_func, frontier_type, terminals, visualize=False):
         """ Register `GenericSearch` class objects with an id, so we can do multiple searches and merge them
 
         Parameters:
             search_class (GenericSearch): See `GenericSearch` class for more information
             graph (SquareGrid, MyGraph): Our graph, which the search algorithm is performed on
-            f_costs_func: A scalar function, returning the fcosts of a node (based on heuristics)
+            p_costs_func: A scalar function, returning the priority costs of a node (based on heuristics)
             frontier_type: Allows user to select the type (a class) of priority queue to use
             terminals (list): A list of terminal tuples
             visualize (bool): whether to visualize the algorithm while in-progress, or not
@@ -388,12 +396,12 @@ class Common:
                     for index,start in enumerate(terminals) }
         """
 
-        return {(index, ):  search_class(graph, f_costs_func, start, frontierType=frontier_type(), \
-                    goal={i: terminals[i] for i in set(range(len(terminals)))-set((index,))}, visualize=visualize, id=index) \
+        return {(index, ):  search_class(graph, start, {i: terminals[i] for i in set(range(len(terminals)))-set((index,))},\
+                     p_costs_func, frontierType=frontier_type(), visualize=visualize, id=index) \
                     for index,start in enumerate(terminals) }
 
     @staticmethod
-    def path_queue_criteria(comps, path_distance):
+    def path_queue_criteria(comps, path_distance, return_value=False):
         """ Check to see if candidate path is shorter than estimates. Override if needed
 
         This method helps to preserve Kruskal's property, namely that path P is only considered
@@ -442,7 +450,7 @@ class Common:
             #     lh = c.lmin
 
             # DEBUG PRINT
-            c_lb = max(c.fmin, 2*c.rmin, 2*c.gmin)
+            c_lb = max(c.fmin, 2*c.gmin)
             if c_lb < min_g_lb:
                 min_g_lb = c_lb
             # print(path_distance, c.id, c.fmin, c.rmin, c.lmin, c_lb)
@@ -461,7 +469,10 @@ class Common:
 
         # print(path_distance, min_g_lb)
 
-        if path_distance > min_g_lb+eps:
+        if return_value:
+            return min_g_lb
+
+        if path_distance > min_g_lb:
                 # if path_distance > c.fmin:
                 # if path_distance > 2*min(minF1, minF2):    
                 return False
@@ -479,20 +490,18 @@ class Common:
         Returns:
             True: if we satisfy the path convergence criteria
             False: otherwise
+            
         """
         t1,t2 = term_edge
         comp1 = comps[t1]
         comp2 = comps[t2]    
 
-        # This is Nicholson's Criteria
-        # if bestVal <= comp1.gmin + comp2.gmin:
-
-        # This is Pohl's Criteria
+        # This is both Pohl's and Nicholson's criteria
         if bestVal <= max(comp1.fmin, comp2.fmin, comp1.gmin+comp2.gmin):
-            # Shortest path is 
+            # Shortest path has been confirmed!
             return True
         else:
-            #skip merging if this is the case
+            # not confirmed
             return False
 
 

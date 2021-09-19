@@ -207,8 +207,95 @@ class Progress:
     def finish(self):
         sys.stdout.write("\n")
 
+from collections import UserDict
 
+class ChangingKeysDict(UserDict):
+    """Class to keep track of changing keys which are 
+        composed of base_keys
+
+    """
+    def __init__(self, base_keys: list, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # initialize all base keys
+        # Use to keep track of all references to itself
+        self.base_keys_ref = {}
+        for k in base_keys:
+            self.base_keys_ref[k] = set()
+
+    def __delitem__(self, key):
+        """For each base_key in key, remove a reference to it
+
+        """        
+        for base_key in key:
+            self.base_keys_ref[base_key].remove(key)
+
+        super().__delitem__(key)
+
+    def __setitem__(self, key: tuple, value):
+        """For each base_key in key add a reference to it
+
+        """
+        for base_key in key:
+            # try adding to base_key
+            self.base_keys_ref[base_key].add(key)
+
+        super().__setitem__(key, value)
+
+    def change_keys(self, mapping: dict):
+        """For each new base_key, scan all references and update
+            their name
+
+        """
+        for base_key_old, base_key_new in mapping.items():
+            # get data table references for old key
+            refs = self.base_keys_ref[base_key_old]
+
+            # add redefined base_key to ref table
+            self.base_keys_ref[base_key_new] = set()
+
+            # scan over each ref, make a copy with a new key
+            # delete the older one
+            for ref in refs:
+                # create a list
+                list_ref = list(ref)
+
+                # find index of old key
+                ind = list_ref.index(base_key_old)
+
+                # create a copy of ref with new key
+                list_new_ref = list_ref[0:ind] + [base_key_new] + list_ref[ind+1:]
+
+                # turn into tuple
+                new_ref = tuple(list_new_ref)
+                self.base_keys_ref[base_key_new].add(new_ref)
+
+                # now update the data dict
+                self.data[new_ref] = self.data[ref]
+                
+                # make sure other references to old base key are changed
+                for v in ref:
+                    if v != base_key_old:
+                        self.base_keys_ref[v].remove(ref)
+                        self.base_keys_ref[v].add(new_ref)
+                
+                del self.data[ref]
+
+            del self.base_keys_ref[base_key_old]
+        
 if __name__ == "__main__":
+
+
+    ckd = ChangingKeysDict(["a", "b", "c", "d"])
+    ckd.update({("a", "b"): 1, ("b", "c"): 2, ("c", "d"): 3})
+
+    # ckd.change_keys({"a": "apple"})
+    # ckd.change_keys({"b": "banana"})
+    # ckd.change_keys({"c": "cherry"})
+    # ckd.change_keys({"d": "deer"})
+
+    ckd.change_keys({"a": "apple", "b": "banana", "c": "cherry", "d": "deer"})
+
     p = Progress(1)
     for i in range(1):
         p.next()

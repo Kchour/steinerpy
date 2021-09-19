@@ -397,7 +397,7 @@ class SquareGrid(IGraph):
 
         # must call fig.canvas.flush_events() (called by pause internally)
         self.fig.canvas.flush_events()
-        plt.pause(0.5)
+        # plt.pause(0.5)
 
 class SquareGridDepot(SquareGrid):
     """Subclass of SquareGrid which explicitly handles the case of

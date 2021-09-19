@@ -28,7 +28,7 @@ class TestSteinerUnmerged(unittest.TestCase):
         terminals = [(-10, -12), (-3, 10), (10, -7), (13, 6), (0, 3)]
         # terminals = [(-15, -15), (15, 15)]
   
-          # Create Astar object
+        # Create object
         ao = Unmerged(graph, terminals)
 
         # test comps type

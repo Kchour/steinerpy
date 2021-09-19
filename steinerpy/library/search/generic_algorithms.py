@@ -1,11 +1,14 @@
-"""This module provides a generic incremental search class, that breaks up nomination and update phase"""
+"""This module provides a generic incremental search class, that breaks up nomination and update phase
 
+    TODO: rename fcosts_func to priority_func
 
-
+"""
+from steinerpy.library.graphs.graph import IGraph
 import matplotlib.pyplot as plt
 import numpy as np
 from timeit import default_timer as timer
 import logging
+from typing import Iterable
 
 import steinerpy.config as cfg
 from steinerpy.library.animation import AnimateV2
@@ -16,6 +19,32 @@ from steinerpy.library.search.search_utils import DoublyLinkedList
 
 # create logger
 my_logger = logging.getLogger(__name__)
+
+
+def pCostFuncInterface(this, cost_so_far, next):
+    """User can pass in a different pCostFunc during instantiation of GenericSearch
+    
+        Normally, fcost(n) = gcost(n) + hcost(n, goal), but this function 
+        can be used very generically to define the priority of node 'next'        
+    
+        User must keep track of fcosts! := g + h
+
+    Parameters:
+        this (GenericSearch): The search object that called this p function
+        cost_so_far (dict): Contains all nodes with finite g-cost
+        next (tuple): The node in the neighborhood of 'current' to be considered 
+
+    Returns:
+        priority (float): The priority value for the node 'next'
+
+    """
+    # Must keep track of Fcosts
+    this.f[next] = cost_so_far[next]
+    #
+    # ...
+    #
+    return cost_so_far[next]
+
 
 class Search:
     """ Base Class `Search` can be extended by any iterative search algorithm.
@@ -31,7 +60,7 @@ class Search:
             For use with `Framework` class, must be an iterable (i.e. list, tuple, set) or `dict`
         frontierType (PriorityQueue()): The Open List or frontier class type, implemented as a class from search/search_utils/  
             (PriorityQueue, PriorityQueueHeap). A priority queue returns the item with min priority value.
-        fCostsFunc: A function returning the fCosts of node u. Returns a scalar value. Arguments are (self, glist, next_node)
+        pCostsFunc: A function returning the pCosts of node u. Returns a scalar value. Arguments are (self, glist, next_node)
         id (tuple): An ID number for the current search object. Optional if not using `Framework`.
 
     Attributes:
@@ -60,7 +89,7 @@ class Search:
     # total_closed_nodes = 0
     # total_opened_nodes = 0
     total_expanded_nodes = 0
-    def __init__(self, graph, start, goal, frontierType, fCostsFunc, id):
+    def __init__(self, graph, start, goal, frontierType, pCostsFunc, id):
         # ================ Required Definitions ===================== #
         self.graph = graph                         
         self.start = start
@@ -81,7 +110,7 @@ class Search:
         self.parent[start] = None
 
         # F costs function object for priority updates
-        self.fCosts = fCostsFunc     # fCostsFunc is a passed-in method, returns a float
+        self.pCosts = pCostsFunc     # fCostsFunc is a passed-in method, returns a float
 
     # def set_start(self, start):
     #     self.start = start
@@ -145,7 +174,11 @@ class GenericSearch(Search):
     This gives the user finer control over the search space, i.e. when to stop, update destinations midway, etc.
     `GenericSearch` also inherits all the attributes of `Search`
 
-    Attributes:
+    Params:
+        frontier_type: Allows user to select the type (a class) of priority queue to use
+
+
+    Misc:
         visualize (bool): A flag for visualizing the algorithm. Mainly for debug purposes
         animateCurrent (Animate): Animate the current nominated node
         animateClosed (Animate): Animate the history of the closed set
@@ -154,8 +187,8 @@ class GenericSearch(Search):
     Todo:
         * Consider putting animateClosed in the `update` function, because closing does not occur until `update`
     """
-    def __init__(self, graph,  fCostsFunc, start, frontierType, goal=None, visualize=False, id=None):
-        Search.__init__(self, graph, start, goal, frontierType, fCostsFunc, id)
+    def __init__(self, graph:IGraph, start: tuple, goal: Iterable[tuple]=None, pCostsFunc=pCostFuncInterface, frontierType=PriorityQueueHeap(), visualize=False, id=None):
+        Search.__init__(self, graph, start, goal, frontierType, pCostsFunc, id)
         
         # Visualize algorithm flag
         self.visualize = visualize
@@ -211,16 +244,17 @@ class GenericSearch(Search):
     
     @goal.setter
     def goal(self, goal):
-        if isinstance(goal, dict):
-            self._goal = goal
-        else:
-            self._goal = {}
-            try:
-                for ndx, k in enumerate(goal):
-                    if not set((ndx,)).issubset(set(self.id)):
-                        self._goal[ndx] = k
-            except Exception as err:
-                print(err)
+        if goal is not None:
+            if isinstance(goal, dict):
+                self._goal = goal
+            else:
+                self._goal = {}
+                try:
+                    for ndx, k in enumerate(goal):
+                        if not set((ndx,)).issubset(set(self.id)):
+                            self._goal[ndx] = k
+                except Exception as err:
+                    my_logger.error("Issue defining goals", exc_info=True)
 
 
     def nominate(self):
@@ -277,7 +311,7 @@ class GenericSearch(Search):
             if self.goal:
                 # priority changes as a result of destination change. 
                 # Hence both fmin and pmin need to be updated
-                priority = self.fCosts(self, self.g, o)
+                priority = self.pCosts(self, self.g, o)
                 self.frontier.put(o, priority)     
                 self.fmin_heap.put(o, self.f[o])
 
@@ -339,7 +373,7 @@ class GenericSearch(Search):
                 # Calculate priority and time it
                 # Call priority function to get next node's priority (TODO: rename fcosts -> priority!)
                 start = timer()
-                priority = self.fCosts(self, g, next)
+                priority = self.pCosts(self, g, next)
                 end = timer()
                 MyTimer.add_time("fcosts_time", end - start )
 
@@ -529,6 +563,7 @@ class GenericSearch(Search):
         # mergedID.extend(list(other.id))
         mergedID.extend(self.id)
         mergedID.extend(other.id)
+        # mergedID.sort()
         mergedID = tuple(mergedID)
 
         ## Update destinations based on indices
@@ -545,7 +580,7 @@ class GenericSearch(Search):
                 mergedGoal.update({k: other.goal[k]})
 
         ## Create a GenericSearch Object to return
-        mergedGS = GenericSearch(self.graph,  self.fCosts, 'Temp', mergedF, goal=mergedGoal, visualize=cfg.Animation.visualize)
+        mergedGS = GenericSearch(self.graph,  'Temp', mergedGoal, self.pCosts, mergedF, visualize=cfg.Animation.visualize)
         
         ## new variables for ease: Linked lists, frontier, and g costs
         p1 = self.parent
@@ -654,7 +689,7 @@ class GenericSearch(Search):
             # REPRIORTIZING AFTER MERGE
             ################################################
             if cfg.Algorithm.reprioritize_after_merge:
-                priority = self.fCosts(mergedGS, mergedG, next)
+                priority = self.pCosts(mergedGS, mergedG, next)
             ################################################
 
             mergedF.put(next, priority)

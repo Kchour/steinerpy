@@ -3,10 +3,13 @@ from unittest.mock import Mock, patch
 # Some examples https://gist.github.com/vkroz/a59c7e05014e456f86e0
 
 from steinerpy.library.graphs.graph import GraphFactory
+from steinerpy.library.search.generic_algorithms import GenericSearch
+
 class TestGraph(unittest.TestCase):
 
-    ''' Test GraphFactory in creating a SquareGrid object '''
+    @unittest.skip("temp")
     def test_create_square_grid(self):
+        ''' Test GraphFactory in creating a SquareGrid object '''
         # Spec out our squareGrid
         minX = -15			# [m]
         maxX = 15           
@@ -54,8 +57,9 @@ class TestGraph(unittest.TestCase):
 
         # TODO: test the other functions in SquareGrid
 
-    ''' test GraphFactory in creating a Generic MyGraph object '''
+    @unittest.skip("testing")
     def test_create_generic(self):
+        ''' test GraphFactory in creating a Generic MyGraph object '''
         from steinerpy.library.graphs.graph import MyGraph
 
         # Define some edges
@@ -75,6 +79,33 @@ class TestGraph(unittest.TestCase):
         self.assertTrue(isinstance(genG, MyGraph))
 
         # TODO return some neighbors and stuff
-    
+
+    def test_generic_search_no_h_dijkstra(self):
+        # create a generic graph
+
+        edgeDict = {('A', 'B'): 3,
+                    ('A', 'C'): 1,
+                    ('B', 'C'): 7,
+                    ('B', 'D'): 5,
+                    ('B', 'E'): 1,
+                    ('C', 'D'): 2,
+                    ('D', 'E'): 7
+        }
+
+        genG = GraphFactory.create_graph("Generic", edge_dict = edgeDict, graph_type="undirected", visualize=False)
+
+        gs = GenericSearch(genG, 'C')
+
+        # run updates 
+        while not gs.frontier.empty():
+            gs.update()
+
+        self.assertEqual(gs.g['C'], 0)
+        self.assertEqual(gs.g['A'], 1)
+        self.assertEqual(gs.g['B'], 4)
+        self.assertEqual(gs.g['D'], 2)
+        self.assertEqual(gs.g['E'], 5)
+
 if __name__ == "__main__":
     unittest.main()
+
