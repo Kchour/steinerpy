@@ -9,7 +9,7 @@ class Heuristics:
     @staticmethod
     def heuristic_func_wrap(*args, **kwargs)->float:
         if cfg.Algorithm.graph_domain == "grid":
-            return GridBasedHeuristics2D.mapper(*args, **kwargs)
+            return GridBasedHeuristics2D.mapper[cfg.Algorithm.sstar_heuristic_type](*args, **kwargs)
         elif cfg.Algorithm.graph_domain == "generic":
             return CustomHeuristics.h_func(*args, **kwargs)
         else:

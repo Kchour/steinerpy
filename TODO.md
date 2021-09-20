@@ -12,7 +12,12 @@
 - Don't add all the randomized tests spreadsheets to git
 - Consider using `lmin` to do a last-past scan of recently merged component's feasible paths.
 - Move 2D heuristics to a separate module...
-- Recosntructing path shouldn't duplicate any nodes
-- Reuse nearest neighbor heuristic...
+- ~~Recosntructing path shouldn't duplicate any nodes~~
+- ~~Reuse nearest neighbor heuristic...~~
+- Store routines in Common for cleanliness
+- Cleanup cfg files, too many classes there
+- Clean up logging
+- Reconstructing can be done without using search_utils
+
 
 

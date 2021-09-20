@@ -100,6 +100,9 @@ class Framework(AbstractAlgorithm):
         self.path_queue = PriorityQueueHeap()
         self.global_bound_queue = PriorityQueueHeap()
 
+        # keep track of shortest paths added already...
+        self.sol_edges = set()
+
         # Keep track of number of iterations
         self.run_debug = 0
 
@@ -247,9 +250,9 @@ class Framework(AbstractAlgorithm):
        
 
             # Avoid adding duplicate paths to the path PriorityQueue
-            if (c1,c2) in self.path_queue:
+            if (c1,c2) in self.path_queue or (c2,c1) in self.path_queue or \
+                (c1, c2) in self.sol_edges or (c2, c1) in self.sol_edges:
                 continue
-
 
             # Store only the best possible feasible path so far
             # Obtain previous feasible path result
@@ -571,7 +574,7 @@ class Framework(AbstractAlgorithm):
         return minVal    
 
     @abstractmethod
-    def p_costs_func(self, search:GenericSearch, cost_to_come: dict, next: tuple):
+    def p_costs_func(self, search:GenericSearch, cost_to_come: dict, next: tuple)->float:
         """An abstract method used to calculate the priority cost of a node in the open set. Must be overriden! 
         
         Typically, this is the sum of g and h, i.e. f=g+h, but may depend on the user's case
@@ -582,7 +585,9 @@ class Framework(AbstractAlgorithm):
         # super().p_costs_func(search, cost_to_come, next)
         search.f[next] = cost_to_come[next] + self.h_costs_func(search, next)
 
-    def h_costs_func(self, search: GenericSearch, next: tuple):
+        # User must return a float
+
+    def h_costs_func(self, search: GenericSearch, next: tuple)->float:
         """Implementation of the nearest neighbor heuristic.      
         Heuristic costs for the node 'next', neighboring 'current'
 
@@ -593,13 +598,16 @@ class Framework(AbstractAlgorithm):
         Info:
             h_i(u) = min{h_j(u)}  for all j in Destination(i), and for some node 'u'
         
+        NOTE:
+            User needs to override this if not using any heuristic
+
         """
         # If we don't have any goals...
         if not search.goal:
             return 0
 
         # Nearest neighbor heuristic
-        hju = list(map(lambda goal: cfg.Algorithm.hFactor*Heuristics.heuristic_func_wrap(next=next, goal=goal), search.goal.values()))
+        hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=next, goal=goal), search.goal.values()))
 
         minH = min(hju)
         minInd = hju.index(minH)
@@ -608,7 +616,8 @@ class Framework(AbstractAlgorithm):
         # Set current Goal
         search.currentGoal = minGoal
 
-        return minH 
+        # scale heuristic value
+        return cfg.Algorithm.hFactor*minH 
 
     @abstractmethod
     def shortest_path_check(self, comps_colliding:List[tuple], path_cost:float)->bool:

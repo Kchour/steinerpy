@@ -136,7 +136,7 @@ class Search:
         """Reset all class variables """
         cls.total_expanded_nodes = 0
 
-    def reconstruct_path(self, parents, goal, start=None, order='forward'):
+    def reconstruct_path(self, goal, start=None, order='forward'):
         '''Given a linked list, rebuild a path back from a goal node 
             to a start (or root node, if start is not specified)
 

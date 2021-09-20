@@ -15,7 +15,8 @@ import steinerpy.config as cfg
 # cfg.reload_log_conf()
 
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy.algorithms import SstarHS, SstarBS, SstarMM, SstarMM0, Unmerged
+from steinerpy.algorithms import SstarHS, SstarBS, SstarMM, SstarMM0, \
+                                 SstarHSUN, SstarBSUN, SstarMMUN, SstarMM0UN
 
  # Spec out our squareGrid
 minX = -15			# [m]
@@ -48,7 +49,7 @@ class TestSteinerSstar(unittest.TestCase):
     def setUp(self):
         self.old_setting = cfg.Algorithm.sstar_heuristic_type
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
-        cfg.Animation.visualize = True
+        cfg.Animation.visualize = False
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
@@ -60,23 +61,28 @@ class TestSteinerSstar(unittest.TestCase):
         #Store Tree values
         dist = []
 
+        ###########################################
+        #   MERGED VARIANTS
+        ###########################################
+
+        # BS
+        ao = SstarBS(graph, terminals)
+        self.assertIsInstance(ao.comps, dict)
+        self.assertTrue(ao.run_algorithm())
+        dist.append(sum(ao.return_solutions()['dist'])) 
+
         # HS
         ao = SstarHS(graph, terminals)
         self.assertIsInstance(ao.comps, dict)
         self.assertTrue(ao.run_algorithm())
         dist.append(sum(ao.return_solutions()['dist']))
 
+  
         # MM
         ao = SstarMM(graph, terminals)
         self.assertIsInstance(ao.comps, dict)
         self.assertTrue(ao.run_algorithm())
         dist.append(sum(ao.return_solutions()['dist']))
-
-        ao = SstarBS(graph, terminals)
-        self.assertIsInstance(ao.comps, dict)
-        self.assertTrue(ao.run_algorithm())
-        dist.append(sum(ao.return_solutions()['dist']))        
-
 
 
         # MM0
@@ -85,8 +91,27 @@ class TestSteinerSstar(unittest.TestCase):
         self.assertTrue(ao.run_algorithm())
         dist.append(sum(ao.return_solutions()['dist']))
 
+        ################################################
+        #   UNMERGED VARIANTS
+        ################################################
+
         # unmerged
-        ao = Unmerged(graph, terminals)
+        ao = SstarHSUN(graph, terminals)
+        self.assertIsInstance(ao.comps, dict)
+        self.assertTrue(ao.run_algorithm())
+        dist.append(sum(ao.return_solutions()['dist']))
+
+        ao = SstarBSUN(graph, terminals)
+        self.assertIsInstance(ao.comps, dict)
+        self.assertTrue(ao.run_algorithm())
+        dist.append(sum(ao.return_solutions()['dist']))
+
+        ao = SstarMMUN(graph, terminals)
+        self.assertIsInstance(ao.comps, dict)
+        self.assertTrue(ao.run_algorithm())
+        dist.append(sum(ao.return_solutions()['dist']))
+
+        ao = SstarMM0UN(graph, terminals)
         self.assertIsInstance(ao.comps, dict)
         self.assertTrue(ao.run_algorithm())
         dist.append(sum(ao.return_solutions()['dist']))
@@ -94,7 +119,6 @@ class TestSteinerSstar(unittest.TestCase):
         # make sure tree values are the same
         # wuthin margin of floating point error
         self.assertTrue(all([abs(dist[0] - ele)<1e-6 for ele in dist]))
-
 
 class TestWeirdEdgeCases(unittest.TestCase):
 

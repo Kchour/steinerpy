@@ -1,10 +1,20 @@
+"""Implementation of the Merged class, subclassing Framework, where 2 components are merged
+    when minimum shortest path is confirmed between them. Several book-keeping operations are done
+    such as creating an entirely new component id and removing all references to the old separate ids.
+    This involves modifying the node_queue, global_bound_queue, and UFeas table.
+
+    Key difference between merged and unmerged algorithms is in the tree_update() function
+    
+"""
+
 import logging
+from steinerpy.library.search.generic_algorithms import GenericSearch
 import numpy as np
 
 import steinerpy.config as cfg
 from steinerpy.framework import Framework
 from steinerpy.library.animation import AnimateV2
-from steinerpy.algorithms.common import Common
+from steinerpy.common import Common
 from steinerpy.library.search.search_utils import reconstruct_path
 
 # configure and create logger
@@ -18,7 +28,7 @@ class Merged(Framework):
         # my_logger.debug("global kruskal value {}".format( Common.path_queue_criteria(self.comps, 0, True) ) )
 
         # Empty path queue, gather up the solutions in solution queue (FIFO)
-        # solQueue = Common.solution_handler(comps=self.comps, path_queue=self.pathQueue, cycle_detector=None, \
+        # solQueue = Common.solution_handler(comps=self.comps, path_queue=self.path_queue, cycle_detector=None, \
         #     terminals=self.terminals, criteria=self.path_queue_criteria, merging=True, use_depots=self.use_depots)
         
         solQueue = self.process_path_queue()
@@ -36,6 +46,7 @@ class Merged(Framework):
             # t1, t2 = Common.subsetFinder(s['terms'], self.comps)
             # MyLogger.add_message("Inspecting path {}. Old Comps {}. New Comps {}. Terminals {}. length {}".format(s['path'], s['terms'], (t1,t2), s['term_actual'], s['dist']), __name__, "DEBUG")
 
+            # THESE ARE INDICIES
             c1,c2 = s['comps_ind']     #could be old components
             # To avoid adding redundant paths. 
 
@@ -60,7 +71,7 @@ class Merged(Framework):
                 self.findset[c] = (c1+c2)
               
             # Get common node between two components
-            dist, commonNode = self.UFeasPath[c1][c2]
+            dist, common_node = self.UFeasPath[c1][c2]
 
             if abs(pdist-dist)>0.1:
                 # print("")
@@ -70,21 +81,20 @@ class Merged(Framework):
                 # raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist)
 
             # reconstruct path
-            path, _, term_actual = Common.get_path(comps=self.comps, sel_node=commonNode, term_edge=(c1,c2),\
-            reconstruct_path_func = reconstruct_path)
+            path, _, term_actual = Common.get_path(self.comps[c1], self.comps[c2], common_node)
+
+            self.sol_edges.add((c1,c2))
+            self.sol_edges.add((c2,c1))
 
             try:              
                 # Add solution
-                if len(self.results['sol']) < len(self.terminals)-1:
-                    self.results['dist'].append(dist)
-                    self.results['path'].append(path)
-                    self.results['sol'].append(term_actual)
-                    my_logger.debug("Added edge no.: {}".format(len(self.results['sol']))) 
+                Common.add_solution(path=path, dist=dist, edge=term_actual,\
+                results=self.results, terminals=self.terminals)
 
                 my_logger.debug("Just added path no. {}. Terminals {}".format(len(self.results['dist']), term_actual))
 
                 # True as soon as we add a solution
-                self.FLAG_STATUS_pathConverged = True
+                self.FLAG_STATUS_PATH_CONVERGED = True
 
                 # Perform merging
                 # merge two different comps, delete non-merged comps respectively
@@ -94,23 +104,23 @@ class Merged(Framework):
                 del self.comps[c2]
                 
                 # Delete old references from every location (nodeQueue, pathQueue, globalQueue)
-                if c1 in self.nodeQueue:
-                    self.nodeQueue.delete(c1)
-                if c2 in self.nodeQueue:
-                    self.nodeQueue.delete(c2) 
+                if c1 in self.node_queue:
+                    self.node_queue.delete(c1)
+                if c2 in self.node_queue:
+                    self.node_queue.delete(c2) 
 
 
-                if c1 in self.global_bound:
-                    self.global_bound.delete(c1)
-                if c2 in self.global_bound:
-                    self.global_bound.delete(c2)
+                if c1 in self.global_bound_queue:
+                    self.global_bound_queue.delete(c1)
+                if c2 in self.global_bound_queue:
+                    self.global_bound_queue.delete(c2)
             
                 # update path keys which reference old comp ids
-
-                if c1 in self.pathQueue:
-                    self.pathQueue.delete(c1)
-                if c2 in self.pathQueue:
-                    self.pathQueue.delete(c2)
+                # TODO: This is not that straightforward
+                if c1 in self.path_queue:
+                    self.path_queue.delete(c1)
+                if c2 in self.path_queue:
+                    self.path_queue.delete(c2)
 
                 # Update feasible path keys and subkeys to refer to updated component indices                
                 # minimize over exclusive union
@@ -176,7 +186,7 @@ class Merged(Framework):
                     paths = self.UFeasPath[c1+c2][n]
                     # check sp
                     if self.shortest_path_check([(c1+c2),(n)], paths[0]):
-                        self.pathQueue.put(((c1+c2),(n)), paths[0])
+                        self.path_queue.put(((c1+c2),(n)), paths[0])
 
                 # TODO find a better way to animate path
                 if cfg.Animation.visualize:
@@ -197,7 +207,7 @@ class Merged(Framework):
 
             my_logger.info("Total tree edges now: {}".format(len(self.results['dist'])))
                    
-        my_logger.info("pathQueue len now: {}".format(len(self.pathQueue.elements)))
+        my_logger.info("pathQueue len now: {}".format(len(self.path_queue)))
 
 
 

@@ -5,9 +5,15 @@
 from steinerpy.library.search.generic_algorithms import GenericSearch
 # import steinerpy.config as cfg
 from steinerpy.algorithms.merged import Merged
+from steinerpy.algorithms.unmerged import Unmerged
+from steinerpy.common import PathCriteria
 # from steinerpy.common import Common
 from typing import List
   
+##########################################################
+#   MERGED 
+##########################################################
+
 class SstarHS(Merged):
     """S* Merged with Heuristics (A*) """
 
@@ -41,13 +47,7 @@ class SstarHS(Merged):
         c1 = self.comps[_c1]
         c2 = self.comps[_c2]
 
-        # This is Pohl's criteria
-        if path_cost <= max(c1.fmin, c2.fmin):
-            # shortest path confirmed
-            return True
-        else:
-            # shortest path not confirmed
-            return False
+        return PathCriteria.path_criteria_pohl(path_cost, c1, c2)
 
 class SstarBS(Merged):
 
@@ -68,8 +68,7 @@ class SstarBS(Merged):
         return cost_so_far[next]
 
     def h_costs_func(self, search: GenericSearch, next: tuple):
-        # return 0
-        pass
+        return 0
 
     def shortest_path_check(self, comps_colliding:List[tuple], path_cost:float)->bool:
         """ Check to see if candidate path is a confirmed shortest path.
@@ -84,13 +83,8 @@ class SstarBS(Merged):
         c1 = self.comps[_c1]
         c2 = self.comps[_c2]
 
-        # This is Nicholson's criteria
-        if path_cost <= c1.gmin + c2.gmin:
-            # shortest path confirmed
-            return True
-        else:
-            # shortest path not confirmed
-            return False
+        return PathCriteria.path_criteria_nicholson(path_cost, c1, c2)
+
 
 class SstarMM(Merged):
     """Meet-in-the-Middle implementation with heuristics """
@@ -127,12 +121,8 @@ class SstarMM(Merged):
 
         eps = 1         # cheapest edge cost TODO: need to detect cheapest edge cost
 
-        # from MM paper
-        C = min(c1.pmin, c2.pmin)
-        if path_cost <= max(C, c1.fmin, c2.fmin, c1.gmin + c2.gmin):
-            return True
-        else:
-            return False  
+        return PathCriteria.path_criteria_mm(path_cost, c1, c2)
+
 
 class SstarMM0(Merged):
     """Meet-in-the-Middle implementation without heuristics (Brute-force search)"""
@@ -155,7 +145,6 @@ class SstarMM0(Merged):
             * Rename this function!
 
         """
-        # fCost= cost_so_far[next] +  self.h_costs_func(next, component) 
         g_next = cost_so_far[next]
         fCost =  g_next 
 
@@ -187,9 +176,77 @@ class SstarMM0(Merged):
 
         eps = 1         # cheapest edge cost TODO: need to detect cheapest edge cost
 
-        # from MM paper
-        C = min(c1.pmin, c2.pmin)
-        if path_cost <= max(C, c1.fmin, c2.fmin, c1.gmin + c2.gmin):
-            return True
-        else:
-            return False                   
+        return PathCriteria.path_criteria_mm(path_cost, c1, c2)
+              
+
+
+#################################################################
+# UNMERGED
+#################################################################
+
+class SstarHSUN(Unmerged):
+    """S* path condition based on Pohl
+    
+    """
+
+    def p_costs_func(self, search: GenericSearch, cost_to_come: dict, next: tuple) -> float:
+        super().p_costs_func(search, cost_to_come, next)
+
+        return search.f[next]
+
+    def shortest_path_check(self, comps_colliding: List[tuple], path_cost: float) -> bool:
+        # Get component objects
+        _c1, _c2 = comps_colliding
+        c1 = self.comps[_c1]
+        c2 = self.comps[_c2]
+
+        return PathCriteria.path_criteria_pohl(path_cost, c1, c2)
+
+
+class SstarBSUN(Unmerged):
+
+    def p_costs_func(self, search: GenericSearch, cost_to_come: dict, next: tuple) -> float:
+         super().p_costs_func(search, cost_to_come, next)   
+         return cost_to_come[next]
+
+    def h_costs_func(self, search: GenericSearch, next: tuple)->float:
+        return 0
+
+    def shortest_path_check(self, comps_colliding: List[tuple], path_cost: float) -> bool:
+        # Get component objects
+        _c1, _c2 = comps_colliding
+        c1 = self.comps[_c1]
+        c2 = self.comps[_c2]
+
+        return PathCriteria.path_criteria_nicholson(path_cost, c1, c2)  
+
+class SstarMMUN(Unmerged):
+    
+    def p_costs_func(self, search: GenericSearch, cost_to_come: dict, next: tuple) -> float:
+        super().p_costs_func(search, cost_to_come, next)
+        return max(search.f[next], 2*cost_to_come[next])
+
+    def shortest_path_check(self, comps_colliding: List[tuple], path_cost: float) -> bool:
+        # Get component objects
+        _c1, _c2 = comps_colliding
+        c1 = self.comps[_c1]
+        c2 = self.comps[_c2]
+
+        return PathCriteria.path_criteria_mm(path_cost, c1, c2)
+
+class SstarMM0UN(Unmerged):
+    
+    def p_costs_func(self, search: GenericSearch, cost_to_come: dict, next: tuple) -> float:
+        super().p_costs_func(search, cost_to_come, next)
+        return max(search.f[next], 2*cost_to_come[next])
+
+    def h_costs_func(self, search: GenericSearch, next: tuple) -> float:
+        return 0
+
+    def shortest_path_check(self, comps_colliding: List[tuple], path_cost: float) -> bool:
+        # Get component objects
+        _c1, _c2 = comps_colliding
+        c1 = self.comps[_c1]
+        c2 = self.comps[_c2]
+
+        return PathCriteria.path_criteria_mm(path_cost, c1, c2)

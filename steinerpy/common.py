@@ -4,6 +4,7 @@ Todo:
     * Add support for generic graphs 
 """
 
+from steinerpy.library.search.generic_algorithms import GenericSearch
 import numpy as np
 import logging
 
@@ -15,73 +16,8 @@ my_logger = logging.getLogger(__name__)
 
 class Common:
 
-    @staticmethod    
-    def solution_handler(comps, path_queue, cycle_detector, terminals, criteria, merging=False, use_depots=False):
-        """ Handle shortest paths between terminals, but delay adding solutions if certain critera are not met
-
-        Parameter:
-            comps (dict): `GenericSearch` objects keyed by indices
-            path_queue (PriorityQueueHeap): a minimum priority queue with paths as items
-            cycle_detector (CycleDetector): An object used to detect cycles
-            terminals (list): a list of tuples of terminals
-            criteria (bool): True if path criteria is satisifed (in fact the shortest wrt all paths) 
-            merging (bool): True if we are using the merge function (i.e. using class `Framework` or Sstar)
-            
-        Note:
-            pathQueue.elements: ({'terms':self.t1+self.t2, 'path':path, 'selData':self.selData, 'selNode': self.selNode, 'dist':dist}, dist)
-
-        """
-
-        sol = []
-        while not path_queue.empty():
-            # get the min fcost path
-            poppedQ = path_queue.get_min()
-            dist,comps_ind = poppedQ
-                    
-            if not merging:
-                # Check for cycle only, don't explicity add the edge
-                iscycle = cycle_detector.add_edge(*comps_ind, test=True)
-            else: 
-                # if merge
-                iscycle = False               
-
-            if not iscycle:
-                # Check tree criteria to know when to add path 
-                if criteria(comps=comps, path_distance = dist): 
-                    if not merging:
-                        # if not a cycle, then add the edge!
-                        cycle_detector.add_edge(*comps_ind)
-                        
-                        # 
-                        if cfg.Algorithm.reprioritize_after_merge:
-                            findset = cycle_detector.parent_table[comps_ind[0]]
-                            new_goals = {i: terminals[i] for i in set(range(len(terminals)))-set(findset)}
-                            for c in findset:
-                                comps[(c,)].goal = new_goals
-                                comps[(c,)].reprioritize()
-
-                    
-                    # Add solution
-                    # path = poppedQ[1]['path']
-                    # dist = poppedQ[1]['dist']
-                    # edge = poppedQ[1]['term_actual']
-                    # terms = poppedQ[1]['terms']
-                    sol.append({'dist':dist, 'components':comps_ind})
-                    my_logger.debug("Added poppedQ path to sol!") 
-
-                    # remove next least cost edge
-                    path_queue.get()
-
-                else:
-                    # path_queue.put(poppedQ[1], poppedQ[0])
-                    break
-            else:
-                # remove the edge that induces a cycle
-                path_queue.get()
-        return sol 
-
     @staticmethod
-    def get_path(comps, sel_node, term_edge, reconstruct_path_func):
+    def get_path(c1:GenericSearch, c2: GenericSearch, common_node:tuple):
         """Generate path between two components (specifically, its closest terminals)
 
         Parameters:
@@ -93,40 +29,41 @@ class Common:
             path (numpy.ndarray), dist (float), term_actual (tuple): Returned items for `Framework`
         
         """
-        t1,t2 = term_edge
         # Build path given a linked list
-        pathA = reconstruct_path_func(comps[t1].parent, start=None, goal=sel_node, order="forward" )
-        pathB = reconstruct_path_func(comps[t2].parent, start=None, goal=sel_node, order="reverse")
+        pathA = c1.reconstruct_path(goal=common_node, start=None, order="forward" )
+        pathB = c2.reconstruct_path(goal=common_node, start=None, order="reverse")
 
         path = []
         path.extend(pathA)
         path.extend(pathB[1:])
 
         # get dist by using gcosts
-        distA = comps[t1].g[sel_node]
-        distB = comps[t2].g[sel_node]
+        distA = c1.g[common_node]
+        distB = c2.g[common_node]
         dist = distA + distB
 
+
+        # TODO make this neater get rid of commas if able
         term_actual = (tuple({pathA[0]}),tuple({pathB[-1]}))
         return path, dist, term_actual
     
     @staticmethod
-    def add_solution(path, dist, edge, solution_set, terminals):
+    def add_solution(path, dist, edge, results, terminals):
         """Add paths to our Steiner Tree.
 
         Parameters:
             path (numpy.ndarray): A complete path for a 2d grid graph
             dist (float): Length of a path
             edge (tuple): Actual terminals (end points) in a path
-            solution_set (dict): The Steiner tree
+            results (dict): The Steiner tree
             terminals (list): A list of all the terminal nodes
 
         """
-        if len(solution_set['sol']) < len(terminals)-1:
-            solution_set['dist'].append(dist)
-            solution_set['path'].append(path)
-            solution_set['sol'].append(edge)
-            my_logger.debug("Added edge no.: {}".format(len(solution_set['sol']))) 
+        if len(results['sol']) < len(terminals)-1:
+            results['dist'].append(dist)
+            results['path'].append(path)
+            results['sol'].append(edge)
+            my_logger.debug("Added edge no.: {}".format(len(results['sol']))) 
 
 
     @staticmethod
@@ -193,5 +130,36 @@ class Common:
         return subs
 
 
+class PathCriteria:
 
+    @staticmethod
+    def path_criteria_interface(path_cost: float, c1: GenericSearch, c2: GenericSearch)->bool:
+        """Example here: user's path criteria must follow this pattern.
+        
+        """
 
+    @staticmethod
+    def path_criteria_pohl(path_cost, c1: GenericSearch, c2: GenericSearch)->bool:
+        if path_cost <= max(c1.fmin, c2.fmin):
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def path_criteria_nicholson(path_cost, c1: GenericSearch, c2: GenericSearch)->bool:
+        # This is Nicholson's criteria
+        if path_cost <= c1.gmin + c2.gmin:
+            # shortest path confirmed
+            return True
+        else:
+            # shortest path not confirmed
+            return False
+
+    @staticmethod
+    def path_criteria_mm(path_cost, c1: GenericSearch, c2: GenericSearch)->bool:
+        # from MM paper
+        C = min(c1.pmin, c2.pmin)
+        if path_cost <= max(C, c1.fmin, c2.fmin, c1.gmin + c2.gmin):
+            return True
+        else:
+            return False  

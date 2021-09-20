@@ -1,8 +1,12 @@
+"""Im
+
+"""
+
 import numpy as np
 import logging
 
 from steinerpy.framework import Framework
-from .common import Common
+from steinerpy.common import Common
 import steinerpy.config as cfg
 from steinerpy.library.animation import AnimateV2
 from steinerpy.library.search.search_utils import reconstruct_path, CycleDetection
@@ -18,8 +22,8 @@ class Unmerged(Framework):
         # self.S = {'sol':[], 'dist':[], 'path':[]}
         # self.FLAG_STATUS_completeTree = False
         
-        # cycle detection required in S*-unmerged
-        self.cd = CycleDetection([(t,) for t in range(len(terminals))])
+        # Separate cycle detection routine required in S*-unmerged
+        self.cycle_detection = CycleDetection([(t,) for t in range(len(terminals))])
 
     def tree_update(self):
         """override tree_update because we need cycle detection and no merging """
@@ -37,80 +41,69 @@ class Unmerged(Framework):
              # if t1 in self.comps and t2 in self.comps:
             # print(s)
 
-            t1,t2 = s['components']
-            pdist = s['dist']
+            c1,c2 = s['comps_ind']
+            pdist = s['path_cost']
 
             # Get common node between two components
-            dist, commonNode = self.UFeasPath[t1][t2]
+            dist, common_node = self.UFeasPath[c1][c2]
 
-            path, _, term_actual = Common.get_path(comps=self.comps, sel_node=commonNode, term_edge=(t1,t2),\
-                reconstruct_path_func = reconstruct_path)
-            
+            path, _, term_actual = Common.get_path(self.comps[c1], self.comps[c2], common_node)
+
+            self.sol_edges.add((c1,c2))
+            self.sol_edges.add((c2,c1))
+
             if abs(pdist-dist)>0.1 or abs(pdist-_)>0.1:
                 # print("")
-                my_logger.warning("inconsistent edge between terminals (may be due to inadmissible h?): {} {}".format(t1, t2))
+                my_logger.warning("inconsistent edge between terminals (may be due to inadmissible h?): {} {}".format(c1, c2))
 
                 # may be due to inadmissible heuristic?
                 # raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist, _)
 
             Common.add_solution(path=path, dist=dist, edge=term_actual,\
-                solution_set=self.S, terminals=self.terminals)
+                results=self.results, terminals=self.terminals)
 
             # True as soon as we add a solution
-            self.FLAG_STATUS_pathConverged = True
+            self.FLAG_STATUS_PATH_CONVERGED = True
 
             # Perform merging
             # Common.merge_comps(self.comps, term_edge=(t1,t2), nodeQueue=self.nodeQueue, cache=self.F)
 
             # TODO find a better way to animate path
             if cfg.Animation.visualize:
-                # self.animateS.update_clean(np.vstack(self.S['path']).T.tolist())
-                AnimateV2.add_line("solution", np.vstack(self.S['path']).T.tolist(), 'yo', markersize=10, zorder=10)
+                # self.animateS.update_clean(np.vstack(self.results['path']).T.tolist())
+                AnimateV2.add_line("solution", np.vstack(self.results['path']).T.tolist(), 'yo', markersize=10, zorder=10)
 
-    # cost and heuristic function definition
-    def p_costs_func(self, object_, cost_so_far, next):
-        """fcost(n) = gcost(n) + hcost(n, goal)        
-        
-        Parameters:
-            object_ (GenericSearch): Generic Search class object (get access to all its variables)
-            cost_so_far (dict): Contains all nodes with finite g-cost
-            next (tuple): The node in the neighborhood of 'current' to be considered 
-
-        Returns:
-            fcost (float): The priority value for the node 'next'
+    def process_path_queue(self) -> list:
+        """Process path queue 
 
         """
-        fCost= cost_so_far[next] +  self.h_costs_func(next, object_) 
-        # fCost= cost_so_far[next] 
+        sol = []
+        while not self.path_queue.empty():
+            path_cost, comps_ind = self.path_queue.get_min()
 
-        # Keep track of Fcosts
-        object_.f[next] = fCost
+            # check for cycles and global bound
+            if not self.cycle_detection.add_edge(*comps_ind, test=True):
 
-        return fCost
+                if path_cost <= self.global_bound_queue.get_min()[0]: 
 
-    def h_costs_func(self, next, object_): 
-        """ 
-        h_i(u) = min{h_j(u)}  for all j in Destination(i), and for some node 'u'
-        
-        """  
-        # need to look at current object's destination...which changes
-        # hju = list(map(lambda goal: htypes(type_, next, goal), terminals))
-        # hju = list(map(lambda goal: htypes(type_, next, goal), [terminals[i] for i in comps[object_.id]['destinations']]))
-        # hju = list(map(lambda goal: htypes(type_, next, goal), [dest for dest in object_.goal]))
-        # hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
-        # hju = list(map(lambda goal: Common.grid_based_heuristics(type_=type_, next=next, goal=goal), object_.goal.values()))
-        hju = list(map(lambda goal: Common.heuristic_func_wrap(next=next, goal=goal), object_.goal.values()))
+                    # update cycle detection algorithm
+                    self.cycle_detection.add_edge(*comps_ind)
 
-        
-        if hju:
-            minH = min(hju)
-        else:
-            minH = 0
-        #minInd = hju.index(minH)
+                    # after a merge in the separate cycle detection routine
+                    # update destinations and reprioritze the open sets
+                    if cfg.Algorithm.reprioritize_after_merge:
+                            findset = self.cycle_detection.parent_table[comps_ind[0]]
+                            new_goals = {i: self.terminals[i] for i in set(range(len(self.terminals)))-set(findset)}
+                            for c in findset:
+                                self.comps[(c,)].goal = new_goals
+                                self.comps[(c,)].reprioritize()
 
-        return minH
+                    sol.append({'path_cost': path_cost, 'comps_ind': comps_ind})
+                    # pop 
+                    self.path_queue.get()
+                else:
+                    break
+            else:
+                self.path_queue.get()
 
-    def debug_all_fmin(self):
-        for c in self.comps.values():
-            print(c.id, c.fmin)
-    
+        return sol
