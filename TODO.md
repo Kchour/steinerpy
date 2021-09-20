@@ -10,5 +10,9 @@
 - Maintain lexicographic ordering for tables to save space
 - Maintain global bounds (kruskal) via a priority queue heap
 - Don't add all the randomized tests spreadsheets to git
+- Consider using `lmin` to do a last-past scan of recently merged component's feasible paths.
+- Move 2D heuristics to a separate module...
+- Recosntructing path shouldn't duplicate any nodes
+- Reuse nearest neighbor heuristic...
 
 

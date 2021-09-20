@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 
 from steinerpy.library.misc.abc_utils import abstract_attribute, ABC as newABC
 from steinerpy.library.graphs.graph import IGraph
-# from steinerpy.library.animation.animation import Animate, SaveAnimation
 from steinerpy.library.animation import AnimateV2
-from steinerpy.library.search.search_utils import PriorityQueue, reconstruct_path, PriorityQueueHeap
+from steinerpy.library.search.search_utils import PriorityQueue,  PriorityQueueHeap
 from steinerpy.library.search.generic_algorithms import GenericSearch
 import steinerpy.config as cfg
 from .abstract_algo import AbstractAlgorithm
-from .algorithms.common import Common
+from .common import Common
+from .heuristics import Heuristics
 # from steinerpy.library.logger import MyLogger #deprecated
 from steinerpy.library.misc.utils import MyTimer
 
@@ -37,11 +37,11 @@ class Framework(AbstractAlgorithm):
             Created using 'GraphFactory' class from the 'graph' module.
             Inhereited from `AbstractAlgorithm`
         FLAG_STATUS_pathConverged (bool): Initially `False`, used to check for path convergence
-        FLAG_STATUS_completeTree (bool): Initially `False`, used to end any algorithm
+        FLAG_STATUS_COMPLETE_TREE (bool): Initially `False`, used to end any algorithm
         comps (dict): A table of search components, which can be merged
         F (dict): A working forest or cache to store closed nodes. Used to check for intersections.
-        nodeQueue (PriorityQueue): Used to pop nominated nodes
-        pathQueue (PriorityQueueHeap): Used to pop candidate 'shortest paths'
+        node_queue (PriorityQueue): Used to pop nominated nodes
+        path_queue (PriorityQueueHeap): Used to pop candidate 'shortest paths'
         run_debug (int): A debugging counter, incremented per iteration
         selNode (tuple): The popped node from the nomination queue above.
         selData (dict): Information pertaining to the selected node `selNode`.
@@ -54,7 +54,7 @@ class Framework(AbstractAlgorithm):
     (all algorithms inheriting this class, must be adapted to use the this function)
 
     Example:
-        >>> while(not self.FLAG_STATUS_completeTree):
+        >>> while(not self.FLAG_STATUS_COMPLETE_TREE):
         >>>    self.nominate()
         >>>    self.update()
         >>>    self.path_check()
@@ -74,16 +74,15 @@ class Framework(AbstractAlgorithm):
         AbstractAlgorithm.__init__(self, G,T)
         # self.terminals = T
         # self.graph = G
-        # self.S = {'sol':[], 'dist':[], 'path':[]}
+        # self.results = {'sol':[], 'dist':[], 'path':[]}
 
         # RUNTIME OK AND STATUS FLAGS 
         # self.FLAG_OK_NOMINATE_OK = False
         # self.FLAG_OK_UPDATE_OK = False
         # self.FLAG_OK_PCHECK_OK = False
         # self.FLAG_OK_TCHECK_OK = False 
-        self.FLAG_STATUS_pathConverged = False
-        self.FLAG_STATUS_completeTree = False
-
+        self.FLAG_STATUS_PATH_CONVERGED = False
+        self.FLAG_STATUS_COMPLETE_TREE = False
 
         # Create search algorithm objects
         self.comps = Common.create_search_objects(search_class=GenericSearch, 
@@ -93,22 +92,17 @@ class Framework(AbstractAlgorithm):
                                                 terminals=self.terminals, 
                                                 visualize=cfg.Animation.visualize
                                                 )
-
+        # Debugging purposes
         self.findset = {}
 
-        # self.comps = {(index, ):  GenericSearch(self.graph, self.f_costs_func, start, frontierType=PriorityQueue(), \
-        #             goal={i: self.terminals[i] for i in set(range(len(self.terminals)))-set((index,))}, visualize=cfg.visualize, id=index) \
-        #             for index,start in enumerate(self.terminals) }
-
         # Create cache and solution set
-        self.F = {}
-        self.nodeQueue = PriorityQueueHeap()
-        self.pathQueue = PriorityQueueHeap()
+        self.node_queue = PriorityQueueHeap()
+        self.path_queue = PriorityQueueHeap()
+        self.global_bound_queue = PriorityQueueHeap()
+
         # Keep track of number of iterations
         self.run_debug = 0
-        # recently closed node and its data
-        self.selNode = None
-        self.selData = None
+
         # Whether we are using depots
         if "Depot" in str(type(G)):
             self.use_depots = True
@@ -117,21 +111,15 @@ class Framework(AbstractAlgorithm):
             self.use_depots = False
             self.depots = None
 
-
-        self.testone = []
-        self.testIntersection = []
-
         # UFeasPath...
         # An adjacency list of each existing component. Each entry keyed by {comp2: [feasible path dist, common node]}
         # if there exist a feasible path between comp1 and comp2, then the key-entry will exist in the adj list of comp1
         # Every iteration of the algorithm, we try to update [feas. path dist, comm node] with a lower valued dist
         # Also during merge, we have to update the keys in both the UFeasPath AND the subkeys...
-
         self.UFeasPath = {}
-        # cycle detection Necessary for Astar
-        # self.cd = CycleDetection([(t,) for t in range(len(terminals))])
 
-        # TODO: FIX THIS UP, plot related
+        # Plotting Related
+        # TODO: Make this more efficient
         if cfg.Animation.visualize:        
             if self.run_debug <= 1:
                 if not plt.fignum_exists(1):
@@ -187,19 +175,20 @@ class Framework(AbstractAlgorithm):
         For each component in `comps`, we nominate a single node. 
         If the nominate function returns a `True`, we move on to
         storing the nominated node and its priority value (Fcost)
-        in a queue variable called nodeQueue.
+        in a queue variable called node_queue.
         
         """
-        # print(self.run_debug)
-        # MyLogger.add_message("performing nominate() ", __name__, "INFO")
         my_logger.info("performing nomination")
 
         for ndx, c in self.comps.items():
-            if ndx not in self.nodeQueue:
+            if ndx not in self.node_queue:
                 if c.nominate():
-                    self.nodeQueue.put(ndx, c.currentP)
+                    self.node_queue.put(ndx, c.currentP)
+                    # also update global bound
+                    self.update_global_bound(ndx)
 
-        assert(len(self.nodeQueue)==len(self.comps))
+        # Ensure each component has a nomination
+        assert(len(self.node_queue)==len(self.comps))
 
     def update(self):
         """ Update the component's open/closed list pertaining to the least fcost-valued node
@@ -211,138 +200,97 @@ class Framework(AbstractAlgorithm):
         my_logger.info("performing update")
 
         try:
-            # TEST 
-            #self.nodeQueue = PriorityQueue()
-            # nodeQueue is empty!
-            if self.nodeQueue.empty():
+            # This exception can only happen when our graph is disconnected
+            if self.node_queue.empty():
                 print(self.terminals)
-                raise Exception("nodeQueue is empty!")
+                raise Exception("node_queue is empty!")
 
-            best_priority, best_ndx = self.nodeQueue.get()  
+            best_priority, best_ndx = self.node_queue.get()  
         except Exception as e:
-            # MyLogger.add_message("nodeQueue has an error", __name__, "ERROR", "exc_info=True")
-            my_logger.error("nodeQueue has an error", exc_info=True)
+            # MyLogger.add_message("node_queue has an error", __name__, "ERROR", "exc_info=True")
+            my_logger.error("node_queue has an error", exc_info=True)
             raise e
 
-        # Get best ndx from priority queue
-        
-        # get best component object, and g cost of best node
-        bestC = self.comps[best_ndx]
-        bestCurrent = bestC.current
-        bestGVal = bestC.g[bestCurrent]  
-        bestPVal = bestC.currentP
-        
-        # Get parent (if possible), parent is a dict
-        bestParent = bestC.parent.get(bestCurrent, None)
+        # update the least cost component
+        self.comps[best_ndx].update()
 
-        # Store and return the selected node(s)
-        self.selNode = bestCurrent
-        self.selData = {t:{} for t in self.terminals} 
-        self.selData.update({'to': bestParent, 'terminalInd': best_ndx, 'gcost': bestGVal, 'pcost':bestPVal, 'status': 'closed'})
+        # store this index
+        self.best_ndx = best_ndx
 
-        # log the gcost for debugging
-        my_logger.info("updated node {}, gcost {}".format(bestCurrent, bestGVal))        
-
-
-        # print('selected Node: ', self.selNode)
-        # print('selected Data: ', self.selData)
-        # Check for complete path
-
-        # Now update the closed/open list for the 'best' component. Make sure non-empty goals
-        # if self.comps[best_ndx].goal:
-        # hold off on updating?
-        bestC.update()
-        # self.comps[self.selData['terminalInd']].update()
-        # if cfg.visualize:
-        #     self.plotCurrent.update_clean(self.selNode)
-
-        #clear node queue?
-        # self.nodeQueue = PriorityQueue()
-
+        # keep track of global bounds
+        # Need to modify IDs during merge
+        self.update_global_bound(best_ndx)
 
     def path_check(self):
-        """Check for and add paths if able, to the `pathQueue`
+        """Check for and add paths if able, to the `path_queue`
 
         More specifically:
             1. Check for all set collisions
             2. Find shortest path among two colliding sets
-            3. If path convergence criteria is satisfied, add to pathQueue
+            3. If path convergence criteria is satisfied, add to path_queue
 
         TEST purposes: 
             * Try adding all nodes with finite g-cost value
 
         """
 
-        t1 = self.selData['terminalInd']
-        updatedComp = self.comps[t1]
-        for t2, c in self.comps.items():
+        c1 = self.best_ndx
+        for c2 in self.comps.keys():
+            
             # skip if trying to intersect with itself
-            if t1 == t2:
-                continue
-        
-            # duplicates = False
-            # for p in self.pathQueue.elements.values():
-            #     terms_ind, terms_actual, path, dist = p[2] 
-            #     if set((t1,t2)).issubset(set(terms_ind)):
-            #         duplicates = True
-            #         break
-            # if duplicates:
-            #     continue
-            # # Avoid adding duplicate paths to the path PriorityQueue
-            if (t1,t2) in self.pathQueue or (t2,t1) in self.pathQueue:
+            if c1 == c2:
                 continue
 
-            # Add updated component recent open and closed list
-            updateSet = set(updatedComp.currentNeighs)
-            # updateSet = set(updatedComp.frontier.elements)
-            updateSet.add(updatedComp.current)
-            # if c.currentNeighs:
-            #     updateSet.union(set(c.currentNeighs))
-            # updateSet.add(c.current)
+            # track updated component's current and neighboring node. Need to check for intersection
+            update_set = set(self.comps[c1].currentNeighs)
+            update_set.add(self.comps[c1].current)
+       
 
+            # Avoid adding duplicate paths to the path PriorityQueue
+            if (c1,c2) in self.path_queue:
+                continue
+
+
+            # Store only the best possible feasible path so far
             # Obtain previous feasible path result
-            if t1 in self.UFeasPath and t2 in self.UFeasPath[t1]:
-                # UFeas, commonNode = self.UFeasPath[(t1,t2)][0], self.UFeasPath[(t1,t2)][1]
-                if self.UFeasPath[t1][t2][0] < self.UFeasPath[t2][t1][0]:
-                    UFeas, commonNode = self.UFeasPath[t1][t2]
-                    self.UFeasPath[t2][t1] = [UFeas, commonNode]
+            if c1 in self.UFeasPath and c2 in self.UFeasPath[c1]:
+                if self.UFeasPath[c1][c2][0] < self.UFeasPath[c2][c1][0]:
+                    self.UFeasPath[c2][c1] = self.UFeasPath[c1][c2]
                 else:
-                    UFeas, commonNode = self.UFeasPath[t2][t1]
-                    self.UFeasPath[t1][t2] = [UFeas, commonNode]                         
+                    self.UFeasPath[c1][c2] = self.UFeasPath[c2][c1]                        
+                UFeas, commonNode = self.UFeasPath[c1][c2]
             else:
                 UFeas = None
          
-            for k in updateSet:
-                if k in self.comps[t1].g and k in self.comps[t2].g:
-                    candU = self.comps[t1].g[k] + self.comps[t2].g[k]
+            # try to discover new better paths between (c1, c2)
+            for k in update_set:
+                if k in self.comps[c1].g and k in self.comps[c2].g:
+                    candU = self.comps[c1].g[k] + self.comps[c2].g[k]
                     if  UFeas is None or candU < UFeas:
                         UFeas = candU
                         commonNode = k  
                         
-                        if t1 in self.UFeasPath:
-                            self.UFeasPath[t1].update({t2: [UFeas, commonNode]})
+                        if c1 in self.UFeasPath:
+                            self.UFeasPath[c1].update({c2: [UFeas, commonNode]})
                         else:
-                            self.UFeasPath.update({t1: {t2: [UFeas, commonNode]}})
+                            self.UFeasPath.update({c1: {c2: [UFeas, commonNode]}})
                         
-                        if t2 in self.UFeasPath:
-                            self.UFeasPath[t2].update({t1: [UFeas, commonNode]})
+                        if c2 in self.UFeasPath:
+                            self.UFeasPath[c2].update({c1: [UFeas, commonNode]})
                         else:                           
-                            self.UFeasPath.update({t2: {t1: [UFeas, commonNode]}})  
+                            self.UFeasPath.update({c2: {c1: [UFeas, commonNode]}})  
 
             if UFeas is not None:
-                # set lmins for each component
-                if UFeas < updatedComp.lmin or updatedComp.lmin == 0:
-                    updatedComp.lmin = UFeas
-                if UFeas < c.lmin or c.lmin == 0:
-                    c.lmin = UFeas
-
-                # Subtract some slack due to numerical issues
-                # t1, t2 = t1feas, t2feas
+                # Set lmins for each component. May be important post-merge
+                if UFeas < self.comps[c1].lmin or self.comps[c1].lmin == 0:
+                    self.comps[c1].lmin = UFeas
+                if UFeas < self.comps[c2].lmin or self.comps[c2].lmin == 0:
+                    self.comps[c2].lmin = UFeas
 
                 my_logger.debug("Observing edge between {} {} - cost {}, local fmin1 {} fmin2 {}, gmin1 {} gmin2 {} pathCriteria {}".\
-                    format(t1,t2, UFeas, self.comps[t1].fmin, self.comps[t2].fmin, self.comps[t1].gmin, self.comps[t2].gmin, Common.path_queue_criteria(self.comps, UFeas, True)))
+                    format(c1,c2, UFeas, self.comps[c1].fmin, self.comps[c2].fmin, self.comps[c1].gmin, self.comps[c2].gmin, self.global_bound_queue.get_min()))
 
-                sp = self.shortest_path_check(comps=self.comps, term_edge=(t1,t2), bestVal=UFeas)
+                sp = self.shortest_path_check([c1,c2], UFeas)
 
                 if cfg.Misc.DEBUG_MODE:
                     self.debug_fmin()
@@ -350,11 +298,10 @@ class Framework(AbstractAlgorithm):
                     self.debug_pmin()
                     # self.debug_lmin()
                     self.debug_rmin()
-                    testtesttest=1
 
                 if sp:
                     my_logger.debug("Adding sp edge between {} {} - cost {}, local fmin1 {} fmin2 {}, gmin1 {} gmin2 {}".\
-                        format(t1,t2, UFeas, self.comps[t1].fmin, self.comps[t2].fmin, self.comps[t1].gmin, self.comps[t2].gmin))
+                        format(c1,c2, UFeas, self.comps[c1].fmin, self.comps[c2].fmin, self.comps[c1].gmin, self.comps[c2].gmin))
 
                     ###########################################
                     ### # update destination list TEST THIS ###
@@ -362,16 +309,13 @@ class Framework(AbstractAlgorithm):
                     # MyLogger.add_message("goals(PRE) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
                     # MyLogger.add_message("goals(PRE) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
                     try:
-                        # # Consider not deleting me from you
-                        pass
-                        # test =1
-                        for t in t2:
-                            if t in self.comps[t1].goal:
-                                del self.comps[t1].goal[t]
+                        for t in c2:
+                            if t in self.comps[c1].goal:
+                                del self.comps[c1].goal[t]
                         
-                        for t in t1:
-                            if t in self.comps[t2].goal:
-                                del self.comps[t2].goal[t]
+                        for t in c1:
+                            if t in self.comps[c2].goal:
+                                del self.comps[c2].goal[t]
 
                     except Exception as e_:
                         print(e_)
@@ -385,262 +329,68 @@ class Framework(AbstractAlgorithm):
                     # Adds overhead
                     #################################
                     if cfg.Algorithm.reprioritize_after_sp:
-                        if self.comps[t1].goal:
-                            self.comps[t1].reprioritize()
+                        if self.comps[c1].goal:
+                            self.comps[c1].reprioritize()
 
-                        if self.comps[t2].goal:
-                            self.comps[t2].reprioritize()  
+                        if self.comps[c2].goal:
+                            self.comps[c2].reprioritize()  
 
-                        # Delete respective components from nodeQueue
-                        if t1 in self.nodeQueue.elements:
-                            self.nodeQueue.delete(t1)
-                        if t2 in self.nodeQueue.elements:
-                            self.nodeQueue.delete(t2)
+                        # Delete respective components from node_queue
+                        if c1 in self.node_queue.elements:
+                            self.node_queue.delete(c1)
+                        if c2 in self.node_queue.elements:
+                            self.node_queue.delete(c2)
                     #################################
 
-                    # MyLogger.add_message("goals(POST) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
-                    # MyLogger.add_message("goals(POST) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
 
                     ############################################
                     # ## End update destination list and rep ###
                     # ##########################################  
 
-                    # MyLogger.add_message("paths in solution set: {}".format(len(self.S['dist'])), __name__, "INFO")
-                    my_logger.info("paths in solution set: {}".format(len(self.S['dist'])))
+                    self.path_queue.put((c1,c2), UFeas)
 
-                    # # Set another lower bound on components due to declared shortest path
-                    # if dist > 0 and dist < self.comps[t1].lmin or self.comps[t1].lmin == 0:
-                    #     self.comps[t1].lmin = dist
 
-                    # if dist > 0 and dist < self.comps[t2].lmin or self.comps[t2].lmin == 0:
-                    #     self.comps[t2].lmin = dist
+                    my_logger.debug("Added path to path_queue")
+                    my_logger.info("path_queue len now: {}".format(len(self.path_queue.elements)))
 
-                    # when component frontier is empty, the most recently declared path is fmin
-                    # self.comps[t1].lmin = dist
-                    # self.comps[t2].lmin = dist            
-        
-                    # self.pathQueue.put(({'terms': (t1,t2), 'term_actual': term_actual, 'path':path, 'dist':dist}), dist)
-                    # self.pathQueue.put((( (t1,t2), term_actual, tuple(path), dist)), dist)
-                    self.pathQueue.put((t1,t2), UFeas)
-
-                    # MyLogger.add_message("Added path to pathQueue", __name__, "DEBUG")
-
-                    # MyLogger.add_message("pathQueue len now: {}".format(len(self.pathQueue.elements)), __name__, "INFO")
-
-                    my_logger.debug("Added path to pathQueue")
-                    my_logger.info("pathQueue len now: {}".format(len(self.pathQueue.elements)))
-
+    @abstractmethod
     def tree_update(self): 
-        """ Empty the pathQueue if possible, then update the solution set `S`
+        """ Empty the path_queue if possible, then update the solution set `S`
 
         For each possible path, we perform a `merge` function on the components connected by this path.
         The resulting merged component is stored in `comps` and the former components are deleted.
         As soon as a solution set is updated, we allow for a `tree_check` in the future.
 
         """
-        my_logger.info("performing tree_update")
-
-        my_logger.debug("global kruskal value {}".format( Common.path_queue_criteria(self.comps, 0, True) ) )
-
-        # Empty path queue, gather up the solutions in solution queue (FIFO)
-        solQueue = Common.solution_handler(comps=self.comps, path_queue=self.pathQueue, cycle_detector=None, \
-            terminals=self.terminals, criteria=self.path_queue_criteria, merging=True, use_depots=self.use_depots)
+        pass
         
-        my_logger.info("solQueue len: {}".format(len(solQueue)))
-
-        # add paths to solution set
-        for ndx, s in enumerate(solQueue):
-            # self.add_solution(s['path'], s['dist'], s['terms'])
-            # t1,t2 = s['terms']
-            # my_logger.debug("emptying solQueue iter: {}".format(ndx+1))
-
-            my_logger.debug("adding edge with value {}".format(s['dist']))
-
-            # t1, t2 = Common.subsetFinder(s['terms'], self.comps)
-            # MyLogger.add_message("Inspecting path {}. Old Comps {}. New Comps {}. Terminals {}. length {}".format(s['path'], s['terms'], (t1,t2), s['term_actual'], s['dist']), __name__, "DEBUG")
-
-            t1,t2 = s['components']     #could be old components
-            # To avoid adding redundant paths. 
-
-
-            pdist = s['dist']
-            
-            # find set t1 and t2 belong to
-            if t1[0] in self.findset: 
-                t1 = self.findset[t1[0]]
-            if t2[0] in self.findset:
-                t2 = self.findset[t2[0]]
-            
-            # helps detect cycles...so we don't have to clear out pathQueue
-            if t1 == t2:
-                continue
-
-            # debug bounds
-            # self.debug_bounds(t1)
-            # self.debug_bounds(t2)
-        
-            # update findset (TODO: make sure keys are tuples!)
-            for t in (t1+t2):
-                self.findset[t] = (t1+t2)
-              
-            # Get common node between two components
-            dist, commonNode = self.UFeasPath[t1][t2]
-
-            if abs(pdist-dist)>0.1:
-                # print("")
-                my_logger.warning("inconsistent edge between terminals (may be due to inadmissible h?): {} {}".format(t1, t2))
-
-                # This may be due to inadmissible heuristic?
-                # raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist)
-
-            # reconstruct path
-            path, _, term_actual = Common.get_path(comps=self.comps, sel_node=commonNode, term_edge=(t1,t2),\
-            reconstruct_path_func = reconstruct_path)
-
-            try:              
-                Common.add_solution(path=path, dist=dist, edge=term_actual,\
-                    solution_set=self.S, terminals=self.terminals)
-
-                my_logger.debug("Just added path no. {}. Terminals {}".format(len(self.S['dist']), term_actual))
-
-                # True as soon as we add a solution
-                self.FLAG_STATUS_pathConverged = True
-
-                # self.comps[t1].lmin = s['dist']
-                # self.comps[t2].lmin = s['dist']
-
-                # # update stuff in the solQueue
-                # for sol in solQueue:
-                    
-
-                # # Update path Queue element keys to refer to updated component indices
-                # for c in self.comps:
-                #     if (t1, c) in self.pathQueue.entry_table:
-                #         self.pathQueue.put((t1+t2,c), self.pathQueue.entry_table[(t1,c)][0])
-                #         self.pathQueue.delete((t1, c))
-                #     if (c, t1) in self.pathQueue.entry_table:
-                #         self.pathQueue.put((c,t1+t2), self.pathQueue.entry_table[(c,t1)][0])
-                #         self.pathQueue.delete((c, t1))
-                #     if (t2, c) in self.pathQueue.entry_table:
-                #         self.pathQueue.put((t1+t2,c), self.pathQueue.entry_table[(t2,c)][0])
-                #         self.pathQueue.delete((t2, c))
-                #     if (c, t2) in self.pathQueue.entry_table:
-                #         self.pathQueue.put((c,t1+t2), self.pathQueue.entry_table[(c,t2)][0])
-                #         self.pathQueue.delete((c, t2))
-
-                # Perform merging
-                # Common.merge_comps(self.comps, term_edge=(t1, t2), nodeQueue=self.nodeQueue, cache=self.F)
-                Common.merge_comps(self.comps, term_edge=(t1,t2), nodeQueue=self.nodeQueue, cache=self.F)
-
-                # Update feasible path keys and subkeys to refer to updated component indices                
-                # minimize over exclusive union
-                set1 = set(self.UFeasPath[t1])              # components adjacent to compt1
-                set2 = set(self.UFeasPath[t2])              # components adjaceny to compt2
-                ex_union = set1.union(set2)-set({t1,t2})    # all adjacent components excluding comp1,comp2
-                merged_key = {t1+t2: {}}
-                delList = []
-                for k in ex_union:
-                    # Create adjacency list for the newly merged component:
-                    # For components adjacent to both comp1 and comp2 indvidually, store the shorter feasible path
-                    # elif for components adjacent to only comp1 or comp2, just take the feas path directly
-                    if k in set1 and k in set2:
-                        if self.UFeasPath[t1][k][0] < self.UFeasPath[t2][k][0]:
-                            merged_key[t1+t2].update({k: [self.UFeasPath[t1][k][0], self.UFeasPath[t1][k][1]]})      
-                        else:
-                            merged_key[t1+t2].update({k: [self.UFeasPath[t2][k][0], self.UFeasPath[t2][k][1]]})       
-                    elif k in set1:
-                        merged_key[t1+t2].update({k: self.UFeasPath[t1][k]})
-                    elif k in set2:
-                        merged_key[t1+t2].update({k: self.UFeasPath[t2][k]})
-
-                    # update old sub-keys to point to merged comp
-                    # if kth-component was adjacent to t1 or t2, update its adj list
-                    if t1 in self.UFeasPath[k] and t2 in self.UFeasPath[k]:
-                        # make sure to take minimum! Dont blindly set this
-                        if self.UFeasPath[k][t1] < self.UFeasPath[k][t2]:
-                            self.UFeasPath[k].update({t1+t2: self.UFeasPath[k][t1]})
-                        else:
-                            self.UFeasPath[k].update({t1+t2: self.UFeasPath[k][t2]})
-                        delList.append((k,t1))
-                        delList.append((k,t2))
-                    elif t1 in self.UFeasPath[k]:
-                        self.UFeasPath[k].update({t1+t2: self.UFeasPath[k][t1]})
-                        delList.append((k,t1))
-                        # del self.UFeasPath[k][t1]
-                    elif t2 in self.UFeasPath[k]:
-                        self.UFeasPath[k].update({t1+t2: self.UFeasPath[k][t2]})
-                        delList.append((k,t2))
-                        # del self.UFeasPath[k][t2]
-
-                # delete old unmerged comps
-                del self.UFeasPath[t1]
-                del self.UFeasPath[t2]
-
-                # delete old sub-keys
-                for d in delList:
-                    del self.UFeasPath[d[0]][d[1]]
-                
-                # Add merged comp
-                self.UFeasPath.update(merged_key)
-
-                # Log f costs after merging
-                # MyLogger.add_message("{} current fmin {}".format(t1+t2, self.comps[t1+t2].fmin), __name__, "Debug")
-    
-                # See if any feasible paths in merged components can be added to path queue
-                # This is important because they may get skipped!
-                for c2 in self.UFeasPath[t1+t2]:
-                    paths = self.UFeasPath[t1+t2][c2]
-                    # check sp
-                    if self.shortest_path_check(self.comps, ((t1+t2),(c2)), paths[0]):
-                        self.pathQueue.put(((t1+t2),(c2)), paths[0])
-
-                # TODO find a better way to animate path
-                if cfg.Animation.visualize:
-                #     self.animateS.update_clean(np.vstack(self.S['path']).T.tolist())
-
-                #     self.plotTerminals.update(np.array(self.terminals).T.tolist())
-                #     if self.graph.obstacles:
-                #         self.plotObstacle.update(np.array(self.graph.obstacles).T.tolist())
-
-                    AnimateV2.add_line("solution", np.vstack(self.S['path']).T.tolist(), 'yo', markersize=10, zorder=10)
-                    # # if self.graph.obstacles:
-                    pass
-
-            except Exception as e:
-                my_logger.error("Merging error!", exc_info=True)
-                print(self.terminals)
-                raise e
-
-            my_logger.info("Total tree edges now: {}".format(len(self.S['dist'])))
-                   
-        my_logger.info("pathQueue len now: {}".format(len(self.pathQueue.elements)))
-
     def tree_check(self):
         """When at least one solution has been added to the solution set, check to see if we have a complete tree"""
 
         my_logger.info("Performing tree_check")
+        my_logger.info("paths in solution set: {}".format(len(self.results['dist'])))
 
         if cfg.Animation.visualize:
             # Don't plot every thing for large graphs
             if np.mod(self.run_debug, np.ceil(self.graph.edge_count()/5000))==0:
                 AnimateV2.update()
 
-        if self.FLAG_STATUS_pathConverged:
+        if self.FLAG_STATUS_PATH_CONVERGED:
            
             # Check tree size
-            if len(self.S['sol']) == len(self.terminals)-1:
+            if len(self.results['sol']) == len(self.terminals)-1:
                 # Algorithm has finished
-                self.FLAG_STATUS_completeTree = True
-                totalLen = sum(np.array(self.S['dist']))
+                self.FLAG_STATUS_COMPLETE_TREE = True
+                totalLen = sum(np.array(self.results['dist']))
 
                 my_logger.info("Finished: {}".format(totalLen))
 
                 # Add expanded node stats
-                self.S['stats']['expanded_nodes'] = GenericSearch.total_expanded_nodes
+                self.results['stats']['expanded_nodes'] = GenericSearch.total_expanded_nodes
                 # Reset or "close" Class variables
 
                 # Add additional stats (don't forget to reset classes)
-                self.S['stats']['fcosts_time'] = sum(MyTimer.timeTable["fcosts_time"])
+                self.results['stats']['fcosts_time'] = sum(MyTimer.timeTable["fcosts_time"])
 
                 # Keep plot opened
                 if cfg.Animation.visualize:
@@ -705,7 +455,11 @@ class Framework(AbstractAlgorithm):
                     plt.draw()
                     plt.pause(1)
 
-            self.FLAG_STATUS_pathConverged = False
+            self.FLAG_STATUS_PATH_CONVERGED = False
+
+    def update_global_bound(self, comp_ind: tuple):
+        local_bound = max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin])
+        self.global_bound_queue.put(comp_ind, local_bound)
 
     def debug_get_comp_current_node(self, comp):
         """Return min node from frontier without purging it """
@@ -727,14 +481,14 @@ class Framework(AbstractAlgorithm):
         for k, v in paths.items():
             print(k, v)
 
-    def debug_pathQueue(self):
+    def debug_path_queue(self):
         """Print out sorted path lengths from path queue
 
         """
-        paths = {k: self.UFeasPath[self.findset.get(k[0], k[0])][self.findset.get(k[1], k[1])]  for k in sorted(self.pathQueue.elements)}
+        paths = {k: self.UFeasPath[self.findset.get(k[0], k[0])][self.findset.get(k[1], k[1])]  for k in sorted(self.path_queue.elements)}
         
         
-        # for k in sorted(self.pathQueue.elements):
+        # for k in sorted(self.path_queue.elements):
         #     set1 = self.findset.get(k[0], k[0])
         #     set2 = self.findset.get(k[1], k[1])
 
@@ -817,56 +571,92 @@ class Framework(AbstractAlgorithm):
         return minVal    
 
     @abstractmethod
-    def p_costs_func(self, this:GenericSearch, gcosts: dict, next: tuple):
+    def p_costs_func(self, search:GenericSearch, cost_to_come: dict, next: tuple):
         """An abstract method used to calculate the priority cost of a node in the open set. Must be overriden! 
         
         Typically, this is the sum of g and h, i.e. f=g+h, but may depend on the user's case
         
         """
         # MUST KEEP TRACK OF FCOSTS !!!!!!!!!
-        # this.f = fcost(node)
-        pass 
+        # The implementation should call 
+        # super().p_costs_func(search, cost_to_come, next)
+        search.f[next] = cost_to_come[next] + self.h_costs_func(search, next)
 
-    @abstractmethod
-    def h_costs_func(self, next: tuple, this: GenericSearch):
-        """An abstract method used to calculate the heuristic cost of a node in the open set. Must be overriden! 
-        
-        See the `Common` class, which has a staticmethod for typical grid-based heuristics
+    def h_costs_func(self, search: GenericSearch, next: tuple):
+        """Implementation of the nearest neighbor heuristic.      
+        Heuristic costs for the node 'next', neighboring 'current'
+
+        Parameters:
+            next (tuple): The node in the neighborhood of 'current' to be considered 
+            component (GenericSearch): Generic Search class object (get access to all its variables)
+
+        Info:
+            h_i(u) = min{h_j(u)}  for all j in Destination(i), and for some node 'u'
         
         """
-        pass
+        # If we don't have any goals...
+        if not search.goal:
+            return 0
 
-    def shortest_path_check(self, *args, **kwargs):
+        # Nearest neighbor heuristic
+        hju = list(map(lambda goal: cfg.Algorithm.hFactor*Heuristics.heuristic_func_wrap(next=next, goal=goal), search.goal.values()))
+
+        minH = min(hju)
+        minInd = hju.index(minH)
+        minGoal = search.goal[list(search.goal)[minInd]]
+
+        # Set current Goal
+        search.currentGoal = minGoal
+
+        return minH 
+
+    @abstractmethod
+    def shortest_path_check(self, comps_colliding:List[tuple], path_cost:float)->bool:
         """Applies a necessary condition to check whether two colliding components possess the `shortest possible path`
         between them. Speficailly, the necessary condition is based on Nicholson's Bidirectional Search paper.
 
         Just because the two components collide (i.e. their closed sets touch), does not mean any complete path
         between them is necessarily the shortest. Override this method as needed for customized check, otherwise,
-        Nicolson's from `Common` class is used.
+        Nicolson's + Pohl's will be used.
         
-        """
-
-        return Common.shortest_path_check(*args, **kwargs)
-
-    def path_queue_criteria(self, *args, **kwargs):
-        """Used to pop the shortest paths from `pathQueue`, by ensuring path's cost does not exceed the other path estimates.
-
-        Ensures steiner tree edges are added in the order of increasing cost. Override this method as needed for a different check.
+        Params:
+            comps_colliding: A list of component id's for which have just colliding
 
         """
-        return Common.path_queue_criteria(**kwargs)
+        pass
+
+    def process_path_queue(self, *args, **kwargs)->list:
+        """Process path queue to get paths in order of increasing cost.
+        Must respect global min though!
+
+        """
+        sol = []
+        while not self.path_queue.empty():
+            path_cost, comps_ind = self.path_queue.get_min()
+
+            # check global bound
+            if path_cost <= self.global_bound_queue.get_min()[0]:
+                # append path to sol to be added
+                sol.append({'path_cost': path_cost, 'comps_ind': comps_ind})
+
+                # pop 
+                self.path_queue.get()
+            else:
+                break
+
+        return sol
 
     ''' 'where the magic happens' function '''
     def run_algorithm(self):
-        """Query the algorithm to generate results in the solution set `S`.
+        """Query the algorithm to return a Steiner tree.
 
-        The algorithm will terminate when there is a minimum-spanning tree in S.
+        The algorithm will terminate when there is a minimum-spanning tree in the metric completion of T (terminals).
 
         Returns:
-            True: if algorithm has terminated successfully
+            True: if algorithm has terminated successfully else False
         
         Resource:
-            https://stackoverflow.com/questions/7370801/how-to-measure-elapsed-time-in-python
+            Accurate time keeping: https://stackoverflow.com/questions/7370801/how-to-measure-elapsed-time-in-python
         
         """
 
@@ -878,7 +668,7 @@ class Framework(AbstractAlgorithm):
 
         #start time
         startLoop = timer()
-        while(not self.FLAG_STATUS_completeTree):
+        while(not self.FLAG_STATUS_COMPLETE_TREE):
 
             # self.bound_tests[0].append(self.debug_fmin())
             # self.bound_tests[1].append(self.debug_rmin())
@@ -934,8 +724,8 @@ class Framework(AbstractAlgorithm):
 
         # End time, store in stats
         endLoop = timer()
-        self.S['stats']['time'] = endLoop - startLoop
-        self.S['stats']['iterations'] = self.run_debug
+        self.results['stats']['time'] = endLoop - startLoop
+        self.results['stats']['iterations'] = self.run_debug
 
         if cfg.Misc.profile_frame:
             cpr.disable()
@@ -948,7 +738,7 @@ class Framework(AbstractAlgorithm):
         listOfFuncs = ["nominate()_time", "update()_time", "path_check()_time",\
         "tree_update()_time", "tree_check()_time" ]
         for n in listOfFuncs:
-            self.S['stats'][n] = sum(MyTimer.timeTable[n])
+            self.results['stats'][n] = sum(MyTimer.timeTable[n])
 
         # Reset classes (find a better way to to do this)
         GenericSearch.reset()
@@ -956,11 +746,7 @@ class Framework(AbstractAlgorithm):
 
         # Sucessfully generated a tree     
         return True
-        # try:
-    
-        #     return True
-        # except Exception as _e:
-        #     return False
+
 
 
     

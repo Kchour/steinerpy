@@ -26,7 +26,7 @@ class AbstractAlgorithm(newABC):
     def __init__(self, G, T):
         self.terminals = T
         self.graph = G
-        self.S = {'sol':[], 'dist':[], 'path':[], 'stats':{}}
+        self.results = {'sol':[], 'dist':[], 'path':[], 'stats':{}}
         # self.FLAG_STATUS_completeTree = False
 
     def return_solutions(self):
@@ -36,7 +36,7 @@ class AbstractAlgorithm(newABC):
             S (dict): A dictionary containing information to output Steiner Tree
 
         """     
-        return self.S
+        return self.results
 
     @abstractmethod
     def run_algorithm(self):

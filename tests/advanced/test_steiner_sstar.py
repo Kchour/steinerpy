@@ -48,7 +48,7 @@ class TestSteinerSstar(unittest.TestCase):
     def setUp(self):
         self.old_setting = cfg.Algorithm.sstar_heuristic_type
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
-        cfg.Animation.visualize = False
+        cfg.Animation.visualize = True
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
@@ -60,7 +60,8 @@ class TestSteinerSstar(unittest.TestCase):
         #Store Tree values
         dist = []
 
-        ao = SstarBS(graph, terminals)
+        # HS
+        ao = SstarHS(graph, terminals)
         self.assertIsInstance(ao.comps, dict)
         self.assertTrue(ao.run_algorithm())
         dist.append(sum(ao.return_solutions()['dist']))
@@ -71,11 +72,12 @@ class TestSteinerSstar(unittest.TestCase):
         self.assertTrue(ao.run_algorithm())
         dist.append(sum(ao.return_solutions()['dist']))
 
-        # HS
-        ao = SstarHS(graph, terminals)
+        ao = SstarBS(graph, terminals)
         self.assertIsInstance(ao.comps, dict)
         self.assertTrue(ao.run_algorithm())
-        dist.append(sum(ao.return_solutions()['dist']))
+        dist.append(sum(ao.return_solutions()['dist']))        
+
+
 
         # MM0
         ao = SstarMM0(graph, terminals)

@@ -23,10 +23,12 @@ class Unmerged(Framework):
 
     def tree_update(self):
         """override tree_update because we need cycle detection and no merging """
-        my_logger.info("Performing Tree Update")
-        # Empty path queue, gather up the solutions
-        sol = Common.solution_handler(comps=self.comps, path_queue=self.pathQueue, cycle_detector=self.cd, \
-            terminals=self.terminals, criteria=self.path_queue_criteria, merging=False)
+        # my_logger.info("Performing Tree Update")
+        # # Empty path queue, gather up the solutions
+        # sol = Common.solution_handler(comps=self.comps, path_queue=self.pathQueue, cycle_detector=self.cd, \
+        #     terminals=self.terminals, criteria=self.path_queue_criteria, merging=False)
+
+        sol = self.process_path_queue()
 
         # add paths to solution set
         for s in sol:

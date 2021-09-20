@@ -58,7 +58,7 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
         # cfg.Misc.log_conf["handlers"]['console']['level'] = "DEBUG"
         # cfg.reload_log_conf()
-        # cfg.Animation.visualize = True
+        cfg.Animation.visualize = True
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
@@ -122,9 +122,10 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
 
         # algorithms = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0", "S*-unmerged"]
         # heuristics = ["manhattan", "custom", "diagonal_nonuniform", "diagonal_uniform", "euclidean", "zero"]        
-        algorithms = ["Kruskal", "S*-unmerged"]
+        # algorithms = ["Kruskal", "S*-HS"]
+        algorithms = ["S*-HS"]
         # algorithms = ["Kruskal", "S*-BS"]
-        heuristics = ["manhattan"]
+        heuristics = ["diagonal_nonuniform"]
         for h in heuristics:
 
             dist = []

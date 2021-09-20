@@ -5,6 +5,7 @@ Todo:
 """
 
 # import png
+from multiprocessing import Value
 import pdb
 import numpy as np
 import collections
@@ -216,8 +217,14 @@ class ChangingKeysDict(UserDict):
         TODO: Need to handle merging and when data keys contain other
         things besides base_keys
 
+        TODO: specify whether directed or undirected
+
+        Attributes:
+            data (dict): inherited from UserDict. The actual dictionary.
+
+
     """
-    def __init__(self, base_keys: list, *args, **kwargs):
+    def __init__(self, base_keys: list, key_type:str=None,*args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # initialize all base keys
@@ -225,6 +232,13 @@ class ChangingKeysDict(UserDict):
         self.base_keys_ref = {}
         for k in base_keys:
             self.base_keys_ref[k] = set()
+
+        if key_type is None:
+            raise ValueError("key_type not specified!")
+        elif key_type == "undirected" or key_type == "directed":
+            self.key_type = key_type
+        else:
+            raise ValueError("key_type {} is not supported".format("".join(["\'",key_type,"\'"])))
 
     def __delitem__(self, key):
         """For each base_key in key, remove a reference to it
@@ -235,7 +249,7 @@ class ChangingKeysDict(UserDict):
 
         super().__delitem__(key)
 
-    def __setitem__(self, key: tuple, value):
+    def __setitem__(self, key: tuple, value: float):
         """For each base_key in key add a reference to it
 
         """
@@ -255,7 +269,10 @@ class ChangingKeysDict(UserDict):
             refs = self.base_keys_ref[base_key_old]
 
             # add redefined base_key to ref table
-            self.base_keys_ref[base_key_new] = set()
+            # dont initialize if new base key is already present.
+            # else create a new one
+            if base_key_new not in self.base_keys_ref:
+                self.base_keys_ref[base_key_new] = set()            
 
             # scan over each ref, make a copy with a new key
             # delete the older one
@@ -274,9 +291,23 @@ class ChangingKeysDict(UserDict):
                 self.base_keys_ref[base_key_new].add(new_ref)
 
                 # now update the data dict
-                self.data[new_ref] = self.data[ref]
+                # if undirected, just take the minimum of the two values
+                # maintain lexicographic ordering
+                a,b = new_ref
+                if self.key_type == "undirected":
+                    if (b,a) in self.data:
+                        min_val = min(self.data[(b,a)], self.data[ref]) 
+                    else:
+                        min_val = self.data[ref]    
                 
-                # make sure other references to old base key are changed
+                    if a > b:
+                        a, b = b, a
+                    
+                    self.data[new_ref] = min_val
+                else:
+                    self.data[new_ref] = self.data[ref]
+                
+                # make sure other data references to old base key are changed
                 for v in ref:
                     if v != base_key_old:
                         self.base_keys_ref[v].remove(ref)
@@ -298,6 +329,9 @@ if __name__ == "__main__":
     # ckd.change_keys({"d": "deer"})
 
     ckd.change_keys({"a": "apple", "b": "banana", "c": "cherry", "d": "deer"})
+
+    # try merging
+    ckd.change_keys({"apple": "sandwich", 'cherry': "sandwich"})
 
     p = Progress(1)
     for i in range(1):

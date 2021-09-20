@@ -20,14 +20,14 @@ class Kruskal(AbstractAlgorithm):
         super().__init__(G,T)
         # self.terminals = T
         # self.graph = G
-        # self.S = {'sol':[], 'dist':[], 'path':[]}
+        # self.results = {'sol':[], 'dist':[], 'path':[]}
 
         # For pair-wise path calc
         self.adjQueue = PriorityQueueHeap()
 
         # For solution
         self.proc = {}      # proc path
-        # self.S = {'sol':[], 'dist':[], 'path':[]}       # solution + dist
+        # self.results = {'sol':[], 'dist':[], 'path':[]}       # solution + dist
         indices = [(i,) for i in range(len(self.terminals))]
         self.detector = CycleDetection(indices)
 
@@ -69,8 +69,8 @@ class Kruskal(AbstractAlgorithm):
 
         # do all-pairs-shortest path between terminals via parallel dijkstra
         apsp_terminals, pd_stats = AllPairsShortestPath.dijkstra_in_parallel(self.graph, nodes=self.terminals, return_stats=True)
-        self.S['stats']['expanded_nodes'] = pd_stats['expanded_nodes']
-        self.S['stats']['time'] = pd_stats['time']
+        self.results['stats']['expanded_nodes'] = pd_stats['expanded_nodes']
+        self.results['stats']['time'] = pd_stats['time']
 
         # now produce mst 
         try:
@@ -89,10 +89,10 @@ class Kruskal(AbstractAlgorithm):
                     idx2 = (self.terminals.index(edge[1]), )
                     # Check for cycles
                     if not self.detector.add_edge(idx1, idx2):
-                        self.S['sol'].append(edge)
-                        self.S['dist'].append(metric_graph_edge_dict[edge])
+                        self.results['sol'].append(edge)
+                        self.results['dist'].append(metric_graph_edge_dict[edge])
                         # break after getting a tree
-                        if len(self.S['sol']) == len(self.terminals):
+                        if len(self.results['sol']) == len(self.terminals):
                             break
             elif self.graph.graph_type == "directed":
                 # directed edges requires looking at all pair permutations
@@ -109,10 +109,10 @@ class Kruskal(AbstractAlgorithm):
                     idx2 = (self.terminals.index(edge[1]), )
                     # Check for cycles
                     if not self.detector.add_edge(idx1, idx2):
-                        self.S['sol'].append(edge)
-                        self.S['dist'].append(metric_graph_edge_dict[edge])
+                        self.results['sol'].append(edge)
+                        self.results['dist'].append(metric_graph_edge_dict[edge])
                     # break after getting a tree
-                    if len(self.S['sol']) == len(self.terminals):
+                    if len(self.results['sol']) == len(self.terminals):
                         break
             else:
                 raise ValueError("graph type is not specified")
@@ -122,7 +122,7 @@ class Kruskal(AbstractAlgorithm):
         return True
 
     def return_solutions(self):
-        return self.S
+        return self.results
 
 # class KruskalMulti(Kruskal):
 

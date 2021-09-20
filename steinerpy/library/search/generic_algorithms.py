@@ -255,6 +255,8 @@ class GenericSearch(Search):
                             self._goal[ndx] = k
                 except Exception as err:
                     my_logger.error("Issue defining goals", exc_info=True)
+        else:
+            self._goal = {}
 
 
     def nominate(self):
