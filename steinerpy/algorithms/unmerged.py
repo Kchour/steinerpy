@@ -44,9 +44,9 @@ class Unmerged(Framework):
             path, _, term_actual = Common.get_path(comps=self.comps, sel_node=commonNode, term_edge=(t1,t2),\
                 reconstruct_path_func = reconstruct_path)
             
-            if abs(pdist-dist)/pdist>0.01 or abs(pdist-_)/pdist>0.01:
+            if abs(pdist-dist)>0.1 or abs(pdist-_)>0.1:
                 # print("")
-                my_logger.warn("inconsistent edge between terminals: {} {}".format(t1, t2))
+                my_logger.warning("inconsistent edge between terminals (may be due to inadmissible h?): {} {}".format(t1, t2))
 
                 # may be due to inadmissible heuristic?
                 # raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist, _)

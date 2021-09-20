@@ -511,6 +511,8 @@ class Common:
             return Common.grid_based_heuristics(*args, **kwargs)
         elif cfg.Algorithm.graph_domain == "generic":
             return CustomHeuristics.h_func(*args, **kwargs)
+        else:
+            raise ValueError("graph_domain needs to be either the following: {}, {}".format('\'grid\'', '\'generic\''))
 
     @staticmethod
     def grid_based_heuristics(next: tuple, goal: tuple):

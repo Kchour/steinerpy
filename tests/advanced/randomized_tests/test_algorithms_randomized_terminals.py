@@ -84,7 +84,7 @@ class TestGenerateAndCompareResultsMAPFGridBase(unittest.TestCase):
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
 
-    @unittest.skip("not testing right now")
+    # @unittest.skip("not testing right now")
     def test_generate_randomized_terminals_results_compare_mapf(self):
         # This heuristic is good for 8-neighbor square grids
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
@@ -131,6 +131,13 @@ class TestGenerateAndCompareResultsMAPFGridBase(unittest.TestCase):
                     except:
                         my_logger.error("much badness during 'test_generate_randomized_terminals_results_compare_mapf'", exc_info=True)
                         raise 
+
+                # test for monotonicity
+                try:
+                    assert all( y-x>=0 for x,y in zip(main_results['solution'][alg][0]['dist'],main_results['solution'][alg][0]['dist'][1:] ))
+                except:
+                    print("alg {} dist {}".format(alg, main_results['solution'][alg][0]['dist']))
+                    issue = True
              
             # process them
             save_path = os.path.join(cwd, "".join((_map.name, "processed_rand_results_test.xlsx")))
@@ -145,15 +152,19 @@ class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
         self.old_setting = cfg.Algorithm.sstar_heuristic_type
         from steinerpy.algorithms.common import CustomHeuristics
         cfg.Algorithm.graph_domain = "generic"
-        cfg.Misc.log_conf["handlers"]['console']['level'] = "DEBUG"
+        
+        self.old_setting_domain = cfg.Algorithm.graph_domain 
+
+        cfg.Misc.log_conf["handlers"]['console']['level'] = "WARN"
         cfg.reload_log_conf()
         # cfg.Animation.visualize = True
         CustomHeuristics.bind(lambda next, goal: 0)
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
+        cfg.Algorithm.graph_domain = self.old_setting_domain
 
-    @unittest.skip("some issues yet")
+    # @unittest.skip("some issues yet")
     def test_generate_randomized_terminals_results_compare_steinlib(self):
         # from steinerpy.algorithms.common import CustomHeuristics
         # cfg.Algorithm.graph_domain = "generic"
@@ -213,10 +224,11 @@ class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
             pr.specify_files(baseline_save_path, main_save_path)
             pr.run()
 
+    @unittest.skip("Not testing")
     def test_fixture_debug_issues(self):
         # b15.stp, b18.stp
         # stein_dir[fname] = {'dir': os.path.join(root, fname), 'map': sl_g, 'terminals': sl_terminals}
-        map_name = "b15.stp"
+        map_name = "b18.stp"
         gen_bs = GenerateBaseLine(graph=stein_dir[map_name]['map'])
         # get terminals
         gen_bs.input_specifed_instances([stein_dir[map_name]['terminals']])
@@ -225,7 +237,8 @@ class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
         
         # generator results
         # algs_to_run = ["S*-BS", "S*-HS", "S*-MM", "S*-MM0", "S*-unmerged"]
-        algs_to_run = ["S*-BS"]
+        algs_to_run = ["S*-BS", "S*-unmerged"]
+        # algs_to_run = ["S*-HS"]
         gen_mr = GenerateResultsMulti(graph=stein_dir[map_name]["map"], algs_to_run=algs_to_run)
         gen_mr.input_specifed_instances([stein_dir[map_name]["terminals"]])
         main_results = gen_mr.run()
@@ -237,6 +250,7 @@ class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
         # loop over algorithms
         issue = False
         for alg in algs_to_run:
+            print("running {}".format(alg))
             alg_value = sum(main_results['solution'][alg][0]['dist'])
             # now compare all values in mst_values
             try:
@@ -263,6 +277,8 @@ class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
                 print("main alg")
                 for e, cost in zip(main_results['solution'][alg][0]['sol'] , main_results['solution'][alg][0]['dist']):
                     print(e, cost)
+
+                raise
 
 
 if __name__ == "__main__":

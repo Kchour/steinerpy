@@ -7,7 +7,7 @@ class SstarHS(Framework):
     """S* Merged with Heuristics (A*) """
 
     def __init__(self, G, T):
-        Framework.__init__(self, G, T)
+        super().__init__(G, T)
 
     def p_costs_func(self, component, cost_so_far, next):
         """fcost(n) = gcost(n) + hcost(n, goal)

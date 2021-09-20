@@ -130,6 +130,9 @@ class PriorityQueueHeap:
 
         self.min_item = None
         
+    def __len__(self):
+        return len(self.entry_table)
+
     def __contains__(self, item):
         """Override 'in' membership check """
         return item in self.entry_table

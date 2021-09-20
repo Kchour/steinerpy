@@ -103,6 +103,15 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
         print(results)
 
     def test_try_different_heuristics(self):
+        """Run all the algorithms with different grid based heuristics
+        
+        NOTE:
+            Using an inadmissible heuristic may give erraneous results
+            such as wrong final distances and distances added in incorrect order
+
+            This is the case with Manhattan distance and 8-neighbor grids
+
+        """
         # Run all 2d grid based heuristics except preprocess
         # Make sure `grid` is selected as graph domain
         cfg.Algorithm.graph_domain = "grid"
@@ -114,7 +123,8 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
         # algorithms = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0", "S*-unmerged"]
         # heuristics = ["manhattan", "custom", "diagonal_nonuniform", "diagonal_uniform", "euclidean", "zero"]        
         algorithms = ["Kruskal", "S*-unmerged"]
-        heuristics = ["diagonal_nonuniform"]
+        # algorithms = ["Kruskal", "S*-BS"]
+        heuristics = ["manhattan"]
         for h in heuristics:
 
             dist = []

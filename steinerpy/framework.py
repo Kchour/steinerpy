@@ -199,6 +199,8 @@ class Framework(AbstractAlgorithm):
                 if c.nominate():
                     self.nodeQueue.put(ndx, c.currentP)
 
+        assert(len(self.nodeQueue)==len(self.comps))
+
     def update(self):
         """ Update the component's open/closed list pertaining to the least fcost-valued node
         
@@ -428,7 +430,7 @@ class Framework(AbstractAlgorithm):
                     my_logger.debug("Added path to pathQueue")
                     my_logger.info("pathQueue len now: {}".format(len(self.pathQueue.elements)))
 
-    def tree_update(self):
+    def tree_update(self): 
         """ Empty the pathQueue if possible, then update the solution set `S`
 
         For each possible path, we perform a `merge` function on the components connected by this path.
@@ -469,6 +471,7 @@ class Framework(AbstractAlgorithm):
             if t2[0] in self.findset:
                 t2 = self.findset[t2[0]]
             
+            # helps detect cycles...so we don't have to clear out pathQueue
             if t1 == t2:
                 continue
 
@@ -476,14 +479,14 @@ class Framework(AbstractAlgorithm):
             # self.debug_bounds(t1)
             # self.debug_bounds(t2)
         
-            # update findset 
+            # update findset (TODO: make sure keys are tuples!)
             for t in (t1+t2):
                 self.findset[t] = (t1+t2)
               
             # Get common node between two components
             dist, commonNode = self.UFeasPath[t1][t2]
 
-            if abs(pdist-dist)/pdist>0.1:
+            if abs(pdist-dist)>0.1:
                 # print("")
                 my_logger.warning("inconsistent edge between terminals (may be due to inadmissible h?): {} {}".format(t1, t2))
 
@@ -583,6 +586,14 @@ class Framework(AbstractAlgorithm):
                 # Log f costs after merging
                 # MyLogger.add_message("{} current fmin {}".format(t1+t2, self.comps[t1+t2].fmin), __name__, "Debug")
     
+                # See if any feasible paths in merged components can be added to path queue
+                # This is important because they may get skipped!
+                for c2 in self.UFeasPath[t1+t2]:
+                    paths = self.UFeasPath[t1+t2][c2]
+                    # check sp
+                    if self.shortest_path_check(self.comps, ((t1+t2),(c2)), paths[0]):
+                        self.pathQueue.put(((t1+t2),(c2)), paths[0])
+
                 # TODO find a better way to animate path
                 if cfg.Animation.visualize:
                 #     self.animateS.update_clean(np.vstack(self.S['path']).T.tolist())
@@ -720,8 +731,14 @@ class Framework(AbstractAlgorithm):
         """Print out sorted path lengths from path queue
 
         """
-        paths = {k: self.UFeasPath[k[1]][k[0]]  for k in sorted(self.pathQueue.elements)}
+        paths = {k: self.UFeasPath[self.findset.get(k[0], k[0])][self.findset.get(k[1], k[1])]  for k in sorted(self.pathQueue.elements)}
         
+        
+        # for k in sorted(self.pathQueue.elements):
+        #     set1 = self.findset.get(k[0], k[0])
+        #     set2 = self.findset.get(k[1], k[1])
+
+        #    print(set1, set2)
 
     def debug_nongoals(self):
         my_logger.debug("SHOWING EXCLUDED GOALS")
@@ -819,7 +836,7 @@ class Framework(AbstractAlgorithm):
         """
         pass
 
-    def shortest_path_check(self, **kwargs):
+    def shortest_path_check(self, *args, **kwargs):
         """Applies a necessary condition to check whether two colliding components possess the `shortest possible path`
         between them. Speficailly, the necessary condition is based on Nicholson's Bidirectional Search paper.
 
@@ -829,9 +846,9 @@ class Framework(AbstractAlgorithm):
         
         """
 
-        return Common.shortest_path_check(**kwargs)
+        return Common.shortest_path_check(*args, **kwargs)
 
-    def path_queue_criteria(self, **kwargs):
+    def path_queue_criteria(self, *args, **kwargs):
         """Used to pop the shortest paths from `pathQueue`, by ensuring path's cost does not exceed the other path estimates.
 
         Ensures steiner tree edges are added in the order of increasing cost. Override this method as needed for a different check.

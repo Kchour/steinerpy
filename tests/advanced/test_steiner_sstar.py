@@ -53,6 +53,7 @@ class TestSteinerSstar(unittest.TestCase):
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
 
+    # @unittest.skip("testing other test")
     def test_returned_tree_values(self):
         """Test algorithm returned results"""
 
@@ -91,6 +92,56 @@ class TestSteinerSstar(unittest.TestCase):
         # make sure tree values are the same
         # wuthin margin of floating point error
         self.assertTrue(all([abs(dist[0] - ele)<1e-6 for ele in dist]))
- 
+
+
+class TestWeirdEdgeCases(unittest.TestCase):
+
+    def setUp(self):
+        self.old_setting = cfg.Algorithm.graph_domain
+        cfg.Algorithm.graph_domain = "generic"
+        cfg.Animation.visualize = False
+        cfg.Misc.log_conf["handlers"]['console']['level'] = "DEBUG"
+        cfg.reload_log_conf()
+
+        from steinerpy.algorithms.common import CustomHeuristics
+        CustomHeuristics.bind(lambda next, goal: 0)
+
+    def tearDown(self):
+        cfg.Algorithm.sstar_heuristic_type = self.old_setting  
+    
+    @unittest.skip("not testing")
+    def test_weird_edge_case_in_generic_graph(self):
+        """When edges are not added in monotonic order!
+        
+        """
+        import random
+        # create edges
+        edges = {('a', 'b'): 1,
+                 ('b', 'c'): 4,
+                 ('c', 'd'): 1,
+                 ('a', 'f'): 4,
+                 ('f', 'g'): 4,
+                 ('g', 'h'): 3,
+                 ('h', 'i'): 6
+                 }
+
+        my_graph = GraphFactory.create_graph("Generic", edge_dict=edges, graph_type="undirected")      
+                    
+        terminals = ['a', 'b', 'c', 'd', 'h', 'i']
+        for i in range(2):
+
+            # randomly shuffle 
+            # random.shuffle(terminals)
+
+            print(terminals)
+            # try running S*-BS on this
+            ao = SstarBS(my_graph, terminals)
+            # ao = Unmerged(my_graph, terminals)
+            self.assertTrue(ao.run_algorithm())
+            print(ao.return_solutions())
+
+            # check for monotonicity
+            self.assertTrue(all([y-x>=0 for x,y in zip(ao.return_solutions()['dist'], ao.return_solutions()['dist'][1:])]))
+
 if __name__ == "__main__":
     unittest.main()

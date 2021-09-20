@@ -2,7 +2,9 @@
 All notable changes to this project will be documented in this file. Furthermore, missing details will be added as I recall them.
 
 ## [Unreleased] - HEAD
-- Attempting to fix reconstructed path and solution table not matching error
+### Fixed
+- ~~Attempting to fix reconstructed path and solution table not matching error~~This can only occur when using inadmissible heuristic
+- Make sure upon merging, the merged component will loop over their feasible paths to see if any can be inserted in the the shortest path queue, prior to next nomination. This is required because merging causes a jump in the `gmin` value for a particular component. 
 
 ## [Unreleased] - 9d0a0d
 ### Fixed
