@@ -8,7 +8,7 @@ import math
 import os
 from functools import partial
 
-from steinerpy.library.search.search_algorithms import AStarSearch
+from steinerpy.library.search.search_algorithms import UniSearch
 from steinerpy.library.graphs.graph import GraphFactory
 from steinerpy.library.misc.utils import Progress
 
@@ -26,7 +26,7 @@ class OfflinePaths:
                     if graph.obstacles is not None and (i,j) in graph.obstacles:
                         continue
                     else:
-                        search = AStarSearch(graph, (i,j), None, 'zero', False) #(works)    
+                        search = UniSearch(graph, (i,j), None, 'zero', False) #(works)    
                         parents, g = search.use_algorithm()
                         data.update({
                                     (i,j):{
@@ -35,7 +35,7 @@ class OfflinePaths:
                                     } 
                                 })
         # elif 'MyGraph' in str(type(graph)):
-        #     search = AStarSearch(graph, i, j, 'zero', False)
+        #     search = UniSearch(graph, i, j, 'zero', False)
 
         # Save data somewhere
         return data
@@ -121,7 +121,7 @@ class OfflinePaths:
     def get_all_paths_ind(cls, graph, proxy_dict, start_node):
         startx, starty = start_node
         data = {}       
-        search = AStarSearch(graph, (startx,starty), None, 'zero', False) #(works)  
+        search = UniSearch(graph, (startx,starty), None, 'zero', False) #(works)  
         _, g = search.use_algorithm()
         del search, _
         # This is too large?

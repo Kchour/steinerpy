@@ -49,7 +49,8 @@ class TestSteinerSstar(unittest.TestCase):
     def setUp(self):
         self.old_setting = cfg.Algorithm.sstar_heuristic_type
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
-        cfg.Animation.visualize = False
+        # cfg.Algorithm.sstar_heuristic_type = "zero"
+        # cfg.Animation.visualize = True
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
@@ -129,13 +130,13 @@ class TestWeirdEdgeCases(unittest.TestCase):
         cfg.Misc.log_conf["handlers"]['console']['level'] = "DEBUG"
         cfg.reload_log_conf()
 
-        from steinerpy.algorithms.common import CustomHeuristics
-        CustomHeuristics.bind(lambda next, goal: 0)
+        from steinerpy.heuristics import Heuristics
+        Heuristics.bind(lambda next, goal: 0)
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
     
-    @unittest.skip("not testing")
+    # @unittest.skip("not testing")
     def test_weird_edge_case_in_generic_graph(self):
         """When edges are not added in monotonic order!
         
@@ -161,7 +162,7 @@ class TestWeirdEdgeCases(unittest.TestCase):
 
             print(terminals)
             # try running S*-BS on this
-            ao = SstarBS(my_graph, terminals)
+            ao = SstarHS(my_graph, terminals)
             # ao = Unmerged(my_graph, terminals)
             self.assertTrue(ao.run_algorithm())
             print(ao.return_solutions())

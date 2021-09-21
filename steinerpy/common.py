@@ -4,7 +4,7 @@ Todo:
     * Add support for generic graphs 
 """
 
-from steinerpy.library.search.generic_algorithms import GenericSearch
+from steinerpy.library.search.search_algorithms import MultiSearch
 import numpy as np
 import logging
 
@@ -17,11 +17,11 @@ my_logger = logging.getLogger(__name__)
 class Common:
 
     @staticmethod
-    def get_path(c1:GenericSearch, c2: GenericSearch, common_node:tuple):
+    def get_path(c1:MultiSearch, c2: MultiSearch, common_node:tuple):
         """Generate path between two components (specifically, its closest terminals)
 
         Parameters:
-            comps: GenericSearch objects
+            comps: MultiSearch objects
             sel_node (tuple): The nominated node
             sel_data (dict): Information pertaining to the nominated node. See `Framework` class for more information
         
@@ -71,7 +71,7 @@ class Common:
         """ Merge function handler
 
         Parameters:
-            comps (dict): A dictionary of `GenericSearch` objects, keyed by indices.
+            comps (dict): A dictionary of `MultiSearch` objects, keyed by indices.
             term_edge (tuple): The components involved (FIXME not terminals, but components!)
             nodeQueue (PriorityQueue): A min priority queue of nominated components, we have to modify this after merge
             cache (dict): The working forest or cache of closed nodes. We also have to modify this after merge
@@ -92,11 +92,11 @@ class Common:
             nodeQueue.delete(t2) #Is this the right way to do this?
 
     @staticmethod
-    def create_search_objects(search_class, graph, p_costs_func, frontier_type, terminals, visualize=False):
-        """ Register `GenericSearch` class objects with an id, so we can do multiple searches and merge them
+    def create_search_objects(search_class, graph, p_costs_func, terminals, visualize=False):
+        """ Register `MultiSearch` class objects with an id, so we can do multiple searches and merge them
 
         Parameters:
-            search_class (GenericSearch): See `GenericSearch` class for more information
+            search_class (MultiSearch): See `MultiSearch` class for more information
             graph (SquareGrid, MyGraph): Our graph, which the search algorithm is performed on
             p_costs_func: A scalar function, returning the priority costs of a node (based on heuristics)
             frontier_type: Allows user to select the type (a class) of priority queue to use
@@ -110,7 +110,7 @@ class Common:
         """
 
         return {(index, ):  search_class(graph, start, {i: terminals[i] for i in set(range(len(terminals)))-set((index,))},\
-                     p_costs_func, frontierType=frontier_type(), visualize=visualize, id=index) \
+                     p_costs_func, visualize=visualize, id=index) \
                     for index,start in enumerate(terminals) }
 
     @staticmethod
@@ -133,20 +133,20 @@ class Common:
 class PathCriteria:
 
     @staticmethod
-    def path_criteria_interface(path_cost: float, c1: GenericSearch, c2: GenericSearch)->bool:
+    def path_criteria_interface(path_cost: float, c1: MultiSearch, c2: MultiSearch)->bool:
         """Example here: user's path criteria must follow this pattern.
         
         """
 
     @staticmethod
-    def path_criteria_pohl(path_cost, c1: GenericSearch, c2: GenericSearch)->bool:
+    def path_criteria_pohl(path_cost, c1: MultiSearch, c2: MultiSearch)->bool:
         if path_cost <= max(c1.fmin, c2.fmin):
             return True
         else:
             return False
 
     @staticmethod
-    def path_criteria_nicholson(path_cost, c1: GenericSearch, c2: GenericSearch)->bool:
+    def path_criteria_nicholson(path_cost, c1: MultiSearch, c2: MultiSearch)->bool:
         # This is Nicholson's criteria
         if path_cost <= c1.gmin + c2.gmin:
             # shortest path confirmed
@@ -156,7 +156,7 @@ class PathCriteria:
             return False
 
     @staticmethod
-    def path_criteria_mm(path_cost, c1: GenericSearch, c2: GenericSearch)->bool:
+    def path_criteria_mm(path_cost, c1: MultiSearch, c2: MultiSearch)->bool:
         # from MM paper
         C = min(c1.pmin, c2.pmin)
         if path_cost <= max(C, c1.fmin, c2.fmin, c1.gmin + c2.gmin):

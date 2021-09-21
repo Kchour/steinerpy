@@ -9,9 +9,9 @@ class Heuristics:
     @staticmethod
     def heuristic_func_wrap(*args, **kwargs)->float:
         if cfg.Algorithm.graph_domain == "grid":
-            return GridBasedHeuristics2D.mapper[cfg.Algorithm.sstar_heuristic_type](*args, **kwargs)
+            return _GridBasedHeuristics2D.mapper[cfg.Algorithm.sstar_heuristic_type](*args, **kwargs)
         elif cfg.Algorithm.graph_domain == "generic":
-            return CustomHeuristics.h_func(*args, **kwargs)
+            return _CustomHeuristics.h_func(*args, **kwargs)
         else:
             raise ValueError("graph_domain needs to be either the following: {}, {}".format('\'grid\'', '\'generic\''))
     
@@ -20,10 +20,18 @@ class Heuristics:
         """Rebind custom heuristic function
             and also update the mapping!
         """
-        CustomHeuristics.h_func = func
+        _CustomHeuristics.h_func = func
 
-class CustomHeuristics:
-    """Allow users to specify their own heuristic func
+        # the 2d class will also refer to custom heuristics
+        _GridBasedHeuristics2D.mapper["custom"] = func
+
+    @staticmethod
+    def get():
+        return _CustomHeuristics.h_func
+
+class _CustomHeuristics:
+    """Allow users to specify their own heuristic func by re-binding 
+    from the function above
 
     """
     @staticmethod
@@ -39,7 +47,7 @@ class CustomHeuristics:
         raise ValueError("User needs to specify a heuristic function, i.e. call {}".format("CustomHeuristics.bind(lambda next,goal: 0)"))
 
 
-class GridBasedHeuristics2D(type):
+class _GridBasedHeuristics2D(type):
     """
     Heuristics for a flat grid graph
 
@@ -51,13 +59,13 @@ class GridBasedHeuristics2D(type):
 
     def __init__(cls): 
     
-        cls.mapper = {"manhattan": GridBasedHeuristics2D._gbh_manhattan,
-                                    "zero": GridBasedHeuristics2D._gbh_zero,
-                                    "euclidean": GridBasedHeuristics2D._gbh_euclidean,
-                                    "diagonal_uniform": GridBasedHeuristics2D._gbh_diagonal_uniform,
-                                    "diagonal_nonuniform": GridBasedHeuristics2D._gbh_diagonal_nonuniform,
-                                    "preprocess": GridBasedHeuristics2D._gbh_preprocess}
-
+        cls.mapper = {"manhattan": _GridBasedHeuristics2D._gbh_manhattan,
+                                    "zero": _GridBasedHeuristics2D._gbh_zero,
+                                    "euclidean": _GridBasedHeuristics2D._gbh_euclidean,
+                                    "diagonal_uniform": _GridBasedHeuristics2D._gbh_diagonal_uniform,
+                                    "diagonal_nonuniform": _GridBasedHeuristics2D._gbh_diagonal_nonuniform,
+                                    "preprocess": _GridBasedHeuristics2D._gbh_preprocess,
+                                    "custom": _CustomHeuristics.h_func}
     @staticmethod
     def _gbh_manhattan(cls, next: tuple, goal: tuple):
         (x1, y1) = next
@@ -95,5 +103,4 @@ class GridBasedHeuristics2D(type):
         return 0
 
 # initialize
-GridBasedHeuristics2D.__init__(GridBasedHeuristics2D)
-pass
+_GridBasedHeuristics2D.__init__(_GridBasedHeuristics2D)

@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 # Some examples https://gist.github.com/vkroz/a59c7e05014e456f86e0
 
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy.library.search.generic_algorithms import GenericSearch
+from steinerpy.library.search.search_algorithms import MultiSearch
 
 class TestGraph(unittest.TestCase):
 
@@ -94,7 +94,7 @@ class TestGraph(unittest.TestCase):
 
         genG = GraphFactory.create_graph("Generic", edge_dict = edgeDict, graph_type="undirected", visualize=False)
 
-        gs = GenericSearch(genG, 'C')
+        gs = MultiSearch(genG, 'C')
 
         # run updates 
         while not gs.frontier.empty():

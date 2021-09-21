@@ -2,13 +2,14 @@
     and different path criteria's
 
 """
-from steinerpy.library.search.generic_algorithms import GenericSearch
+from typing import List
+
+
+from steinerpy.library.search.search_algorithms import MultiSearch
 # import steinerpy.config as cfg
 from steinerpy.algorithms.merged import Merged
 from steinerpy.algorithms.unmerged import Unmerged
 from steinerpy.common import PathCriteria
-# from steinerpy.common import Common
-from typing import List
   
 ##########################################################
 #   MERGED 
@@ -17,11 +18,11 @@ from typing import List
 class SstarHS(Merged):
     """S* Merged with Heuristics (A*) """
 
-    def p_costs_func(self, search:GenericSearch, cost_so_far: dict, next: tuple):
+    def p_costs_func(self, search:MultiSearch, cost_so_far: dict, next: tuple):
         """Priority function for nodes in the frontier
         
         Parameters:
-            search (GenericSearch): Generic Search class object (get access to all its variables)
+            search (MultiSearch): Generic Search class object (get access to all its variables)
             cost_so_far (dict): Contains all nodes with finite g-cost
             next (tuple): The node in the neighborhood of 'current' to be considered 
 
@@ -51,11 +52,11 @@ class SstarHS(Merged):
 
 class SstarBS(Merged):
 
-    def p_costs_func(self, search:GenericSearch, cost_so_far: dict, next: tuple):
+    def p_costs_func(self, search:MultiSearch, cost_so_far: dict, next: tuple):
         """fcost(n) = gcost(n) + hcost(n, goal)        
         
         Parameters:
-            component (GenericSearch): Generic Search class object (get access to all its variables)
+            component (MultiSearch): Generic Search class object (get access to all its variables)
             cost_so_far (dict): Contains all nodes with finite g-cost
             next (tuple): The node in the neighborhood of 'current' to be considered 
 
@@ -67,7 +68,7 @@ class SstarBS(Merged):
         # return g cost
         return cost_so_far[next]
 
-    def h_costs_func(self, search: GenericSearch, next: tuple):
+    def h_costs_func(self, search: MultiSearch, next: tuple):
         return 0
 
     def shortest_path_check(self, comps_colliding:List[tuple], path_cost:float)->bool:
@@ -89,12 +90,12 @@ class SstarBS(Merged):
 class SstarMM(Merged):
     """Meet-in-the-Middle implementation with heuristics """
 
-    def p_costs_func(self, search:GenericSearch, cost_so_far: dict, next: tuple):
+    def p_costs_func(self, search:MultiSearch, cost_so_far: dict, next: tuple):
         """Normally, fcost(n) = gcost(n) + hcost(n, goal), but this function 
             can be used very generically to define the priority of node 'next'        
         
         Parameters:
-            component (GenericSearch): Generic Search class object (get access to all its variables)
+            component (MultiSearch): Generic Search class object (get access to all its variables)
             cost_so_far (dict): Contains all nodes with finite g-cost
             next (tuple): The node in the neighborhood of 'current' to be considered 
 
@@ -129,12 +130,12 @@ class SstarMM0(Merged):
     def __init__(self, G, T):
         super().__init__(G, T)
 
-    def p_costs_func(self, search:GenericSearch, cost_so_far: dict, next: tuple):
+    def p_costs_func(self, search:MultiSearch, cost_so_far: dict, next: tuple):
         """Normally, fcost(n) = gcost(n) + hcost(n, goal), but this function 
             can be used very generically to define the priority of node 'next'        
         
         Parameters:
-            component (GenericSearch): Generic Search class object (get access to all its variables)
+            component (MultiSearch): Generic Search class object (get access to all its variables)
             cost_so_far (dict): Contains all nodes with finite g-cost
             next (tuple): The node in the neighborhood of 'current' to be considered 
 
@@ -155,12 +156,12 @@ class SstarMM0(Merged):
         priority = max(fCost, 2*g_next)
         return priority
 
-    def h_costs_func(self, search: GenericSearch, next: tuple):
+    def h_costs_func(self, search: MultiSearch, next: tuple):
         """Heuristic costs for the node 'next', neighboring 'current'
 
         Parameters:
             next (tuple): The node in the neighborhood of 'current' to be considered 
-            component (GenericSearch): Generic Search class object (get access to all its variables)
+            component (MultiSearch): Generic Search class object (get access to all its variables)
 
         Info:
             h_i(u) = min{h_j(u)}  for all j in Destination(i), and for some node 'u'
@@ -189,7 +190,7 @@ class SstarHSUN(Unmerged):
     
     """
 
-    def p_costs_func(self, search: GenericSearch, cost_to_come: dict, next: tuple) -> float:
+    def p_costs_func(self, search: MultiSearch, cost_to_come: dict, next: tuple) -> float:
         super().p_costs_func(search, cost_to_come, next)
 
         return search.f[next]
@@ -205,11 +206,11 @@ class SstarHSUN(Unmerged):
 
 class SstarBSUN(Unmerged):
 
-    def p_costs_func(self, search: GenericSearch, cost_to_come: dict, next: tuple) -> float:
+    def p_costs_func(self, search: MultiSearch, cost_to_come: dict, next: tuple) -> float:
          super().p_costs_func(search, cost_to_come, next)   
          return cost_to_come[next]
 
-    def h_costs_func(self, search: GenericSearch, next: tuple)->float:
+    def h_costs_func(self, search: MultiSearch, next: tuple)->float:
         return 0
 
     def shortest_path_check(self, comps_colliding: List[tuple], path_cost: float) -> bool:
@@ -222,7 +223,7 @@ class SstarBSUN(Unmerged):
 
 class SstarMMUN(Unmerged):
     
-    def p_costs_func(self, search: GenericSearch, cost_to_come: dict, next: tuple) -> float:
+    def p_costs_func(self, search: MultiSearch, cost_to_come: dict, next: tuple) -> float:
         super().p_costs_func(search, cost_to_come, next)
         return max(search.f[next], 2*cost_to_come[next])
 
@@ -236,11 +237,11 @@ class SstarMMUN(Unmerged):
 
 class SstarMM0UN(Unmerged):
     
-    def p_costs_func(self, search: GenericSearch, cost_to_come: dict, next: tuple) -> float:
+    def p_costs_func(self, search: MultiSearch, cost_to_come: dict, next: tuple) -> float:
         super().p_costs_func(search, cost_to_come, next)
         return max(search.f[next], 2*cost_to_come[next])
 
-    def h_costs_func(self, search: GenericSearch, next: tuple) -> float:
+    def h_costs_func(self, search: MultiSearch, next: tuple) -> float:
         return 0
 
     def shortest_path_check(self, comps_colliding: List[tuple], path_cost: float) -> bool:

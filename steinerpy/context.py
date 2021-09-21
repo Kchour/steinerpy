@@ -1,8 +1,11 @@
 """ This module allows the user to select an algorithm to run"""
 
 import logging
+from steinerpy.algorithms.sstar import SstarMM0UN
 
-from .algorithms import Unmerged, SstarHS, Kruskal, SstarBS, SstarMM, SstarMM0
+from .algorithms import SstarHS, Kruskal, SstarBS, SstarMM, SstarMM0, \
+                        SstarHSUN, SstarBSUN, SstarMMUN, SstarMM0
+
 from steinerpy.library.graphs.graph import GraphFactory
 
 my_logger = logging.getLogger(__name__)
@@ -59,9 +62,7 @@ class Context:
         self.strategy = strategy
 
         # run based on input
-        if self.strategy == "S*-unmerged":
-            self.instances[self.strategy] = Unmerged(self._graph, self._terminals)
-        elif self.strategy == "S*-HS":
+        if self.strategy == "S*-HS":
             self.instances[self.strategy] = SstarHS(self._graph, self._terminals)
         elif  self.strategy == "Kruskal":
             self.instances[self.strategy] = Kruskal(self._graph, self._terminals)
@@ -71,6 +72,14 @@ class Context:
             self.instances[self.strategy] = SstarMM(self._graph, self._terminals)
         elif self.strategy == "S*-MM0":
             self.instances[self.strategy] = SstarMM0(self._graph, self._terminals)
+        elif self.strategy == "S*-HS-UN":
+            self.instances[self.strategy] = SstarHSUN(self._graph, self._terminals)
+        elif self.strategy == "S*-BS-UN":
+            self.instances[self.strategy] = SstarBSUN(self._graph, self._terminals)
+        elif self.strategy == "S*-MM-UN":
+            self.instances[self.strategy] = SstarMMUN(self._graph, self._terminals)
+        elif self.strategy == "S*-MM0-UN":
+            self.instances[self.strategy] = SstarMM0UN(self._graph, self._terminals)                                
         else:
             raise ValueError("Strategy {} is not found".format(self.strategy))
         # Log run

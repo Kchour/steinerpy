@@ -8,14 +8,14 @@
 """
 
 import logging
-from steinerpy.library.search.generic_algorithms import GenericSearch
 import numpy as np
 
 import steinerpy.config as cfg
 from steinerpy.framework import Framework
 from steinerpy.library.animation import AnimateV2
 from steinerpy.common import Common
-from steinerpy.library.search.search_utils import reconstruct_path
+# from steinerpy.library.search.search_utils import reconstruct_path
+# from steinerpy.library.search.search_algorithms import MultiSearch
 
 # configure and create logger
 my_logger = logging.getLogger(__name__) 
@@ -54,9 +54,9 @@ class Merged(Framework):
             
             # find set t1 and t2 belong to
             if c1[0] in self.findset: 
-                t1 = self.findset[c1[0]]
+                c1 = self.findset[c1[0]]
             if c2[0] in self.findset:
-                t2 = self.findset[c2[0]]
+                c2 = self.findset[c2[0]]
             
             # helps detect cycles...so we don't have to clear out pathQueue
             if c1 == c2:
@@ -109,7 +109,6 @@ class Merged(Framework):
                 if c2 in self.node_queue:
                     self.node_queue.delete(c2) 
 
-
                 if c1 in self.global_bound_queue:
                     self.global_bound_queue.delete(c1)
                 if c2 in self.global_bound_queue:
@@ -135,7 +134,7 @@ class Merged(Framework):
                     # elif for components adjacent to only comp1 or comp2, just take the feas path directly
                     if k in set1 and k in set2:
                         # retain the shorter path to the merged component
-                        if self.UFeasPath[t1][k][0] < self.UFeasPath[c2][k][0]:
+                        if self.UFeasPath[c1][k][0] < self.UFeasPath[c2][k][0]:
                             merged_key[c1+c2].update({k: [self.UFeasPath[c1][k][0], self.UFeasPath[c1][k][1]]})      
                         else:
                             merged_key[c1+c2].update({k: [self.UFeasPath[c2][k][0], self.UFeasPath[c2][k][1]]})       
@@ -161,7 +160,7 @@ class Merged(Framework):
                         self.UFeasPath[k].update({c1+c2: self.UFeasPath[k][c1]})
                         delList.append((k,c1))
                         # del self.UFeasPath[k][t1]
-                    elif t2 in self.UFeasPath[k]:
+                    elif c2 in self.UFeasPath[k]:
                         self.UFeasPath[k].update({c1+c2: self.UFeasPath[k][c2]})
                         delList.append((k,c2))
                         # del self.UFeasPath[k][t2]

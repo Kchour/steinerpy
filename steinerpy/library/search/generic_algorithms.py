@@ -1,6 +1,7 @@
 """This module provides a generic incremental search class, that breaks up nomination and update phase
 
     TODO: rename fcosts_func to priority_func
+    DEPRECATED
 
 """
 from steinerpy.library.graphs.graph import IGraph
@@ -12,10 +13,11 @@ from typing import Iterable
 
 import steinerpy.config as cfg
 from steinerpy.library.animation import AnimateV2
-# from steinerpy.library.logger import MyLogger # deprecated
 from steinerpy.library.misc.utils import MyTimer
 from steinerpy.library.search.search_utils import PriorityQueue, PriorityQueueHeap
 from steinerpy.library.search.search_utils import DoublyLinkedList
+
+from steinerpy.heuristics import Heuristics 
 
 # create logger
 my_logger = logging.getLogger(__name__)
@@ -43,7 +45,7 @@ def pCostFuncInterface(this, cost_so_far, next):
     #
     # ...
     #
-    return cost_so_far[next]
+    return some_float_value
 
 
 class Search:
@@ -86,10 +88,8 @@ class Search:
         total_opened_nodes (int):
         total_expanded_nodes (int): Counter that is incremented when we expand a node from the open set
     """
-    # total_closed_nodes = 0
-    # total_opened_nodes = 0
     total_expanded_nodes = 0
-    def __init__(self, graph, start, goal, frontierType, pCostsFunc, id):
+    def __init__(self, graph, start, goal, pCostsFunc, id):
         # ================ Required Definitions ===================== #
         self.graph = graph                         
         self.start = start
@@ -97,7 +97,7 @@ class Search:
         self.current = None
 
         # Open List
-        self.frontier = frontierType                
+        self.frontier = PriorityQueueHeap()            
         self.frontier.put(start, 0)
         
         # The cost so far (includes both frontier and closed list)
@@ -112,9 +112,6 @@ class Search:
         # F costs function object for priority updates
         self.pCosts = pCostsFunc     # fCostsFunc is a passed-in method, returns a float
 
-    # def set_start(self, start):
-    #     self.start = start
-
     ################################################
     ###   Class methods for updating some stats  ###
     ################################################
@@ -123,14 +120,6 @@ class Search:
     def update_expanded_nodes(cls):
         cls.total_expanded_nodes +=1
     
-    # @classmethod
-    # def update_opened_nodes(cls):
-    #     cls.total_opened_nodes +=1
-
-    # @classmethod
-    # def update_closed_nodes(cls):
-    #     cls.total_closed_nodes +=1
-
     @classmethod
     def reset(cls):
         """Reset all class variables """
@@ -168,11 +157,98 @@ class Search:
 
         return path
 
-class GenericSearch(Search):
-    """This class extends `Search` and breaks up the search into `nominate` and `update` phases
+class UniSearch(Search):
+
+    def __init__(self, graph, start, goal, heuristic_type, visualize=False):
+        """If heuristic_type is part of a grid, then cfg.Algorithm.graph_domain
+        must be set to "grid"
+
+        """
+        Search.__init__(self, graph, start, goal)
+        self.heuristic_type = heuristic_type
+        self.visualize = visualize
+
+        # A star initialize openList, closedList
+        # self.frontier = PriorityQueue()       # The OPENLIST
+        self.frontier = PriorityQueueHeap()
+        self.frontier.put(self.start, 0)      # PUT START IN THE OPENLIST
+        self.parent = {}              # parent, {loc: parent}
+        # g function dict, {loc: f(loc)}, CLOSED LIST BASICALLY
+        self.g = {}
+        self.parent[self.start] = None
+        self.g[self.start] = 0
+
+        # Allow for multiple goals, as in the case of dijkstra
+        if self.goal is not None:
+            if type(self.goal) is not set:
+                self.set_of_goal = set({self.goal})
+            else:
+                self.set_of_goal = self.goal
+        else:
+            self.set_of_goal = set() 
+
+    def run(self):
+        """Run algorithm until termination
+
+            Returns:
+            - a linked list, 'parent'
+            - hash table of nodes and their associated min cost, 'g'
+        """
+        # Ensure searched nodes have been reset
+        UniSearch.reset()
+
+        while not self.frontier.empty():
+            _, current = self.frontier.get()
+
+            # Update stats
+            if self.visualize:
+                # if np.fmod(self.total_expanded_nodes, 2000)==0:
+                AnimateV2.add_line("current", current[0], current[1], markersize=10, marker='o')
+                # Animate closure
+                AnimateV2.add_line("current_animate_closure", current[0], current[1], markersize=10, marker='o', draw_clean=True)
+                AnimateV2.update()
+
+            # early exit if all of our goals in the closed set
+            if self.set_of_goal:
+                self.set_of_goal -= set({current}) 
+                if len(self.set_of_goal) == 0:
+                    return self.parent, self.g
+            elif current == self.goal:
+                return self.parent, self.g
+
+
+            # expand current node and check neighbors
+            neighbors_data = []
+            for next in self.graph.neighbors(current):
+                g_next = self.g[current] + self.graph.cost(current, next)
+                # if next location not in CLOSED LIST or its cost is less than before
+                # Newer implementation
+                if next not in self.g or g_next < self.g[next]:
+                    self.g[next] = g_next
+                    if self.h_type == 'zero' or self.goal == None or self.h_type is None:
+                        priority = g_next 
+                    else:
+                        priority = g_next + Heuristics.grid_based_heuristics(type_=self.h_type, next=next, goal=self.goal)
+                    self.frontier.put(next, priority)
+                    self.parent[next] = current
+                    neighbors_data.append(next)
+
+            if self.visualize:
+                # # self.animateNeighbors.update(next)
+                # if np.fmod(self.total_expanded_nodes, 100000)==0 or self.total_expanded_nodes == 0:
+
+                data = [k[2] for k in self.frontier.elements.values()]
+                if data:
+                    AnimateV2.add_line("frontier", np.array(data).T.tolist(), markersize=8, marker='D', draw_clean=True)
+                    AnimateV2.update()
+
+class MultiSearch(Search):
+    """The class performs multi-uni-directional search where multiple search directions (components) are performed (pseudo-)concurrently.
+    This is done by ensuring the "cheapest" component is able to update its node via a 'nominate' and 'update' phase.
+    Each component must nominate a node (which the user will have to keep track of). Then the user must call
+    update() on it. The graph is explored via the nomination and update phase, and shortest paths between components can be discovered.
 
     This gives the user finer control over the search space, i.e. when to stop, update destinations midway, etc.
-    `GenericSearch` also inherits all the attributes of `Search`
 
     Params:
         frontier_type: Allows user to select the type (a class) of priority queue to use
@@ -187,8 +263,8 @@ class GenericSearch(Search):
     Todo:
         * Consider putting animateClosed in the `update` function, because closing does not occur until `update`
     """
-    def __init__(self, graph:IGraph, start: tuple, goal: Iterable[tuple]=None, pCostsFunc=pCostFuncInterface, frontierType=PriorityQueueHeap(), visualize=False, id=None):
-        Search.__init__(self, graph, start, goal, frontierType, pCostsFunc, id)
+    def __init__(self, graph:IGraph, start: tuple, goal: Iterable[tuple]=None, pCostsFunc=pCostFuncInterface, visualize=False, id=None):
+        Search.__init__(self, graph, start, goal, pCostsFunc, id)
         
         # Visualize algorithm flag
         self.visualize = visualize
@@ -260,9 +336,9 @@ class GenericSearch(Search):
 
 
     def nominate(self):
-        """In this function, a node is nominated from the open set, which essentially updates the open set.
+        """In this function, a node is nominated from the open set, which will later be expanded in the `update()` phase.
         
-        `nominate` is done using a priority queue. A flag is used in the conditional to 
+        `nominate` is done using a priority queue. The user should utilize a flag is used to 
         ensure the function is not called more than once prior to an update.
 
         Returns:
@@ -276,7 +352,7 @@ class GenericSearch(Search):
         # NOTE Probably dont need this ""'nominated' ensures this function doesn't get called multiple times before update"
         if not frontier.empty():
             # current node is immediately in the closed list
-            currentP, current = frontier.get_test()  # update current to be the item with best priority  
+            currentP, current = frontier.get_min()  # update current to be the item with best priority  
             self.current = current
             self.currentF = self.f[current]
             self.currentP = currentP
@@ -342,7 +418,7 @@ class GenericSearch(Search):
     
         #expand current node and check neighbors
         # Update stats logging
-        GenericSearch.update_expanded_nodes()
+        MultiSearch.update_expanded_nodes()
         # visualize the recently closed node
         if self.visualize:             
             # self.animateClosed.update(current)
@@ -582,7 +658,7 @@ class GenericSearch(Search):
                 mergedGoal.update({k: other.goal[k]})
 
         ## Create a GenericSearch Object to return
-        mergedGS = GenericSearch(self.graph,  'Temp', mergedGoal, self.pCosts, mergedF, visualize=cfg.Animation.visualize)
+        mergedGS = MultiSearch(self.graph,  'Temp', mergedGoal, self.pCosts, mergedF, visualize=cfg.Animation.visualize)
         
         ## new variables for ease: Linked lists, frontier, and g costs
         p1 = self.parent

@@ -84,7 +84,7 @@ class TestGenerateAndCompareResultsMAPFGridBase(unittest.TestCase):
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
 
-    # @unittest.skip("not testing right now")
+    @unittest.skip("not testing right now")
     def test_generate_randomized_terminals_results_compare_mapf(self):
         # This heuristic is good for 8-neighbor square grids
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
@@ -150,7 +150,7 @@ class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
 
     def setUp(self):
         self.old_setting = cfg.Algorithm.sstar_heuristic_type
-        from steinerpy.algorithms.common import CustomHeuristics
+        from steinerpy.heuristics import Heuristics
         cfg.Algorithm.graph_domain = "generic"
         
         self.old_setting_domain = cfg.Algorithm.graph_domain 
@@ -158,7 +158,7 @@ class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
         cfg.Misc.log_conf["handlers"]['console']['level'] = "WARN"
         cfg.reload_log_conf()
         # cfg.Animation.visualize = True
-        CustomHeuristics.bind(lambda next, goal: 0)
+        Heuristics.bind(lambda next, goal: 0)
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
@@ -183,7 +183,9 @@ class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
 
             # Generate results
             main_save_path = os.path.join(cwd, "".join((_map.name, "_main_results.pkl")))
-            algs_to_run = ["S*-BS", "S*-HS", "S*-MM", "S*-MM0", "S*-unmerged"]
+            # algs_to_run = ["S*-BS", "S*-HS", "S*-MM", "S*-MM0", "S*-BS-UN", "S*-HS-UN", "S*-MM-UN", "S*-MM0-UN"]
+            # algs_to_run = ["S*-BS-UN", "S*-MM-UN", "S*-MM0-UN", "S*-HS-UN"]
+            algs_to_run = ["S*-HS"]
             gen_rm = GenerateResultsMulti(graph=_map, save_path=main_save_path, file_behavior="OVERWRITE", algs_to_run=algs_to_run)
             # specify instances
             gen_rm.input_specifed_instances([_terminals])
@@ -224,11 +226,11 @@ class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
             pr.specify_files(baseline_save_path, main_save_path)
             pr.run()
 
-    @unittest.skip("Not testing")
+    # @unittest.skip("Not testing")
     def test_fixture_debug_issues(self):
         # b15.stp, b18.stp
         # stein_dir[fname] = {'dir': os.path.join(root, fname), 'map': sl_g, 'terminals': sl_terminals}
-        map_name = "b18.stp"
+        map_name = "b02.stp"
         gen_bs = GenerateBaseLine(graph=stein_dir[map_name]['map'])
         # get terminals
         gen_bs.input_specifed_instances([stein_dir[map_name]['terminals']])
@@ -237,8 +239,8 @@ class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
         
         # generator results
         # algs_to_run = ["S*-BS", "S*-HS", "S*-MM", "S*-MM0", "S*-unmerged"]
-        algs_to_run = ["S*-BS", "S*-unmerged"]
-        # algs_to_run = ["S*-HS"]
+        # algs_to_run = ["S*-BS", "S*-HS-UN"]
+        algs_to_run = ["S*-HS"]
         gen_mr = GenerateResultsMulti(graph=stein_dir[map_name]["map"], algs_to_run=algs_to_run)
         gen_mr.input_specifed_instances([stein_dir[map_name]["terminals"]])
         main_results = gen_mr.run()

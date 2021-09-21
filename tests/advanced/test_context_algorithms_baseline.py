@@ -43,7 +43,7 @@ class TestAlgorithmsBaseLine(unittest.TestCase):
 
         # Use contextualizer to run algorithms (make sure debug visualizer is off)
         results = {
-            'S*-unmerged': [],
+            'S*-HS-UN': [],
             'S*-HS':[],  
         }
 
@@ -53,8 +53,8 @@ class TestAlgorithmsBaseLine(unittest.TestCase):
             context = Context(graph, t)
 
             # astar unmerged
-            context.run('S*-unmerged')
-            results['S*-unmerged'].append(context.return_solutions())
+            context.run('S*-HS-UN')
+            results['S*-HS-UN'].append(context.return_solutions())
 
             # formerly bi-directional astar
             context.run('S*-HS')

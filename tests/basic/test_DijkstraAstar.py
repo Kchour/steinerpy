@@ -1,7 +1,7 @@
 import unittest
 from timeit import default_timer as timer
 
-from steinerpy.library.search.search_algorithms import AStarSearch
+from steinerpy.library.search.search_algorithms import UniSearch
 from steinerpy.library.graphs.graph import GraphFactory
 import steinerpy.config as cfg
 
@@ -33,7 +33,7 @@ class TestDijkstraAstarSearch(unittest.TestCase):
         goal = (2,2)
 
         sTime = timer()
-        search = AStarSearch(sq, start, goal, "zero", visualize=True)
+        search = UniSearch(sq, start, goal, "zero", visualize=True)
         parents, g = search.use_algorithm()
         eTime = timer()
         print("Dijkstra time taken(s):",eTime - sTime)
@@ -47,7 +47,7 @@ class TestDijkstraAstarSearch(unittest.TestCase):
         goal = (5,5)
 
         sTime = timer()
-        search = AStarSearch(sq, start, goal, "diagonal_nonuniform", visualize=True)
+        search = UniSearch(sq, start, goal, "diagonal_nonuniform", visualize=True)
         parents, g = search.use_algorithm()
         eTime = timer()
         print("Dijkstra time taken(s):",eTime - sTime)

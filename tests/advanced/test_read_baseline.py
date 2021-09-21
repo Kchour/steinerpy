@@ -55,7 +55,7 @@ class TestReadPickle(unittest.TestCase):
         print("wip")
         eps = 1e-6
         # iterate over number of run-instances
-        for i in range(len(data['S*-unmerged'])):
+        for i in range(len(data['S*-HS-UN'])):
             alike_test = set()
             # iterate over algorithm names
             for k in data.keys():

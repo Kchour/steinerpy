@@ -8,9 +8,9 @@ import numpy as np
 import logging
 
 from steinerpy.library.animation import AnimateV2
+from steinerpy.common import Common
 from steinerpy.library.search.search_utils import reconstruct_path
-from steinerpy.algorithms.common import Common
-from steinerpy.library.search.generic_algorithms import GenericSearch
+from steinerpy.library.search.search_algorithms import MultiSearch
 import steinerpy.config as cfg
 from steinerpy.library.misc.utils import MyTimer
 
@@ -37,8 +37,8 @@ class Proximity(Unmerged):
 
             # TODO find a better way to animate path
             if cfg.Animation.visualize:
-                # self.animateS.update_clean(np.vstack(self.S['path']).T.tolist())
-                AnimateV2.add_line("solution", np.vstack(self.S['path']).T.tolist(), 'yo', markersize=10, zorder=10)
+                # self.animateS.update_clean(np.vstack(self.results['path']).T.tolist())
+                AnimateV2.add_line("solution", np.vstack(self.results['path']).T.tolist(), 'yo', markersize=10, zorder=10)
 
     def tree_check(self):
         my_logger.info("Performing tree_check")
@@ -48,22 +48,22 @@ class Proximity(Unmerged):
             if np.mod(self.run_debug, np.ceil(self.graph.edge_count()/5000))==0:
                 AnimateV2.update()
 
-        if self.FLAG_STATUS_pathConverged:
+        if self.FLAG_STATUS_PATH_CONVERGED:
            
             # Check tree size
-            if len(self.S['sol']) == len(self.terminals)-1:
+            if len(self.results['sol']) == len(self.terminals)-1:
                 # Algorithm has finished
                 self.FLAG_STATUS_completeTree = True
-                totalLen = sum(np.array(self.S['dist']))
+                totalLen = sum(np.array(self.results['dist']))
 
                 my_logger.info("Finished: {}".format(totalLen))
 
                 # Add expanded node stats
-                self.S['stats']['expanded_nodes'] = GenericSearch.total_expanded_nodes
+                self.results['stats']['expanded_nodes'] = MultiSearch.total_expanded_nodes
                 # Reset or "close" Class variables
 
                 # Add additional stats (don't forget to reset classes)
-                self.S['stats']['fcosts_time'] = sum(MyTimer.timeTable["fcosts_time"])
+                self.results['stats']['fcosts_time'] = sum(MyTimer.timeTable["fcosts_time"])
 
                 # Keep plot opened
                 if cfg.Animation.visualize:
@@ -128,14 +128,14 @@ class Proximity(Unmerged):
                     plt.draw()
                     plt.pause(1)
 
-            self.FLAG_STATUS_pathConverged = False
+            self.FLAG_STATUS_PATH_CONVERGED = False
 
     def solution_handler(self):
         """Get the shortest path between terminals. Avoid duplicates
 
         """
         sol = dict()
-        my_logger.info("Len of path queue: {}".format(len(self.pathQueue.elements)))
+        my_logger.info("Len of path queue: {}".format(len(self.path_queue.elements)))
 
         while not self.pathQueue.empty():
             poppedQ = self.pathQueue.get()
@@ -143,14 +143,14 @@ class Proximity(Unmerged):
 
             # make sure we don't have duplicates or reverse edges
             ind1, ind2 = comps_ind
-            if (self.terminals[ind2[0]], self.terminals[ind1[0]]) not in self.S['sol'] and (self.terminals[ind1[0]], self.terminals[ind2[0]]) not in self.S['sol'] and \
+            if (self.terminals[ind2[0]], self.terminals[ind1[0]]) not in self.results['sol'] and (self.terminals[ind1[0]], self.terminals[ind2[0]]) not in self.results['sol'] and \
                 (ind2, ind1) not in sol and (ind1, ind2) not in sol:
                 sol[comps_ind] = dist
         return sol
 
     def add_solution(self, dist, path, edge):
         # Add solution if triangle inequality is respected!
-        self.S['dist'].append(dist)
-        self.S['path'].append(path)
-        self.S['sol'].append(edge)
-        my_logger.debug("Added edge no.: {}".format(len(self.S['sol']))) 
+        self.results['dist'].append(dist)
+        self.results['path'].append(path)
+        self.results['sol'].append(edge)
+        my_logger.debug("Added edge no.: {}".format(len(self.results['sol']))) 

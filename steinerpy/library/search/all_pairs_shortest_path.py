@@ -5,7 +5,7 @@ from functools import partial
 import logging
 from timeit import default_timer as timer
 
-from steinerpy.library.search.search_algorithms import AStarSearch
+from steinerpy.library.search.search_algorithms import UniSearch
 from steinerpy.library.misc.utils import Progress
 
 # DEBUG
@@ -119,12 +119,12 @@ class AllPairsShortestPath:
 
     @staticmethod
     def _run_dijkstra(start):
-        search = AStarSearch(graph, start, None, "zero", False)
+        search = UniSearch(graph, start, None, "zero", False)
         # print(os.getpid(), start)
         start_time = timer()
         search.use_algorithm()
         # number of nodes expanded
-        num_of_expanded = AStarSearch.total_expanded_nodes
+        num_of_expanded = UniSearch.total_expanded_nodes
         # time
         total_time = timer() - start_time
         return start, search.g, num_of_expanded, total_time

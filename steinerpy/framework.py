@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 from steinerpy.library.misc.abc_utils import abstract_attribute, ABC as newABC
 from steinerpy.library.graphs.graph import IGraph
 from steinerpy.library.animation import AnimateV2
-from steinerpy.library.search.search_utils import PriorityQueue,  PriorityQueueHeap
-from steinerpy.library.search.generic_algorithms import GenericSearch
+from steinerpy.library.search.search_utils import PriorityQueueHeap
+from steinerpy.library.search.search_algorithms import MultiSearch
 import steinerpy.config as cfg
 from .abstract_algo import AbstractAlgorithm
 from .common import Common
@@ -85,10 +85,9 @@ class Framework(AbstractAlgorithm):
         self.FLAG_STATUS_COMPLETE_TREE = False
 
         # Create search algorithm objects
-        self.comps = Common.create_search_objects(search_class=GenericSearch, 
+        self.comps = Common.create_search_objects(search_class=MultiSearch, 
                                                 graph=self.graph, 
                                                 p_costs_func=self.p_costs_func,
-                                                frontier_type=PriorityQueueHeap, 
                                                 terminals=self.terminals, 
                                                 visualize=cfg.Animation.visualize
                                                 )
@@ -287,8 +286,10 @@ class Framework(AbstractAlgorithm):
                 # Set lmins for each component. May be important post-merge
                 if UFeas < self.comps[c1].lmin or self.comps[c1].lmin == 0:
                     self.comps[c1].lmin = UFeas
+                    self.comps[c1].lnode = commonNode
                 if UFeas < self.comps[c2].lmin or self.comps[c2].lmin == 0:
                     self.comps[c2].lmin = UFeas
+                    self.comps[c2].lnode = commonNode
 
                 my_logger.debug("Observing edge between {} {} - cost {}, local fmin1 {} fmin2 {}, gmin1 {} gmin2 {} pathCriteria {}".\
                     format(c1,c2, UFeas, self.comps[c1].fmin, self.comps[c2].fmin, self.comps[c1].gmin, self.comps[c2].gmin, self.global_bound_queue.get_min()))
@@ -389,7 +390,7 @@ class Framework(AbstractAlgorithm):
                 my_logger.info("Finished: {}".format(totalLen))
 
                 # Add expanded node stats
-                self.results['stats']['expanded_nodes'] = GenericSearch.total_expanded_nodes
+                self.results['stats']['expanded_nodes'] = MultiSearch.total_expanded_nodes
                 # Reset or "close" Class variables
 
                 # Add additional stats (don't forget to reset classes)
@@ -461,120 +462,12 @@ class Framework(AbstractAlgorithm):
             self.FLAG_STATUS_PATH_CONVERGED = False
 
     def update_global_bound(self, comp_ind: tuple):
+        # local_bound = max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin])
         local_bound = max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin])
         self.global_bound_queue.put(comp_ind, local_bound)
 
-    def debug_get_comp_current_node(self, comp):
-        """Return min node from frontier without purging it """
-        return comp.frontier.get_min()
-
-    def debug_global_min(self):
-        return Common.path_queue_criteria(self.comps, 0, True)
-
-    def debug_UFeas(self):
-        """Print out sorted path lengths from UFeas
-
-        """
-        paths = {}
-        for u in self.UFeasPath:
-            for v in self.UFeasPath[u]:
-                paths[(u,v)]= self.UFeasPath[u][v][0]
-        # sort
-        paths = {k: paths[k] for k in sorted(paths, key=lambda x: paths[x] ) }
-        for k, v in paths.items():
-            print(k, v)
-
-    def debug_path_queue(self):
-        """Print out sorted path lengths from path queue
-
-        """
-        paths = {k: self.UFeasPath[self.findset.get(k[0], k[0])][self.findset.get(k[1], k[1])]  for k in sorted(self.path_queue.elements)}
-        
-        
-        # for k in sorted(self.path_queue.elements):
-        #     set1 = self.findset.get(k[0], k[0])
-        #     set2 = self.findset.get(k[1], k[1])
-
-        #    print(set1, set2)
-
-    def debug_nongoals(self):
-        my_logger.debug("SHOWING EXCLUDED GOALS")
-        my_logger.debug("GGGGGGGGGGGGGGGGGGGGGG")
-        for c in self.comps:
-            c_terms= [self.terminals[t] for t in c]
-            nongoals = set(range(len(self.terminals))) - set(self.comps[c].goal)
-            nongoal_terms = [self.terminals[t] for t in nongoals]
-            # MyLogger.add_message("comp: {}, not in goal: {}, comp_terms: {}, goal_terms: {}".format(c, nongoals, c_terms, nongoal_terms), __name__, "DEBUG")
-            my_logger.debug("comp: {}, not in goal: {}, comp_terms: {}, goal_terms: {}".format(c, nongoals, c_terms, nongoal_terms))
-    
-    def debug_bounds(self, c):
-        print("comp: ", c, "fmin: ", self.comps[c].fmin, "gmin: ", self.comps[c].gmin, "lmin: ", self.comps[c].lmin)
-
-    def debug_fmin(self):
-        # Log f-values
-        my_logger.debug("SHOWING FMIN GOALS")
-        my_logger.debug("FFFFFFFFFFFFFFFFFFF")
-        minVal = None
-        for i,j in self.comps.items(): 
-            # MyLogger.add_message("comp: {}, terminals: {}, fmin: {}".format(i, [self.terminals[k] for k in i], j.fmin), __name__, "DEBUG")
-            if minVal is None or j.fmin < minVal:
-                minVal= j.fmin
-        my_logger.debug("comp: {}, terminals: {}, fmin: {}".format(i, [self.terminals[k] for k in i], j.fmin))
-        return minVal
-
-    def debug_gmin(self):
-        # Log g-values
-        my_logger.debug("SHOWING GMIN VALUES")
-        my_logger.debug("GGGGGGGGGGGGGGGGGGG")
-        minVal = None
-        for i,j in self.comps.items(): 
-            # MyLogger.add_message("comp: {}, terminals: {}, gmin: {}".format(i, [self.terminals[k] for k in i], j.gmin), __name__, "DEBUG")
-            if minVal is None or j.gmin < minVal:
-                minVal= j.gmin
-
-        my_logger.debug("comp: {}, terminals: {}, gmin: {}".format(i, [self.terminals[k] for k in i], j.gmin))
-        return minVal
-
-    def debug_pmin(self):
-        # Log p-values
-        my_logger.debug("SHOWING PMIN VALUES")
-        my_logger.debug("PPPPPPPPPPPPPPPPPPP")
-        minVal = None
-        for i,j in self.comps.items(): 
-            # MyLogger.add_message("comp: {}, terminals: {}, pmin: {}".format(i, [self.terminals[k] for k in i], j.pmin), __name__, "DEBUG")
-            if minVal is None or j.pmin < minVal:
-                minVal= j.pmin
-
-        my_logger.debug("comp: {}, terminals: {}, pmin: {}".format(i, [self.terminals[k] for k in i], j.pmin))
-
-        return minVal
-
-    def debug_lmin(self):
-        my_logger.debug("SHOWING LMIN VALUES")
-        my_logger.debug("LLLLLLLLLLLLLLLLLLL")
-        minVal = None
-        for i,j in self.comps.items(): 
-            # MyLogger.add_message("comp: {}, terminals: {}, lmin: {}".format(i, [self.terminals[k] for k in i], j.lmin), __name__, "DEBUG")
-            if minVal is None or j.lmin < minVal:
-                minVal= j.lmin
-        
-        my_logger.debug("comp: {}, terminals: {}, lmin: {}".format(i, [self.terminals[k] for k in i], j.lmin))
-
-        return minVal
-
-    def debug_rmin(self):
-        my_logger.debug("SHOWING RMIN VALUES")
-        my_logger.debug("RRRRRRRRRRRRRRRRRRR")
-        minVal = None
-        for i,j in self.comps.items(): 
-            # MyLogger.add_message("comp: {}, terminals: {}, rmin: {}".format(i, [self.terminals[k] for k in i], j.rmin), __name__, "DEBUG")
-            if minVal is None or j.rmin < minVal:
-                minVal = j.rmin
-        my_logger.debug("comp: {}, terminals: {}, rmin: {}".format(i, [self.terminals[k] for k in i], j.rmin))
-        return minVal    
-
     @abstractmethod
-    def p_costs_func(self, search:GenericSearch, cost_to_come: dict, next: tuple)->float:
+    def p_costs_func(self, search:MultiSearch, cost_to_come: dict, next: tuple)->float:
         """An abstract method used to calculate the priority cost of a node in the open set. Must be overriden! 
         
         Typically, this is the sum of g and h, i.e. f=g+h, but may depend on the user's case
@@ -587,13 +480,13 @@ class Framework(AbstractAlgorithm):
 
         # User must return a float
 
-    def h_costs_func(self, search: GenericSearch, next: tuple)->float:
+    def h_costs_func(self, search: MultiSearch, next: tuple)->float:
         """Implementation of the nearest neighbor heuristic.      
         Heuristic costs for the node 'next', neighboring 'current'
 
         Parameters:
             next (tuple): The node in the neighborhood of 'current' to be considered 
-            component (GenericSearch): Generic Search class object (get access to all its variables)
+            component (MultiSearch): Generic Search class object (get access to all its variables)
 
         Info:
             h_i(u) = min{h_j(u)}  for all j in Destination(i), and for some node 'u'
@@ -750,12 +643,123 @@ class Framework(AbstractAlgorithm):
             self.results['stats'][n] = sum(MyTimer.timeTable[n])
 
         # Reset classes (find a better way to to do this)
-        GenericSearch.reset()
+        MultiSearch.reset()
         MyTimer.reset()
 
         # Sucessfully generated a tree     
         return True
 
+    ########################################################################
+    #   DEBUGGING ONLY
+    ########################################################################
 
+    def debug_get_comp_current_node(self, comp):
+        """Return min node from frontier without purging it """
+        return comp.frontier.get_min()
+
+    def debug_global_min(self):
+        return Common.path_queue_criteria(self.comps, 0, True)
+
+    def debug_UFeas(self):
+        """Print out sorted path lengths from UFeas
+
+        """
+        paths = {}
+        for u in self.UFeasPath:
+            for v in self.UFeasPath[u]:
+                paths[(u,v)]= self.UFeasPath[u][v][0]
+        # sort
+        paths = {k: paths[k] for k in sorted(paths, key=lambda x: paths[x] ) }
+        for k, v in paths.items():
+            print(k, v)
+
+    def debug_path_queue(self):
+        """Print out sorted path lengths from path queue
+
+        """
+        paths = {k: self.UFeasPath[self.findset.get(k[0], k[0])][self.findset.get(k[1], k[1])]  for k in sorted(self.path_queue.elements)}
+        
+        
+        # for k in sorted(self.path_queue.elements):
+        #     set1 = self.findset.get(k[0], k[0])
+        #     set2 = self.findset.get(k[1], k[1])
+
+        #    print(set1, set2)
+
+    def debug_nongoals(self):
+        my_logger.debug("SHOWING EXCLUDED GOALS")
+        my_logger.debug("GGGGGGGGGGGGGGGGGGGGGG")
+        for c in self.comps:
+            c_terms= [self.terminals[t] for t in c]
+            nongoals = set(range(len(self.terminals))) - set(self.comps[c].goal)
+            nongoal_terms = [self.terminals[t] for t in nongoals]
+            # MyLogger.add_message("comp: {}, not in goal: {}, comp_terms: {}, goal_terms: {}".format(c, nongoals, c_terms, nongoal_terms), __name__, "DEBUG")
+            my_logger.debug("comp: {}, not in goal: {}, comp_terms: {}, goal_terms: {}".format(c, nongoals, c_terms, nongoal_terms))
+    
+    def debug_bounds(self, c):
+        print("comp: ", c, "fmin: ", self.comps[c].fmin, "gmin: ", self.comps[c].gmin, "lmin: ", self.comps[c].lmin)
+
+    def debug_fmin(self):
+        # Log f-values
+        my_logger.debug("SHOWING FMIN GOALS")
+        my_logger.debug("FFFFFFFFFFFFFFFFFFF")
+        minVal = None
+        for i,j in self.comps.items(): 
+            # MyLogger.add_message("comp: {}, terminals: {}, fmin: {}".format(i, [self.terminals[k] for k in i], j.fmin), __name__, "DEBUG")
+            if minVal is None or j.fmin < minVal:
+                minVal= j.fmin
+        my_logger.debug("comp: {}, terminals: {}, fmin: {}".format(i, [self.terminals[k] for k in i], j.fmin))
+        return minVal
+
+    def debug_gmin(self):
+        # Log g-values
+        my_logger.debug("SHOWING GMIN VALUES")
+        my_logger.debug("GGGGGGGGGGGGGGGGGGG")
+        minVal = None
+        for i,j in self.comps.items(): 
+            # MyLogger.add_message("comp: {}, terminals: {}, gmin: {}".format(i, [self.terminals[k] for k in i], j.gmin), __name__, "DEBUG")
+            if minVal is None or j.gmin < minVal:
+                minVal= j.gmin
+
+        my_logger.debug("comp: {}, terminals: {}, gmin: {}".format(i, [self.terminals[k] for k in i], j.gmin))
+        return minVal
+
+    def debug_pmin(self):
+        # Log p-values
+        my_logger.debug("SHOWING PMIN VALUES")
+        my_logger.debug("PPPPPPPPPPPPPPPPPPP")
+        minVal = None
+        for i,j in self.comps.items(): 
+            # MyLogger.add_message("comp: {}, terminals: {}, pmin: {}".format(i, [self.terminals[k] for k in i], j.pmin), __name__, "DEBUG")
+            if minVal is None or j.pmin < minVal:
+                minVal= j.pmin
+
+        my_logger.debug("comp: {}, terminals: {}, pmin: {}".format(i, [self.terminals[k] for k in i], j.pmin))
+
+        return minVal
+
+    def debug_lmin(self):
+        my_logger.debug("SHOWING LMIN VALUES")
+        my_logger.debug("LLLLLLLLLLLLLLLLLLL")
+        minVal = None
+        for i,j in self.comps.items(): 
+            # MyLogger.add_message("comp: {}, terminals: {}, lmin: {}".format(i, [self.terminals[k] for k in i], j.lmin), __name__, "DEBUG")
+            if minVal is None or j.lmin < minVal:
+                minVal= j.lmin
+        
+        my_logger.debug("comp: {}, terminals: {}, lmin: {}".format(i, [self.terminals[k] for k in i], j.lmin))
+
+        return minVal
+
+    def debug_rmin(self):
+        my_logger.debug("SHOWING RMIN VALUES")
+        my_logger.debug("RRRRRRRRRRRRRRRRRRR")
+        minVal = None
+        for i,j in self.comps.items(): 
+            # MyLogger.add_message("comp: {}, terminals: {}, rmin: {}".format(i, [self.terminals[k] for k in i], j.rmin), __name__, "DEBUG")
+            if minVal is None or j.rmin < minVal:
+                minVal = j.rmin
+        my_logger.debug("comp: {}, terminals: {}, rmin: {}".format(i, [self.terminals[k] for k in i], j.rmin))
+        return minVal    
 
     

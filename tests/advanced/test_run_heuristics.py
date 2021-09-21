@@ -58,7 +58,7 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
         # cfg.Misc.log_conf["handlers"]['console']['level'] = "DEBUG"
         # cfg.reload_log_conf()
-        cfg.Animation.visualize = True
+        # cfg.Animation.visualize = True
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
@@ -117,13 +117,13 @@ class TestCreateAndRunHeuristics(unittest.TestCase):
         cfg.Algorithm.graph_domain = "grid"
 
         # try to use custom heuristics
-        from steinerpy.algorithms.common import CustomHeuristics
-        CustomHeuristics.bind(lambda x,y: 0) 
+        from steinerpy.heuristics import Heuristics
+        Heuristics.bind(lambda next, goal: 0) 
 
-        # algorithms = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0", "S*-unmerged"]
+        algorithms = ["S*-HS", "S*-BS", "S*-MM", "S*-MM0", "S*-HS-UN", "S*-BS-UN", "S*-MM-UN", "S*-MM0-UN"]
         # heuristics = ["manhattan", "custom", "diagonal_nonuniform", "diagonal_uniform", "euclidean", "zero"]        
         # algorithms = ["Kruskal", "S*-HS"]
-        algorithms = ["S*-HS"]
+        # algorithms = ["S*-HS"]
         # algorithms = ["Kruskal", "S*-BS"]
         heuristics = ["diagonal_nonuniform"]
         for h in heuristics:

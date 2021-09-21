@@ -5,7 +5,7 @@ cfg.Animation.visualize = False
 cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy.algorithms import Unmerged
+from steinerpy.algorithms import SstarHS, SstarHSUN
 
 class TestSteinerUnmerged(unittest.TestCase):
 
@@ -29,7 +29,26 @@ class TestSteinerUnmerged(unittest.TestCase):
         # terminals = [(-15, -15), (15, 15)]
   
         # Create object
-        ao = Unmerged(graph, terminals)
+        ao =SstarHS(graph, terminals)
+
+        # test comps type
+        self.assertIsInstance(ao.comps, dict)
+
+        # run algorithm
+        self.assertTrue(ao.run_algorithm())
+
+        self.assertTrue(isinstance(ao.return_solutions(), dict))
+
+        self.assertTrue(len(ao.return_solutions()['sol'])>0)
+        self.assertTrue(len(ao.return_solutions()['path'])>0)
+        self.assertTrue(len(ao.return_solutions()['dist'])>0)
+
+        ################################################################
+        #   TRY UNMERGED VERSION
+        ################################################################
+
+        # Create object
+        ao =SstarHSUN(graph, terminals)
 
         # test comps type
         self.assertIsInstance(ao.comps, dict)

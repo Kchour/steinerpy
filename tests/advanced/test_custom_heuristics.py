@@ -13,7 +13,7 @@ random.seed(123)    # 50 terminal
 import steinerpy.config as cfg                              # to ensure heuristic is set to "preprocess"
 from steinerpy.context import Context                       # helper to load graph and run algorithms
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy.algorithms.common import CustomHeuristics
+from steinerpy.heuristics import Heuristics
 
 # Visualize things
 # cfg.Animation.visualize = True
@@ -43,19 +43,19 @@ T = list(T)
 
 class TestGenerateHeuristics(unittest.TestCase):
 
-    def my_cust_h_func(self, n, goal):
+    def my_cust_h_func(self, next, goal):
         # print(n, goal)
         return 0
 
     def setUp(self):
-        self.old_binding = CustomHeuristics.h_func
+        self.old_binding = Heuristics.get()
         self.old_setting = cfg.Algorithm.sstar_heuristic_type
         cfg.Algorithm.sstar_heuristic_type = "custom"
-        CustomHeuristics.bind(self.my_cust_h_func)
+        Heuristics.bind(self.my_cust_h_func)
 
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
-        CustomHeuristics.bind(self.old_binding)
+        Heuristics.bind(self.old_binding)
 
     def test_load_heuristics_from_disk_run_sstar(self):
 

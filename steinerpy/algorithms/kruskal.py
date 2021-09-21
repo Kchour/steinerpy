@@ -8,7 +8,7 @@ import steinerpy.config as cfg
 from steinerpy.library.misc.utils import MyTimer
 from steinerpy.abstract_algo import AbstractAlgorithm
 from steinerpy.library.search.search_utils import PriorityQueueHeap, CycleDetection, reconstruct_path
-from steinerpy.library.search.search_algorithms import AStarSearch
+# from steinerpy.library.search.search_algorithms import UniSearch
 from steinerpy.library.animation import AnimateV2
 from steinerpy.library.search.all_pairs_shortest_path import AllPairsShortestPath 
 
@@ -30,38 +30,6 @@ class Kruskal(AbstractAlgorithm):
         # self.results = {'sol':[], 'dist':[], 'path':[]}       # solution + dist
         indices = [(i,) for i in range(len(self.terminals))]
         self.detector = CycleDetection(indices)
-
-        # # TODO Need to use regex
-        # self.graphType = None
-        # if 'SquareGrid' in str(type(self.graph)):
-        #     self.graphType = "SquareGrid"
-        # elif 'SquareGridDepot' in str(type(self.graph)):
-        #     self.graphType = "SquareGridDepot"
-        # elif 'MyGraph' in str(type(self.graph)):
-        #     self.graphType = "MyGraph"
-
-    # def graph_search(self, start, end, heuristic="diagonal_nonuniform"):
-    #     """Runs graph search to find shortest path between points 
-        
-    #     Returns:
-    #         parents (dict): A linked list tracing goal back to start node
-    #         g (dict): A nodes with a finite g-value
-
-    #     """
-    #     i,j = start, end
-    #     # # Change heuristics based on underlying graph
-    #     # if self.graphType == "SquareGrid":
-    #     #     search = AStarSearch(self.graph, i, j, 'diagonal_nonuniform', False) #(works)    
-    #     # elif self.graphType == 'SquareGridDepot':
-    #     #     search = AStarSearch(self.graph, i, j, 'diagonal_nonuniform', False) #(works)    
-    #     # elif self.graphType == "MyGraph":
-    #     #     search = AStarSearch(self.graph, i, j, 'zero', False)
-    #     # parents, g = search.use_algorithm()
-
-    #     search = AStarSearch(self.graph, i, j, heuristic, False)
-    #     parents, g = search.use_algorithm()
-
-    #     return parents, g
     
     def run_algorithm(self, heuristic_for_recon='diagonal_nonuniform', RECON_PATH=True):
 
@@ -124,12 +92,6 @@ class Kruskal(AbstractAlgorithm):
     def return_solutions(self):
         return self.results
 
-# class KruskalMulti(Kruskal):
-
-#     def __init__(self, G, T):
-#         super().__init__(G,T)
-
-#     def run_algorithm(self):
         
 
     
