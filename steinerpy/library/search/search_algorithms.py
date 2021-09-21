@@ -199,6 +199,9 @@ class UniSearch(Search):
         while not self.frontier.empty():
             _, current = self.frontier.get()
 
+#            Update stats logging
+            UniSearch.update_expanded_nodes()
+
             # Update stats
             if self.visualize:
                 # if np.fmod(self.total_expanded_nodes, 2000)==0:

@@ -65,9 +65,9 @@ results = context.return_solutions()
  ...10, -12]])], 'sol': [(...), (...), (...), (...)]}
 ```
 
-Currently supported inputs through `Context` are `S*-unmerged`, `S*-HS`, `S*-HS0`, `Kruskal`, `S*-BS`, `S*-MM`, and `S*-MM0`.
+Currently supported inputs through `Context` are `Kruskal`, `S*-HS`, `S*-BS`, `S*-MM`,`S*-MM0`, `S*-HS-UN`, `S*-BS-UN`, `S*-MM-UN`, `S*-MM0-UN`.
 
-See `Tests` folder for more examples
+See `tests` folder for more examples
 
 # Configuring Behavior
 
@@ -82,24 +82,37 @@ or to adjust heuristics
 
 ```
 import steinerpy.config as cfg
-cfg.Algorithm.sstar_heuristic_type = diagonal_uniform # This is the default option
+cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform" # This is the default option
 cfg.Algorithm.hFactor = 1.0  # Heuristic factor i.e. for any node n, its priority is given by f(n) = g(n) + hFactor*h(n)
+cfg.Algorithm.graph_domain =  #"grid", "generic"
+```
+
+or to include more informative logs
+```
+import steinerpy.config as cfg
+cfg.Misc.log_conf["handlers"]["console"]["level"] = "INFO"
+cfg.Misc.log_conf["handlers"]["file_handler"]["level"] = "INFO"
 ```
 
 See the config module for more options (note: not everything has been implemented)
 
 # Customize the Heuristic Function
-The underlying heuristic in all heuristic-based algorithms can be customized by binding `steinerpy.algorithms.common.Custom_heuristics.h_func` with a function in the form `h_func(n, goal)` i.e.
+The underlying heuristic in all heuristic-based algorithms can be customized by calling `steinerpy.heuristics.Heuristics.bind()` by passing function in the form `h_func(next, goal)` i.e.
 
 ```
 import steinerpy.config as cfg
-cfg.sstar_heuristic_type = "custom"
+# if wanting to use "grid" graph domain (by default)
+cfg.Algorithm.sstar_heuristic_type = "custom"
 
-from steinerpy.algorithms.common import CustomHeuristics
+# if wanting to use "generic" graph domain 
+# then a custom heuristic is assumed
+cfg.Algorithm.graph_domain = "generic"
+
+from steinerpy.heuristics import Heuristics
 def my_cust_h_func(n, goal):
     ...
 
-CustomHeuristics.bind(my_cust_h_func)
+Heuristics.bind(my_cust_h_func)
 ...
 
 ```
@@ -111,7 +124,7 @@ Make sure the global config `visualize` is set to `False`. In the future, we wil
 Go to the `tests` folder in the root directory, and run any of the scripts there using `python3 script.py`.
 
 ## Automated tests
-cd in root directory, then run `python3 -m unittest discover`. By default `discover` tries to look for \*tests\*, but can be changed using `-p, --pattern` flag
+cd to the root directory, then run `python3 -m unittest discover`. By default `discover` tries to look for \*tests\*, but can be changed using `-p, --pattern` flag
 
 # TODO List
-See todo list (very wip)
+See todo list

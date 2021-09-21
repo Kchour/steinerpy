@@ -5,18 +5,20 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="steinerpy", # Replace with your own username
-    version="1.0.5",
+    version="2.0.0",
     author="Kenny Chour",
-    author_email="ckennyc@tamu.edu",
-    description="Algorithms to find steiner tree",
+    author_email="ckennyc@tamu.edu, chour.kenny@yahoo.com ",
+    description="Heuristic approach to approximate a steiner tree, \
+        based on the Primal-Dual algorithm. Implemented as multi-directional search\
+            with several path termination criteria",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
+    url="https://github.com/Kchour/steinerpy",
     packages=setuptools.find_packages(),
     classifiers=[
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
+        "Operating System :: Linux",
     ],
     python_requires='>=3.6',
 )

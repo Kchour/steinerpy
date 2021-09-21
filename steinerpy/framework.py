@@ -462,9 +462,11 @@ class Framework(AbstractAlgorithm):
             self.FLAG_STATUS_PATH_CONVERGED = False
 
     def update_global_bound(self, comp_ind: tuple):
+        """The global bound depends on the exact path criteria used
+
+        """
         # local_bound = max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin])
-        local_bound = max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin])
-        self.global_bound_queue.put(comp_ind, local_bound)
+        self.global_bound_queue.put(comp_ind, self.local_bound_value(comp_ind))
 
     @abstractmethod
     def p_costs_func(self, search:MultiSearch, cost_to_come: dict, next: tuple)->float:
@@ -513,17 +515,27 @@ class Framework(AbstractAlgorithm):
         return cfg.Algorithm.hFactor*minH 
 
     @abstractmethod
+    def local_bound_value(self, comp_ind: tuple)->float:
+        """This function must be implemented very carefully!
+        
+        Return the local bound value of the current comp. The user
+        needs to implement this based on the shortest path criteria chosen.
+        
+        """
+        pass
+
+    @abstractmethod
     def shortest_path_check(self, comps_colliding:List[tuple], path_cost:float)->bool:
         """Applies a necessary condition to check whether two colliding components possess the `shortest possible path`
         between them. Speficailly, the necessary condition is based on Nicholson's Bidirectional Search paper.
 
         Just because the two components collide (i.e. their closed sets touch), does not mean any complete path
-        between them is necessarily the shortest. Override this method as needed for customized check, otherwise,
-        Nicolson's + Pohl's will be used.
+        between them is necessarily the shortest. 
         
         Params:
             comps_colliding: A list of component id's for which have just colliding
-
+            path_cost: cost of a feasible path (i.e. path between any terminal)
+        
         """
         pass
 

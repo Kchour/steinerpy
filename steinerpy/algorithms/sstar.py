@@ -50,6 +50,13 @@ class SstarHS(Merged):
 
         return PathCriteria.path_criteria_pohl(path_cost, c1, c2)
 
+    def local_bound_value(self, comp_ind: tuple)->float:
+        """This function must be implemented very carefully
+        
+        """
+        return  self.comps[comp_ind].fmin
+
+
 class SstarBS(Merged):
 
     def p_costs_func(self, search:MultiSearch, cost_so_far: dict, next: tuple):
@@ -86,6 +93,8 @@ class SstarBS(Merged):
 
         return PathCriteria.path_criteria_nicholson(path_cost, c1, c2)
 
+    def local_bound_value(self, comp_ind: tuple)->float:
+        return 2*self.comps[comp_ind].gmin
 
 class SstarMM(Merged):
     """Meet-in-the-Middle implementation with heuristics """
@@ -124,6 +133,8 @@ class SstarMM(Merged):
 
         return PathCriteria.path_criteria_mm(path_cost, c1, c2)
 
+    def local_bound_value(self, comp_ind: tuple)->float:
+        return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
 
 class SstarMM0(Merged):
     """Meet-in-the-Middle implementation without heuristics (Brute-force search)"""
@@ -180,6 +191,8 @@ class SstarMM0(Merged):
         return PathCriteria.path_criteria_mm(path_cost, c1, c2)
               
 
+    def local_bound_value(self, comp_ind: tuple)->float:
+        return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
 
 #################################################################
 # UNMERGED
@@ -203,6 +216,11 @@ class SstarHSUN(Unmerged):
 
         return PathCriteria.path_criteria_pohl(path_cost, c1, c2)
 
+    def local_bound_value(self, comp_ind: tuple)->float:
+        """This function must be implemented very carefully
+        
+        """
+        return  self.comps[comp_ind].fmin
 
 class SstarBSUN(Unmerged):
 
@@ -221,6 +239,9 @@ class SstarBSUN(Unmerged):
 
         return PathCriteria.path_criteria_nicholson(path_cost, c1, c2)  
 
+    def local_bound_value(self, comp_ind: tuple)->float:
+        return 2*self.comps[comp_ind].gmin
+
 class SstarMMUN(Unmerged):
     
     def p_costs_func(self, search: MultiSearch, cost_to_come: dict, next: tuple) -> float:
@@ -234,6 +255,11 @@ class SstarMMUN(Unmerged):
         c2 = self.comps[_c2]
 
         return PathCriteria.path_criteria_mm(path_cost, c1, c2)
+
+
+    def local_bound_value(self, comp_ind: tuple)->float:
+        return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
+
 
 class SstarMM0UN(Unmerged):
     
@@ -251,3 +277,7 @@ class SstarMM0UN(Unmerged):
         c2 = self.comps[_c2]
 
         return PathCriteria.path_criteria_mm(path_cost, c1, c2)
+
+
+    def local_bound_value(self, comp_ind: tuple)->float:
+        return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
