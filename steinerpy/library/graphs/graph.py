@@ -48,11 +48,9 @@ class IGraph(ABC):
     def cost(self, from_node, to_node):
         pass
 
-    @abstractmethod
     def node_count(self):
         pass
 
-    @abstractmethod
     def edge_count(self):
         pass
 

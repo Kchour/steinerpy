@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file. Furthermore, missing details will be added as I recall them.
 
+## [2.0.1] - 2021-10-21
+### Changed
+- Interface `IGraph` node and edge count functions are now optional
+- Consider changing `data` folder to `environment`
+
+### Added
+- Tower of Hanoi and 10 Pancake graphs
+
 ## [2.0.0] - 2021-09-21
 ### Fixed
 - ~~Attempting to fix reconstructed path and solution table not matching error~~This can only occur when using inadmissible heuristic

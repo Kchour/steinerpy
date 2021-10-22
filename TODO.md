@@ -21,6 +21,7 @@
 - Need to use Generic Graph class for keeping track of feasible paths which can handle relabeling, deletion, and insertion of edges, nodes quite easily.
 - Don't commit .xlsx files from randomized_tests
 - Cleanup cfg files, too many classes there
+- Need to separate tests into two use cases: normal end users and developers. 
 
 
 
