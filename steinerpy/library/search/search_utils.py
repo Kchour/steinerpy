@@ -129,7 +129,13 @@ class PriorityQueueHeap:
         self.elements = self.entry_table
 
         self.min_item = None
-        
+
+        # for iterator
+        self.i = 0
+
+    def __iter__(self):
+        return iter(self.elements.values())
+    
     def __len__(self):
         return len(self.entry_table)
 

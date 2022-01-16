@@ -22,7 +22,7 @@ from steinerpy.heuristics import Heuristics
 my_logger = logging.getLogger(__name__)
 
 
-def pCostFuncInterface(this, cost_so_far, next):
+def CostFuncInterface(this, cost_so_far, next):
     """User can pass in a different pCostFunc during instantiation of GenericSearch
     
         Normally, fcost(n) = gcost(n) + hcost(n, goal), but this function 
@@ -245,7 +245,7 @@ class UniSearch(Search):
                     AnimateV2.update()
 
 class MultiSearch(Search):
-    """The class performs multi-uni-directional search where multiple search directions (components) are performed (pseudo-)concurrently.
+    """The class is used for multi-uni-directional search where multiple search directions (components) are performed (pseudo-)concurrently.
     This is done by ensuring the "cheapest" component is able to update its node via a 'nominate' and 'update' phase.
     Each component must nominate a node (which the user will have to keep track of). Then the user must call
     update() on it. The graph is explored via the nomination and update phase, and shortest paths between components can be discovered.
@@ -254,7 +254,6 @@ class MultiSearch(Search):
 
     Params:
         frontier_type: Allows user to select the type (a class) of priority queue to use
-
 
     Misc:
         visualize (bool): A flag for visualizing the algorithm. Mainly for debug purposes
@@ -265,8 +264,11 @@ class MultiSearch(Search):
     Todo:
         * Consider putting animateClosed in the `update` function, because closing does not occur until `update`
     """
-    def __init__(self, graph:IGraph, start: tuple, goal: Iterable[tuple]=None, pCostsFunc=pCostFuncInterface, visualize=False, id=None):
+    def __init__(self, graph:IGraph, start: tuple, goal: Iterable[tuple]=None, pCostsFunc=CostFuncInterface, hCostsFunc=CostFuncInterface, visualize=False, id=None, siblings=None):
         Search.__init__(self, graph, start, goal)
+
+        # keep track of F
+        self.f = {}
         
         # Visualize algorithm flag
         self.visualize = visualize
@@ -277,9 +279,11 @@ class MultiSearch(Search):
         # Each search object needs an id
         self.id = (id,)
 
-        # keep track of F
-        self.f = {}
-        self.f[start] = 0            #May need to figure out how to initialize this besides 0
+        # make sure root has the correct starting f value
+        self.frontier = PriorityQueueHeap()
+        self.frontier.put(self.start, pCostsFunc(self, self.g, self.start))
+
+        # self.f[start] = 0            #May need to figure out how to initialize this besides 0
         
         # min values
         # self._fmin, self._gmin, self._pmin, self._rmin = np.inf, np.inf, np.inf, np.inf
@@ -299,7 +303,7 @@ class MultiSearch(Search):
 
         self.gmin_heap.put(start, 0)
         self.rmin_heap.put(start, 0)
-        self.fmin_heap.put(start, 0)
+        self.fmin_heap.put(start, self.f[start])
 
         # Extra things: not necessary for shortest path computation
         # every node will keep track its closest terminal root node based on gcost
@@ -309,8 +313,17 @@ class MultiSearch(Search):
         # (shortest path tree rooted at a terminal)
         self.children = {}
 
-        self.pCosts = pCostsFunc     # fCostsFunc is a passed-in method, returns a float
+        # fcostsfunc is a passed-in method representing the priority, returns a float
+        self.pCosts = pCostsFunc     
 
+        # keep track of other search objects if applicable
+        self.siblings = siblings
+
+    def finish_setup(self, comp_ref:dict):
+        """Finish setting up this MultiSearch object""" 
+        # store reference to other objs
+
+        # correct the root node f costs within the data structures
 
     @property
     def goal(self):
@@ -397,7 +410,6 @@ class MultiSearch(Search):
                 priority = self.pCosts(self, self.g, o)
                 self.frontier.put(o, priority)     
                 self.fmin_heap.put(o, self.f[o])
-
 
     def update(self):    
         """The open/closed list is updated here, and the open list is expanded with neighboring nodes
@@ -626,6 +638,8 @@ class MultiSearch(Search):
         mergedRoot = {}
         mergedChildren = {}
 
+
+
         ## Merge the terminal indices
         # TODO. PROB DONT NEED list
         # mergedID.extend(list(self.id))
@@ -650,6 +664,17 @@ class MultiSearch(Search):
 
         ## Create a GenericSearch Object to return
         mergedGS = MultiSearch(self.graph,  'Temp', mergedGoal, self.pCosts, visualize=cfg.Animation.visualize)
+
+        # update id
+        mergedGS.id = mergedID
+
+        # save siblings
+        mergedGS.siblings = self.siblings
+
+        # update set of components: delete old individuals
+        self.siblings[mergedGS.id] = mergedGS
+        del self.siblings[self.id]
+        del self.siblings[other.id]
         
         ## new variables for ease: Linked lists, frontier, and g costs
         p1 = self.parent
@@ -707,6 +732,10 @@ class MultiSearch(Search):
         # Recalculate the frontier costs
         # DO I NEED TO SET THE G COSTS HERE TOO?.
         # NO need to set current?
+        
+        # set up g
+        mergedGS.g = mergedG
+
         for next in setF:
             if next in f1 and next in f2:
                 if g1[next] < g2[next]:
@@ -791,9 +820,8 @@ class MultiSearch(Search):
         #     mergedGS.current = other.current
 
         ## modify generic search object values
-        mergedGS.g = mergedG
+        # mergedGS.g = mergedG
         mergedGS.parent = mergedP
-        mergedGS.id = mergedID
         mergedGS.frontier = mergedF
         mergedGS.root = mergedRoot
         mergedGS.children = mergedChildren

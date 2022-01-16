@@ -1,2 +1,5 @@
 matplotlib
 numpy
+# for processing
+pandas
+openpyxl

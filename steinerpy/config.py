@@ -5,8 +5,8 @@
     Note: python modules are considered singletons
 
 """
-import logging, logging.config
-
+import logging
+#################### LOGGING CONFIGURATION #####################################
 class _ColoredFormatter(logging.Formatter):
     """Customized custom formatter class to allow colored outputs to the console!
         No need to import this at all!
@@ -54,6 +54,45 @@ class _ColoredFormatter(logging.Formatter):
         # return it wrapped around record!
         return formatter.format(record)
 
+# Default logging configuration
+log_conf = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'default': {
+            'format': '%(asctime)-15s %(levelname)-8s %(name)-8s %(message)s'
+        },
+        'colored':{
+            # https://docs.python.org/3/library/logging.config.html#dictionary-schema-details
+            # alternatively, steinerpy.library.config.ColoredFormatter
+            '()':  _ColoredFormatter
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'colored',
+            'level': "DEBUG"
+        },
+        'file_handler': {
+            'class': 'logging.FileHandler',
+            'formatter': 'default',
+            'level': "DEBUG",
+            'filename': '/tmp/my_steinerpy_logfile.log'
+        },
+    },
+    'loggers': {
+        # You can create a name of logger you desire
+        'steinerpy': {# root logger is simply empty key ''
+            'handlers': ['file_handler', 'console'],
+            'level': 'WARNING',
+            'propagate': False
+        },
+
+    },
+}
+
+###################################################################
 
 # Package location for paths
 import steinerpy
@@ -64,64 +103,17 @@ data_dir = pkg_dir + "/../data"
 results_dir = pkg_dir + "/../results"
 logs_dir = pkg_dir + "/../logs"
 
-testVarOutside = "HungryHippos"
-
 class Misc:
-    """Static class for runtime configuration flags"""
-    # test variables
-    testVar = "HungryHippos"
+    """Additional behavioral settings"""
 
-    # Logger level
-    """ WARNING: CAN IMPACT PERFORMANCE
-        file_level: file log level (not implemented yet)
-        console_level: Filter out console logs according to level
-            (CRITICAL, ERROR, WARNING, INFO, DEBUG) 
-    """
     # Run additional functions in framework.py
     DEBUG_MODE = False
 
-    # Sound alert
+    # Sound alert when done processing
     sound_alert = False
 
     # Profile framework module (print runtime of code)
     profile_frame = False
-
-    # This can be configured by the user!
-    log_conf = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'default': {
-                'format': '%(asctime)-15s %(levelname)-8s %(name)-8s %(message)s'
-            },
-            'colored':{
-                # https://docs.python.org/3/library/logging.config.html#dictionary-schema-details
-                # alternatively, steinerpy.library.config.ColoredFormatter
-                '()':  _ColoredFormatter
-            },
-        },
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-                'formatter': 'colored',
-                'level': "WARNING"
-            },
-            'file_handler': {
-                'class': 'logging.FileHandler',
-                'formatter': 'default',
-                'level': "WARNING",
-                'filename': '/tmp/my_steinerpy_logfile.log'
-            },
-        },
-        'loggers': {
-            # You can create a name of logger you desire
-            '': {# root logger
-                'handlers': ['file_handler', 'console'],
-                'level': 'DEBUG'
-            },
-
-        },
-    }
 
 class Animation:
     # visualize plot
@@ -130,7 +122,7 @@ class Animation:
     animate_delay = 0.0
 
 class Algorithm:
-    # Algo runtime settings
+    """Algorithm runtime settings"""
 
     # sstar_heuristic_type is only applicable to grid based domains
     sstar_heuristic_type = "diagonal_nonuniform" # grid-based heuristics (manhattan, euclidean, diagonal_uniform, diagonal_nonuniform, preprocess, custom)
@@ -152,16 +144,3 @@ class Algorithm:
     # Change the 2 components' frontier costs corresponding to a shortest path
     reprioritize_after_sp = False       
     
-
-########################################################
-# DEFAULT SETTINGS
-########################################################
-
-
-def reload_log_conf():
-    """Call this to explicitly reconfigure the logging module,
-        especially if log_conf is changed by the user!
-    """
-    logging.config.dictConfig(Misc.log_conf)
-reload_log_conf()
-

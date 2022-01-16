@@ -1,22 +1,18 @@
 import unittest
-        
 import steinerpy.config as cfg
-
-# cfg.Animation.visualize = True
-# cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
-# cfg.Algorithm.sstar_heuristic_type = "zero"
-
-# change logging type test
-# cfg.Misc.log_conf["handlers"]["console"]["formatter"] = "default"
-
-# change console level
-# cfg.Misc.log_conf["handlers"]["console"]["level"] = "DEBUG"
-# reload log conf
-# cfg.reload_log_conf()
-
 from steinerpy.library.graphs.graph import GraphFactory
 from steinerpy.algorithms import SstarHS, SstarBS, SstarMM, SstarMM0, \
                                  SstarHSUN, SstarBSUN, SstarMMUN, SstarMM0UN
+
+# # to enable logger, do the following
+# import steinerpy as sp
+# sp.enable_logger()
+# # now set level via our steinerpy library
+# sp.set_level(sp.DEBUG)
+# # or use logging library as follows
+# import logging
+# l = logging.getLogger("steinerpy")
+# l.setLevel(logging.DEBUG)
 
  # Spec out our squareGrid
 minX = -15			# [m]
@@ -127,8 +123,7 @@ class TestWeirdEdgeCases(unittest.TestCase):
         self.old_setting = cfg.Algorithm.graph_domain
         cfg.Algorithm.graph_domain = "generic"
         cfg.Animation.visualize = False
-        cfg.Misc.log_conf["handlers"]['console']['level'] = "DEBUG"
-        cfg.reload_log_conf()
+
 
         from steinerpy.heuristics import Heuristics
         Heuristics.bind(lambda next, goal: 0)

@@ -3,6 +3,7 @@
 
 """
 from typing import List
+from steinerpy.heuristics import Heuristics
 
 
 from steinerpy.library.search.search_algorithms import MultiSearch
@@ -281,3 +282,47 @@ class SstarMM0UN(Unmerged):
 
     def local_bound_value(self, comp_ind: tuple)->float:
         return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
+
+
+
+#######################################################
+# Repeat of the above but with lb-propagation #########
+#######################################################
+
+class SstarMMLP(SstarMM):
+
+    def h_costs_func(self, search: MultiSearch, next: tuple) -> float:
+        """Compute the h cost of node 'next' (or u) 
+        using lb-propagation (Shperberg 2019)
+
+        """
+        if not search.goal:
+            return 0
+
+        # forward heuristic is the typical nearest-neighbor one
+        hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=next, goal=goal), search.goal.values()))
+        minH = min(hju)
+
+        f_forward = search.g[next] + minH 
+
+        # now try lb-propagation (involves both forward and backward heuristics)
+        # loop over all components except this one
+        lb = float('inf')
+        for idx, comp in search.siblings.items():
+            # skip self
+            if idx == search.id:
+                continue
+            # loop over all nodes in the open set
+            for item in comp.frontier:
+                _,_,v = item
+                # best lower bound between two different search fronts
+                temp = max(f_forward, comp.f[v], search.g[next] + comp.g[v])
+                # keep the minimum lower bound
+                if temp < lb:
+                    lb = temp
+
+        # this is from the paper
+        return lb - search.g[next]
+
+
+

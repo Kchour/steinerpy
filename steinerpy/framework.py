@@ -88,9 +88,16 @@ class Framework(AbstractAlgorithm):
         self.comps = Common.create_search_objects(search_class=MultiSearch, 
                                                 graph=self.graph, 
                                                 p_costs_func=self.p_costs_func,
+                                                h_costs_func=self.h_costs_func,
                                                 terminals=self.terminals, 
                                                 visualize=cfg.Animation.visualize
                                                 )
+        # share reference to comp dict 
+        for c in self.comps.values():
+            c.siblings = self.comps
+
+        # make sure root nodes 
+
         # Debugging purposes
         self.findset = {}
 
@@ -124,13 +131,14 @@ class Framework(AbstractAlgorithm):
         # TODO: Make this more efficient
         if cfg.Animation.visualize:        
             if self.run_debug <= 1:
-                if not plt.fignum_exists(1):
-                    # if figure doesn't exist yet, create it
-                    fig, ax = AnimateV2.create_new_plot(num=1, figsize=(7,7))
-                else:
-                    # get ax and fig if they exist
-                    ax = plt.gca()
-                    fig = plt.gcf()
+                # if not plt.fignum_exists(1):
+                #     # if figure doesn't exist yet, create it
+                #     fig, ax = AnimateV2.create_new_plot(num=1, figsize=(7,7))
+                # else:
+                #     # get ax and fig if they exist
+                #     ax = plt.gca()
+                #     fig = plt.gcf()
+                fig, ax = AnimateV2.create_new_plot(figsize=(7,7))
 
                 if cfg.Algorithm.graph_domain == "grid":
                     # get dimensions of grid

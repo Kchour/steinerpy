@@ -92,7 +92,7 @@ class Common:
             nodeQueue.delete(t2) #Is this the right way to do this?
 
     @staticmethod
-    def create_search_objects(search_class, graph, p_costs_func, terminals, visualize=False):
+    def create_search_objects(search_class, graph, p_costs_func, h_costs_func, terminals, visualize=False):
         """ Register `MultiSearch` class objects with an id, so we can do multiple searches and merge them
 
         Parameters:
@@ -110,7 +110,7 @@ class Common:
         """
 
         return {(index, ):  search_class(graph, start, {i: terminals[i] for i in set(range(len(terminals)))-set((index,))},\
-                     p_costs_func, visualize=visualize, id=index) \
+                     p_costs_func, h_costs_func, visualize=visualize, id=index) \
                     for index,start in enumerate(terminals) }
 
     @staticmethod

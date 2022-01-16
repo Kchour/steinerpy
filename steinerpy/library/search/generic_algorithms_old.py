@@ -307,6 +307,8 @@ class MultiSearch(Search):
         # (shortest path tree rooted at a terminal)
         self.children = {}
 
+        # keep track of other MultiSearch objects
+
     @property
     def goal(self):
         """Returns goals, keyed by id. The id and goal should be fixed to each other!
@@ -479,7 +481,7 @@ class MultiSearch(Search):
                 self.rmin_heap.put(next, g[current])
                 self.fmin_heap.put(next, self.f[next])
 
-                # track current neighbors
+                # track current of neighbors
                 self.currentNeighs.append(next)
 
                 # update root node pointer (extra)

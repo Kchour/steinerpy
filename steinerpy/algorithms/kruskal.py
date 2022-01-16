@@ -8,7 +8,6 @@ import steinerpy.config as cfg
 from steinerpy.library.misc.utils import MyTimer
 from steinerpy.abstract_algo import AbstractAlgorithm
 from steinerpy.library.search.search_utils import PriorityQueueHeap, CycleDetection, reconstruct_path
-# from steinerpy.library.search.search_algorithms import UniSearch
 from steinerpy.library.animation import AnimateV2
 from steinerpy.library.search.all_pairs_shortest_path import AllPairsShortestPath 
 

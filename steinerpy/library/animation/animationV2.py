@@ -69,13 +69,15 @@ class AnimateV2:
             fig.draw_artist(a['artist'][0])
 
     @classmethod
-    def get_artist(cls, artist_name, figure_number=1):
+    def get_artist(cls, artist_name, figure_number=None):
         if artist_name in cls.instances[figure_number].artists:
             return cls.instances[figure_number].artists[artist_name]['artist'][0]
 
     @classmethod
-    def delete(cls, artist_name, figure_number=1):
+    def delete(cls, artist_name, figure_number=None):
         """Removes a particular artist from both this class and the axes"""
+        if figure_number is None:
+            figure_number = plt.get_fignums()[-1]
         if artist_name in cls.instances[figure_number].artists:
             cls.instances[figure_number].artists[artist_name]['artist'][0].remove()
             del cls.instances[figure_number].artists[artist_name]
@@ -127,10 +129,13 @@ class AnimateV2:
         return plt.subplots(*args, **kwargs) 
 
     @classmethod
-    def init_figure(cls, fig, ax, figure_number=1, figure_name="", xlim=None, ylim=None):
+    def init_figure(cls, fig, ax, figure_number=None, figure_name="", xlim=None, ylim=None):
         """Allow the user to manually initialize the figure, they must pass in handles
 
         """
+        if figure_number is None:
+            figure_number = plt.get_fignums()[-1]
+
         plt.show(block=False)   
         plt.pause(0.1)
 
@@ -144,12 +149,12 @@ class AnimateV2:
         ax.set_aspect("equal")
         
         # Store the background in new class instance
-        o = AnimateV2(figure_number=1, figure_name=figure_name)
+        o = AnimateV2(figure_number, figure_name=figure_name)
         # o.background = fig.canvas.copy_from_bbox(ax.bbox)
         cls.instances[figure_number] = o
 
     @classmethod
-    def _add(cls, artist_name, x, y, *args, figure_number=1, figure_name="", xlim=None, ylim=None, draw_clean=False, linestyle="", alpha=1, **kwargs):
+    def _add(cls, artist_name, x, y, *args, figure_number=None, figure_name="", xlim=None, ylim=None, draw_clean=False, linestyle="", alpha=1, **kwargs):
         """Add line2d artist and its data to a particular figure 
 
         Args:
@@ -161,6 +166,8 @@ class AnimateV2:
             ylim (tuple): (ymin, ymax)
             
         """
+        if figure_number is None:
+            figure_number = plt.get_fignums()[-1]
         # initialization event.canvas.figure.axes[0].has_been_closed = True
         if not plt.fignum_exists(figure_number):
             # Get figure
@@ -184,7 +191,7 @@ class AnimateV2:
             plt.pause(0.1)
 
             # Store the background in new class instance
-            o = AnimateV2(figure_number=1, figure_name=figure_name)
+            o = AnimateV2(figure_number, figure_name=figure_name)
             o.background = fig.canvas.copy_from_bbox(ax.bbox)
             cls.instances[figure_number] = o
 
@@ -228,14 +235,21 @@ class AnimateV2:
         line.set_alpha(alpha)
 
     @classmethod
-    def add_artist_ex(cls, artist, artist_name, figure_number=1):
+    def add_artist_ex(cls, artist, artist_name, figure_number=None):
         """Add any user defined artist """
+        # get latest figure if figure_number is not specified
+        if figure_number is None:
+            figure_number = plt.get_fignums()[-1]
+
         if artist_name not in cls.instances[figure_number].artists:
             artist.set_animated(True)
             cls.instances[figure_number]._add_artists(artist, artist_name, use_line=False)
 
     @classmethod
-    def update(cls, figure_number=1):
+    def update(cls, figure_number=None):
+        if figure_number is None:
+            figure_number = plt.get_fignums()[-1]
+
         # Get figure
         fig = plt.figure(figure_number)
         ax = fig.axes[0]
