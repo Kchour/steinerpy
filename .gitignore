@@ -675,7 +675,7 @@ tags
 [._]*.un~
 
 # ignore virtual environment
-venv
+venv*
 
 # ignore large preprocessed heuristic files
 tests/heuristic

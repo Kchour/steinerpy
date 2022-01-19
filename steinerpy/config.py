@@ -129,6 +129,7 @@ class Algorithm:
                                               # zero otherwise
     hFactor = 1.0    # Scalng factor for heuristics (located in common.grid_based_heuristics)
     graph_domain = "grid" # grid, generic
+    always_nominate = True  # if True, then we wont cache nominations
     
     ########################################################
     # The following operations change a component's frontier costs

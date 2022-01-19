@@ -2,6 +2,7 @@
     and different path criteria's
 
 """
+import logging
 from typing import List
 from steinerpy.heuristics import Heuristics
 
@@ -11,7 +12,9 @@ from steinerpy.library.search.search_algorithms import MultiSearch
 from steinerpy.algorithms.merged import Merged
 from steinerpy.algorithms.unmerged import Unmerged
 from steinerpy.common import PathCriteria
-  
+
+logger = logging.getLogger(__name__) 
+
 ##########################################################
 #   MERGED 
 ##########################################################
@@ -279,19 +282,14 @@ class SstarMM0UN(Unmerged):
 
         return PathCriteria.path_criteria_mm(path_cost, c1, c2)
 
-
     def local_bound_value(self, comp_ind: tuple)->float:
         return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
-
-
 
 #######################################################
 # Repeat of the above but with lb-propagation #########
 #######################################################
 
-class SstarMMLP(SstarMM):
-
-    def h_costs_func(self, search: MultiSearch, next: tuple) -> float:
+def lb_prop_func(search: MultiSearch, next: tuple) ->float:
         """Compute the h cost of node 'next' (or u) 
         using lb-propagation (Shperberg 2019)
 
@@ -302,6 +300,8 @@ class SstarMMLP(SstarMM):
         # forward heuristic is the typical nearest-neighbor one
         hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=next, goal=goal), search.goal.values()))
         minH = min(hju)
+        minInd = hju.index(minH)
+        minGoal = search.goal[list(search.goal)[minInd]]
 
         f_forward = search.g[next] + minH 
 
@@ -312,17 +312,56 @@ class SstarMMLP(SstarMM):
             # skip self
             if idx == search.id:
                 continue
+            
+            # only do lb-propagation between nearest-neighbor
+            if minGoal not in comp.start:
+                continue
+
             # loop over all nodes in the open set
-            for item in comp.frontier:
+            for item in list(comp.frontier):
                 _,_,v = item
                 # best lower bound between two different search fronts
-                temp = max(f_forward, comp.f[v], search.g[next] + comp.g[v])
+                # ----------------------------------------------------
+                # try recompute backward heuristic?
+                # hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=v, goal=goal), comp.goal.values()))
+                # if hju:
+                #     minH = min(hju)
+                # else:
+                #     minH = 0
+                # f_backward = comp.g[v] + minH 
+                # with respect to current forward direction's root only!
+                f_backward = comp.g[v] + Heuristics.heuristic_func_wrap(next=v, goal=search.root[next])
+                # # dynamic update data structures?
+                # comp.f[v] = f_backward
+                # # comp.fmin_heap.put(v, f_backward)
+                # # comp.frontier.put(v, f_backward)
+                temp = max(f_forward, f_backward, search.g[next] + comp.g[v])
+
+                # dont recompute backward h?
+                # temp = max(f_forward, comp.f[v], search.g[next] + comp.g[v])
+
                 # keep the minimum lower bound
                 if temp < lb:
                     lb = temp
 
         # this is from the paper
-        return lb - search.g[next]
+        h = lb - search.g[next]
+        logger.debug("Heuristic value, search_id: {} {}".format(h, search.id))
+        return h
 
+class SstarMMLP(SstarMM):
 
+    def h_costs_func(self, search: MultiSearch, next: tuple) -> float:
+        return lb_prop_func(search, next)
 
+class SstarHSLP(SstarHS):
+
+    def h_costs_func(self, search: MultiSearch, next: tuple) -> float:
+        return lb_prop_func(search, next)
+
+#### TRY THE SAME THING WITH UNMERGED VARIANTS ###
+
+class SstarMMUNLP(SstarMMUN):
+
+    def h_costs_func(self, search: MultiSearch, next: tuple) -> float:
+        return lb_prop_func(search, next)

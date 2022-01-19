@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file. Furthermore, missing details will be added as I recall them.
 
+## [2.0.2] - 2021-01-16
+### Added
+- lb-propagation to MM/HS merged
+
+### Changed
+- Don't delete goals when there are only 2 components
+- Check for diff tolerance in addition to inequality during path and global bound checks. Otherwise numerical issues may delay or mess up path/tree termination criteria
+
 ## [2.0.1] - 2021-10-21
 ### Changed
 - Interface `IGraph` node and edge count functions are now optional

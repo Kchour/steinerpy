@@ -22,6 +22,7 @@
 - Don't commit .xlsx files from randomized_tests
 - Cleanup cfg files, too many classes there
 - Need to separate tests into two use cases: normal end users and developers. 
+- Periodically clear dead nodes within priority queue heap (due to lazy deletion)
 
 
 

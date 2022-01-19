@@ -92,14 +92,18 @@ class Framework(AbstractAlgorithm):
                                                 terminals=self.terminals, 
                                                 visualize=cfg.Animation.visualize
                                                 )
+
+        # to find component containing said terminal 
+        # self.findset = {t: c for t,c in zip(self.terminals, self.comps)}
         # share reference to comp dict 
         for c in self.comps.values():
             c.siblings = self.comps
+            # c.findset = self.findset
+            # c.finish_setup(self.comps)
 
         # make sure root nodes 
-
-        # Debugging purposes
         self.findset = {}
+
 
         # Create cache and solution set
         self.node_queue = PriorityQueueHeap()
@@ -191,7 +195,7 @@ class Framework(AbstractAlgorithm):
         my_logger.info("performing nomination")
 
         for ndx, c in self.comps.items():
-            if ndx not in self.node_queue:
+            if ndx not in self.node_queue or cfg.Algorithm.always_nominate:
                 if c.nominate():
                     self.node_queue.put(ndx, c.currentP)
                     # also update global bound
@@ -299,7 +303,8 @@ class Framework(AbstractAlgorithm):
                     self.comps[c2].lmin = UFeas
                     self.comps[c2].lnode = commonNode
 
-                my_logger.debug("Observing edge between {} {} - cost {}, local fmin1 {} fmin2 {}, gmin1 {} gmin2 {} pathCriteria {}".\
+                my_logger.debug("ITERATION {}".format(self.run_debug)) 
+                my_logger.debug("Observing edge between {} {} - cost {}, local fmin1 {} fmin2 {}, gmin1 {} gmin2 {} global LB {}".\
                     format(c1,c2, UFeas, self.comps[c1].fmin, self.comps[c2].fmin, self.comps[c1].gmin, self.comps[c2].gmin, self.global_bound_queue.get_min()))
 
                 sp = self.shortest_path_check([c1,c2], UFeas)
@@ -321,13 +326,17 @@ class Framework(AbstractAlgorithm):
                     # MyLogger.add_message("goals(PRE) of {} is {}".format(t1, self.comps[t1].goal), __name__, "Debug")
                     # MyLogger.add_message("goals(PRE) of {} is {}".format(t2, self.comps[t2].goal), __name__, "Debug")
                     try:
-                        for t in c2:
-                            if t in self.comps[c1].goal:
-                                del self.comps[c1].goal[t]
-                        
-                        for t in c1:
-                            if t in self.comps[c2].goal:
-                                del self.comps[c2].goal[t]
+                        # don't delete goals if only 2 components left!
+                        # sometimes extra expansions are necessary before 
+                        # the merge works
+                        if len(self.comps)>2:
+                            for t in c2:
+                                if t in self.comps[c1].goal:
+                                    del self.comps[c1].goal[t]
+                            
+                            for t in c1:
+                                if t in self.comps[c2].goal:
+                                    del self.comps[c2].goal[t]
 
                     except Exception as e_:
                         print(e_)
@@ -557,7 +566,10 @@ class Framework(AbstractAlgorithm):
             path_cost, comps_ind = self.path_queue.get_min()
 
             # check global bound
-            if path_cost <= self.global_bound_queue.get_min()[0]:
+            # if path_cost <= self.global_bound_queue.get_min()[0]:
+            # to avoid numerical issues we have to check for tolerance!
+            rhs = self.global_bound_queue.get_min()[0]
+            if abs(path_cost - rhs)<1e-9 or path_cost<=rhs:
                 # append path to sol to be added
                 sol.append({'path_cost': path_cost, 'comps_ind': comps_ind})
 
@@ -607,7 +619,8 @@ class Framework(AbstractAlgorithm):
 
             # if (83,33) in self.comps:
             #     # 5 not in goal
-            #     print("STOP")  
+            #     print("STOP") 
+
             start = timer()
             self.nominate()
             end = timer()

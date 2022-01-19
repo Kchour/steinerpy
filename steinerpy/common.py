@@ -4,6 +4,7 @@ Todo:
     * Add support for generic graphs 
 """
 
+from importlib.resources import path
 from steinerpy.library.search.search_algorithms import MultiSearch
 import numpy as np
 import logging
@@ -109,7 +110,7 @@ class Common:
                     for index,start in enumerate(terminals) }
         """
 
-        return {(index, ):  search_class(graph, start, {i: terminals[i] for i in set(range(len(terminals)))-set((index,))},\
+        return {(index, ):  search_class(graph, [start], {i: terminals[i] for i in set(range(len(terminals)))-set((index,))},\
                      p_costs_func, h_costs_func, visualize=visualize, id=index) \
                     for index,start in enumerate(terminals) }
 
@@ -140,7 +141,10 @@ class PathCriteria:
 
     @staticmethod
     def path_criteria_pohl(path_cost, c1: MultiSearch, c2: MultiSearch)->bool:
-        if path_cost <= max(c1.fmin, c2.fmin):
+        # if path_cost <= max(c1.fmin, c2.fmin):
+        # need to do this due to round off errors...
+        rhs = max(c1.fmin, c2.fmin)
+        if abs(path_cost - rhs)<1e-9 or path_cost<=rhs:
             return True
         else:
             return False
@@ -148,7 +152,9 @@ class PathCriteria:
     @staticmethod
     def path_criteria_nicholson(path_cost, c1: MultiSearch, c2: MultiSearch)->bool:
         # This is Nicholson's criteria
-        if path_cost <= c1.gmin + c2.gmin:
+        # if path_cost <= c1.gmin + c2.gmin:
+        rhs = c1.gmin + c2.gmin
+        if abs(path_cost - rhs)<1e-9 or path_cost <= rhs:
             # shortest path confirmed
             return True
         else:
@@ -159,7 +165,10 @@ class PathCriteria:
     def path_criteria_mm(path_cost, c1: MultiSearch, c2: MultiSearch)->bool:
         # from MM paper
         C = min(c1.pmin, c2.pmin)
-        if path_cost <= max(C, c1.fmin, c2.fmin, c1.gmin + c2.gmin):
+        # if path_cost <= max(C, c1.fmin, c2.fmin, c1.gmin + c2.gmin):
+        rhs = max(C, c1.fmin, c2.fmin, c1.gmin + c2.gmin)
+        my_logger.debug("MM CRITERIA, PATH_COST, RHS: {}, {}".format(path_cost, rhs))
+        if abs(path_cost - rhs)<1e-9 or path_cost <= rhs:
             return True
         else:
             return False  

@@ -84,7 +84,9 @@ class Unmerged(Framework):
             # check for cycles and global bound
             if not self.cycle_detection.add_edge(*comps_ind, test=True):
 
-                if path_cost <= self.global_bound_queue.get_min()[0]: 
+                rhs = self.global_bound_queue.get_min()[0]
+
+                if abs(path_cost - rhs)<1e-9 or path_cost<=rhs: 
 
                     # update cycle detection algorithm
                     self.cycle_detection.add_edge(*comps_ind)

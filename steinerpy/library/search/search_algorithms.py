@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from timeit import default_timer as timer
 import logging
-from typing import Iterable
+from typing import Iterable, List
 
 import steinerpy.config as cfg
 from steinerpy.library.animation import AnimateV2
@@ -264,11 +264,15 @@ class MultiSearch(Search):
     Todo:
         * Consider putting animateClosed in the `update` function, because closing does not occur until `update`
     """
-    def __init__(self, graph:IGraph, start: tuple, goal: Iterable[tuple]=None, pCostsFunc=CostFuncInterface, hCostsFunc=CostFuncInterface, visualize=False, id=None, siblings=None):
-        Search.__init__(self, graph, start, goal)
-
-        # keep track of F
-        self.f = {}
+    def __init__(self, graph:IGraph, start: List[tuple], goal: Iterable[tuple]=None, pCostsFunc=CostFuncInterface, hCostsFunc=CostFuncInterface, visualize=False, id=None):
+        if len(start)==1:
+            Search.__init__(self, graph, start[0], goal)
+            self.start = start
+        else:
+            self.graph = graph
+            self.start = start
+            self.goal = goal
+            self.current = None
         
         # Visualize algorithm flag
         self.visualize = visualize
@@ -280,10 +284,8 @@ class MultiSearch(Search):
         self.id = (id,)
 
         # make sure root has the correct starting f value
-        self.frontier = PriorityQueueHeap()
-        self.frontier.put(self.start, pCostsFunc(self, self.g, self.start))
+        # self.frontier = PriorityQueueHeap()
 
-        # self.f[start] = 0            #May need to figure out how to initialize this besides 0
         
         # min values
         # self._fmin, self._gmin, self._pmin, self._rmin = np.inf, np.inf, np.inf, np.inf
@@ -301,13 +303,17 @@ class MultiSearch(Search):
         self.rmin_heap = PriorityQueueHeap()
         self.fmin_heap = PriorityQueueHeap()
 
-        self.gmin_heap.put(start, 0)
-        self.rmin_heap.put(start, 0)
-        self.fmin_heap.put(start, self.f[start])
+        self.f={}
+        if len(start)==1:
+            # if start != "Temp":
+            self.gmin_heap.put(start[0], 0)
+            self.rmin_heap.put(start[0], 0)
+            self.fmin_heap.put(start[0], 0)
+            self.f[start[0]] = 0
 
-        # Extra things: not necessary for shortest path computation
-        # every node will keep track its closest terminal root node based on gcost
-        self.root = {start: start}
+            # Extra things: not necessary for shortest path computation
+            # every node will keep track its closest terminal root node based on gcost
+            self.root = {start[0]: start[0]}
 
         # Keep track of children in shortest path computation
         # (shortest path tree rooted at a terminal)
@@ -315,15 +321,25 @@ class MultiSearch(Search):
 
         # fcostsfunc is a passed-in method representing the priority, returns a float
         self.pCosts = pCostsFunc     
+        self.hCosts = hCostsFunc
 
-        # keep track of other search objects if applicable
-        self.siblings = siblings
+        # to find components containing terminals
+        self.findset = None
 
-    def finish_setup(self, comp_ref:dict):
-        """Finish setting up this MultiSearch object""" 
-        # store reference to other objs
+        # keep track of reference to other objs
+        self.siblings = None
 
-        # correct the root node f costs within the data structures
+    # def finish_setup(self, comp_ref:dict):
+    #     """Finish setting up this MultiSearch object""" 
+    #     # store reference to other objs
+    #     self.siblings = comp_ref
+
+    #     if self.start != "Temp":
+    #         # correct the root node f costs within the data structures
+    #         self.frontier.put(self.start, self.pCosts(self, self.g, self.start))
+
+    #         # correct rot node f costs
+    #         self.fmin_heap.put(self.start, self.f[self.start])
 
     @property
     def goal(self):
@@ -465,6 +481,9 @@ class MultiSearch(Search):
                 # Store neighbor's gcost
                 g[next] = g_next
                 
+                # update root node pointer (extra)
+                self.root[next] = self.root[current]
+
                 # Calculate priority and time it
                 # Call priority function to get next node's priority (TODO: rename fcosts -> priority!)
                 start = timer()
@@ -499,8 +518,6 @@ class MultiSearch(Search):
                 # track current neighbors
                 self.currentNeighs.append(next)
 
-                # update root node pointer (extra)
-                self.root[next] = self.root[current]
                 
             if self.visualize:
                 # self.animateNeighbors.update(next)
@@ -630,7 +647,7 @@ class MultiSearch(Search):
 
         """       
         ## Initialize some merged structures
-        mergedF = PriorityQueueHeap()    # merged frontier   #tricky, priorityQueue or priorityQueueHeap?
+        mergedF = PriorityQueueHeap()    # merged frontier
         mergedG = {}                 # merged closed list/ cost_so_far
         mergedP = {}                 # merged parent list
         mergedID = []
@@ -663,13 +680,18 @@ class MultiSearch(Search):
                 mergedGoal.update({k: other.goal[k]})
 
         ## Create a GenericSearch Object to return
-        mergedGS = MultiSearch(self.graph,  'Temp', mergedGoal, self.pCosts, visualize=cfg.Animation.visualize)
+        start = []
+        start.extend(self.start)
+        start.extend(other.start)
+
+        mergedGS = MultiSearch(self.graph,  start, mergedGoal, self.pCosts, visualize=cfg.Animation.visualize)
 
         # update id
         mergedGS.id = mergedID
 
         # save siblings
         mergedGS.siblings = self.siblings
+        # mergedGS.finish_setup(self.siblings)
 
         # update set of components: delete old individuals
         self.siblings[mergedGS.id] = mergedGS
@@ -733,6 +755,8 @@ class MultiSearch(Search):
         # DO I NEED TO SET THE G COSTS HERE TOO?.
         # NO need to set current?
         
+        # set up root
+        mergedGS.root = mergedRoot
         # set up g
         mergedGS.g = mergedG
 
@@ -802,11 +826,11 @@ class MultiSearch(Search):
 
             mergedP[next] = current
 
-        # removed start="Temp" from frontier and related heaps
-        mergedGS.frontier.delete('Temp')
-        mergedGS.fmin_heap.delete("Temp")
-        mergedGS.gmin_heap.delete("Temp")
-        mergedGS.rmin_heap.delete("Temp")
+        # # removed start="Temp" from frontier and related heaps
+        # mergedGS.frontier.delete('Temp')
+        # mergedGS.fmin_heap.delete("Temp")
+        # mergedGS.gmin_heap.delete("Temp")
+        # mergedGS.rmin_heap.delete("Temp")
 
 
         # set closed list, valued by currentF
@@ -823,7 +847,6 @@ class MultiSearch(Search):
         # mergedGS.g = mergedG
         mergedGS.parent = mergedP
         mergedGS.frontier = mergedF
-        mergedGS.root = mergedRoot
         mergedGS.children = mergedChildren
         # if g1[self.current] < g2[other.current]
         # if self.currentF < other.currentF:

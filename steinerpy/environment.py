@@ -19,6 +19,10 @@ class EnvLoader:
     def load(cls, env_type: str, *args, **kwargs):
         """return a predefined environment based on env_type
 
+        For mapf maps, pass in the full map name as a string, i.e. 'XXXX.map'
+        For steinlib, pass in the relative path as a string, i.e. "B/XXXX.stp"
+
+
         """
         if env_type == EnvType.MAPF.name:
             # pass the map name
@@ -26,7 +30,6 @@ class EnvLoader:
         elif env_type == EnvType.STEINLIB:
             # pass the relative path
             return cls._steinlib_loader(args[0])
-
 
 
     @classmethod
@@ -51,7 +54,13 @@ class EnvLoader:
     
     @classmethod
     def _hanoi_loader(cls, n: int, k:int):
-        pass
+        """tower of hanoi graph
+        
+        n: number of disks (1,...,n)
+        k: number of towers (1,...,k)
+        
+        """
+        return HanoiGraph(n,k)
 
 ###########################################################################
 # Implement structured graphs here and define how they can be loaded above
@@ -60,7 +69,7 @@ class EnvLoader:
 ###########################################################################
 
 class HanoiGraph(IGraph):
-    """Tower of Hanoi for n-discs and k-towers. The objective is move
+    """Tower of Hanoi for n-discs and k-towers. The objective is to move
     a set of discs from one stack (tower) to another, but the following rules
     must be obyed:
 
@@ -72,17 +81,17 @@ class HanoiGraph(IGraph):
 
     Notation: (disc3 loc., disc2 loc., disc1 loc)
 
-    E.g. for (n,k)=(3,3). Let 1,2,3 represent each tower, and each disc
+    E.g. for (n,k)=(3,4) or 3 discs and 4 towers. Let 1,2,3,4 represent each tower, and each disc
     from largest to smallest 3,2,1. Then the tuple 3-(i,j,k) represents the location of disc 3,2,1 
-    at tower i, j, k respectively.
+    at tower 1<=i, j, k<=4 respectively.
 
     """
     def __init__(self, n, k):
-        """n discs, k towers
+        """k towers, n discs, usually represented as H^n_k
         """
         self.n = n
         self.k = k
-        self.discs = list(range(k))
+        self.discs = list(range(n))
         self.discs.reverse()        
 
     def neighbors(self, v: tuple, debug=False):
@@ -99,8 +108,8 @@ class HanoiGraph(IGraph):
         if debug:
             # make sure vertex tuple is not longer than defined
             assert(len(v))==self.n
-            # make sure all disc labels are at most n
-            assert all([i<=self.n for i in v])
+            # make sure all disc labels are at most k (tower)
+            assert all([i<=self.k for i in v])
         # empty tower
         tower = [[] for _ in range(self.k)]
         # store discs in different towers
@@ -117,7 +126,7 @@ class HanoiGraph(IGraph):
                 # avoid self edges
                 if n1 != n2 and len(k1)>0:
                     # an action is feasible if the destination tower is empty
-                    # of the destination tower's smallest disc is larger
+                    # or the destination tower's smallest disc is larger
                     if len(k2) == 0 or k1[-1] < k2[-1]:
                         # able = [-1 for _ in range(self.n)]
                         # able = (nth disc loc, n-1 th disc loc, ..., 1)
@@ -135,8 +144,44 @@ class HanoiGraph(IGraph):
     def cost(*args):
         return 1
 
+class PancakeGraph(IGraph):
+    """Pancake flipping graph (P_N), where N is the number of pancakes
+
+    A stack of pancakes is given, which may be in some arbitrary configuration. The goal is to 
+    flip the pancakes using a spatula so that the pancakes is sorted from largest (bottom) to smallest 
+    (smallest).
+
+    Given an n-tuple, (i1,...,in), let the index correspond to a row (top to bottom, left to right), while the actual
+    value at the index is the pancake size.
+
+    As an example, the desired solution for P_10 is (1, 2, 3, ..., 10)
+
+    """
+    def __init__(self, n):
+        self.n = n
+
+    def neighbors(self, v: tuple, debug=False):
+        if debug:
+            assert all([i<=self.n for i in v])
+        neighs = []
+        for ndx, i in enumerate(v):
+            if ndx == 0:
+                continue
+            neighs.append(v[0:ndx+1][::-1]+v[ndx+1::])
+        return neighs
+
+    def cost(*args):
+        return 1
+
 if __name__ == "__main__":
     # test hanoi graph with (n=3, k=3)
-    hanoi = HanoiGraph(10, 4)
+    # n discs, k towers 
+    hanoi = HanoiGraph(3, 4)
     # check neighbors
-    print(hanoi.neighbors((1,2,1,1), debug=True))
+    # print(hanoi.neighbors((1,2,1,1), debug=True))
+    print(hanoi.neighbors((1,2,1), debug=True))
+
+    pancake = PancakeGraph(4)
+    # index corresponds to the pancake size, while the value
+    # is the row
+    print(pancake.neighbors((1,2,3,4)))

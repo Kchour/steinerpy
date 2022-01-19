@@ -102,6 +102,7 @@ class Merged(Framework):
                 # self.comps[mergedComp.id] = mergedComp
                 # del self.comps[c1]
                 # del self.comps[c2]
+
                 
                 # Delete old references from every location (nodeQueue, pathQueue, globalQueue)
                 if c1 in self.node_queue:

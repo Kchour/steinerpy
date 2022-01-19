@@ -11,6 +11,7 @@ def enable_logger():
     """
     from .config import log_conf
     logging.config.dictConfig(log_conf)
+    return logging.getLogger("steinerpy")
 
 # convenience code so user doesn't need to import logging
 DEBUG = logging.DEBUG
