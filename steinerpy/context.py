@@ -4,7 +4,9 @@ import logging
 from steinerpy.algorithms.sstar import SstarMM0UN
 
 from .algorithms import SstarHS, Kruskal, SstarBS, SstarMM, SstarMM0, \
-                        SstarHSUN, SstarBSUN, SstarMMUN, SstarMM0
+                        SstarHSUN, SstarBSUN, SstarMMUN, \
+                        SstarMMLP, SstarHSLP,\
+                        SstarMMUNLP, SstarHSUNLP
 
 from steinerpy.library.graphs.graph import GraphFactory
 
@@ -80,6 +82,15 @@ class Context:
             self.instances[self.strategy] = SstarMMUN(self._graph, self._terminals)
         elif self.strategy == "S*-MM0-UN":
             self.instances[self.strategy] = SstarMM0UN(self._graph, self._terminals)                                
+        elif self.strategy == "S*-MM-LP":
+            self.instances[self.strategy] = SstarMMLP(self._graph, self._terminals)                                
+        elif self.strategy == "S*-MM-UN-LP":
+            self.instances[self.strategy] = SstarMMUNLP(self._graph, self._terminals)                                
+        elif self.strategy == "S*-HS-LP":
+            self.instances[self.strategy] = SstarHSLP(self._graph, self._terminals)                                
+        elif self.strategy == "S*-HS-UN-LP":
+            self.instances[self.strategy] = SstarHSUNLP(self._graph, self._terminals)                                
+
         else:
             raise ValueError("Strategy {} is not found".format(self.strategy))
         # Log run

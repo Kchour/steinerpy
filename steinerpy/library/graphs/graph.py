@@ -24,6 +24,7 @@ Todo:
 from abc import ABC, abstractmethod
 import numpy as np
 import copy
+import itertools as it
 
 from steinerpy.library.graphs import graph
 from .grid_utils import init_grid
@@ -90,18 +91,118 @@ class GraphFactory:
 
     """
     @staticmethod
-    def create_graph(type_: str, **kwargs ) -> IGraph:
+    def create_graph(type_: str, *args, **kwargs ) -> IGraph:
         try:
-            if type_ is "SquareGrid":
-                return SquareGrid(**kwargs)
-            elif type_ is "Generic":
-                return MyGraph(**kwargs)
-            elif type_ is "SquareGridDepot":
-                return SquareGridDepot(**kwargs)
+            if type_ == "SquareGrid":
+                return SquareGrid(*args, **kwargs)
+            elif type_ == "Generic":
+                return MyGraph(*args, **kwargs)
+            elif type_ == "SquareGridDepot":
+                return SquareGridDepot(*args, **kwargs)
+            elif type_ == "SquareGrid3D":
+                return SquareGrid3D(*args, **kwargs)
             raise AssertionError("Graph type not defined")
         except AssertionError as _e:
             print(_e)
             raise
+
+class SquareGrid3D(IGraph):
+    """a 3d based grid class using numpy array as an underlying data structure
+    
+    Assume a unit grid size for now!
+    
+    """
+    # constants, the first is based on grid_size 
+    vl = 1
+    SQ3 = 1.7320508075688772
+    SQ2 = 1.4142135623730951
+    C1 = SQ3 - SQ2
+    C2 = SQ2 - vl
+    C3 = vl
+
+    def __init__(self, grid_dim: list, grid_size: float, obstacles: list=None):
+        self.name = None
+        self.grid_size = grid_size
+        self.grid_dim = grid_dim
+        self.x_len = int((grid_dim[1] - grid_dim[0] + 1)/grid_size)
+        self.y_len = int((grid_dim[3] - grid_dim[2] + 1)/grid_size)
+        self.z_len = int((grid_dim[5] - grid_dim[4] + 1)/grid_size)
+
+        # create a 3d np array
+        self.grid = np.zeros((self.x_len, self.y_len, self.z_len))
+
+        # set cells to 1 if obstacle
+        self.obstacles = obstacles 
+        if obstacles is not None:
+            for o in obstacles:
+                x,y,z = o
+                self.grid[x][y][z] = 1
+
+        # C2 = SquareGrid3D.SQ2 - grid_size
+        # C3 = grid_size
+
+    def in_bounds(self, node):
+        """node must fall within bounds"""
+        x,y,z = node
+        return self.grid_dim[0] <= x <= self.grid_dim[1] and \
+               self.grid_dim[2] <= y <= self.grid_dim[3] and \
+               self.grid_dim[4] <= z <= self.grid_dim[5]
+
+    def not_obstacles(self, start, node):
+        """node coordinates coincide with cell index
+        
+        during diagonal actions, don't allow cutting of corners, i.e. each individual
+        cardinal action must also be possible.
+
+        """
+        x,y,z = node
+        xs, ys, zs = start
+        # get vector to destinatio node
+        dx, dy, dz = x - xs, y - ys, z - zs
+        # check cardinal directions
+        res = (self.grid[xs + dx][ys][zs] == 0 and\
+                self.grid[xs][ys + dy][zs] == 0 and\
+                self.grid[xs][ys][zs + dz] == 0)
+
+        # check target location
+        return self.grid[x][y][z] == 0 and res
+
+    def neighbors(self, node:tuple):
+        """There are at most 26 neighbors, subject to obstacles"""
+        (x,y,z) = node
+        layer_wo_mid = lambda z: [(x + self.grid_size, y, z), (x, y - self.grid_size, z),
+                       (x - self.grid_size, y, z), (x, y + self.grid_size, z),
+                       (x + self.grid_size, y + self.grid_size, z), (x + self.grid_size, y - self.grid_size, z),
+                       (x - self.grid_size, y - self.grid_size, z), (x - self.grid_size, y + self.grid_size, z)]
+
+        results = []
+        # Add each layer without a middle node
+        results.extend(layer_wo_mid(z-self.grid_size))
+        results.extend(layer_wo_mid(z))
+        results.extend(layer_wo_mid(z+self.grid_size))
+        # add two missing middle nodes
+        results.extend([(x, y, z - self.grid_size), (x ,y, z + self.grid_size)]) 
+
+        # apply filter to remove nodes
+        results = filter(lambda x: self.in_bounds(x), results) 
+        results = filter(lambda x: self.not_obstacles(node, x), results) 
+
+        return results
+
+    def cost(self, from_node, to_node):
+        """ based on voxel distance (octile distance generalized to 3d)"""
+        x1, y1, z1 = from_node
+        x2, y2, z2 = to_node
+        dx, dy, dz = abs(x1 - x2), abs(y1 - y2), abs(z1 - z2)
+        dmax = max(dx, dy, dz)
+        dmin = min(dx, dy, dz)
+        dmid = dx + dy + dz - dmin - dmax 
+        return SquareGrid3D.C1*dmin + SquareGrid3D.C2*dmid + SquareGrid3D.C3*dmax
+    
+    def show_grid(self):
+        ax = plt.figure().add_subplot(projection='3d')
+        ax.voxels(self.grid, facecolors="red", edgecolor='k')
+        plt.show(block=False)
 
 class SquareGrid(IGraph):
     """A grid based graph class. Physical coordinates origin (0,0) starts at the lower-left corner,
@@ -154,11 +255,13 @@ class SquareGrid(IGraph):
         self.grid_size = grid_size
         self.neighbor_type = n_type
 
-        # self.node_count = np.floor(self.xwidth * self.yheight / grid_size)- 1 - self.xwidth - self.yheight
+        # self._edge_count = None
+        self._node_count = None
+        # # self.node_count = np.floor(self.xwidth * self.yheight / grid_size)- 1 - self.xwidth - self.yheight
         m,n = np.floor(self.yheight / grid_size), np.floor(self.xwidth / grid_size)
-        self._node_count = m*n
+        # self._node_count = m*n
 
-        # define neighborhood type
+        # edge count
         if n_type == 4:
             # 4 neighbors (north, east, south, west)
             self._edge_count = (m-1)*n + (n-1)*m
@@ -167,9 +270,14 @@ class SquareGrid(IGraph):
             self._edge_count = 4*m*n - 3*(n+m) +2 
 
     def edge_count(self):
+        """Not precise, this is an upper bound only!"""
+        if self._edge_count is None:
+            self._edge_count = len(list(self.get_edges()))
         return self._edge_count
 
     def node_count(self):
+        if self._node_count is None:
+            self._node_count = len(list(self.get_nodes()))
         return self._node_count 
 
     def get_nodes(self):
@@ -227,20 +335,31 @@ class SquareGrid(IGraph):
     def get_boundary_nodes(self):
         """Defined as nodes which have degree < max_degree
 
+        WARNING: Does not work correctly
+
         """
-        d = {}
-        # get max degree
-        max_degree = None
-        for v in self.get_nodes():
-            degree = len(list(self.neighbors(v)))
-            if max_degree is None or degree > max_degree:
-                max_degree = degree
-            d.update({v: degree})
+        grad = np.gradient(self.grid)
+        y_b = np.where(abs(grad[0])==0.5)
+        x_b = np.where(abs(grad[1])==0.5)
 
-        # keep all nodes with degree less than max_degree
-        b_nodes = (vkey for vkey, vval in d.items() if vval < max_degree)
 
-        return b_nodes
+        nodes = set((x1,x2) for x2, x1 in it.chain(zip(*x_b), zip(*y_b)))
+
+
+        # d = {}
+        # # get max degree
+        # max_degree = None
+        # for v in self.get_nodes():
+        #     degree = len(list(self.neighbors(v)))
+        #     if max_degree is None or degree > max_degree:
+        #         max_degree = degree
+        #     d.update({v: degree})
+
+        # # keep all nodes with degree less than max_degree
+        # b_nodes = (vkey for vkey, vval in d.items() if vval < max_degree)
+
+        # return b_nodes
+        return nodes
 
     def set_obstacles(self, obstacles):
         """ 
@@ -378,14 +497,21 @@ class SquareGrid(IGraph):
             vmin=0,
             vmax=1,
             extent=[
-                minX,
-                maxX,
-                minY,
-                maxY],
-            cmap='Blues')
+                minX-self.grid_size/2,
+                maxX+self.grid_size/2,
+                minY-self.grid_size/2,
+                maxY+self.grid_size/2],
+            cmap='Blues', aspect='equal')
+
+        xmin, xmax, ymin, ymax = self.grid_dim
+        # self.ax.set_xticks(np.arange(xmin, xmax+1, self.grid_size))
+        # self.ax.set_yticks(np.arange(ymin, ymax+1, self.grid_size))
+        # self.ax.set_xticklabels(np.arange(xmin, xmax+1, self.grid_size))
+        # self.ax.set_yticklabels(np.arange(ymin, ymax+1, self.grid_size))
+        
         plt.title("Occupancy Grid Map")
         plt.axis('scaled')  #equal is another one
-        plt.grid()
+        # plt.grid()
         
         self.fig.canvas.restore_region(background)
         # Draw artists on helper objects
@@ -525,7 +651,7 @@ class MyGraph(IGraph):
             
     def _update_adj_list(self):
         # undirected vs directed edges
-        if self.graph_type is "undirected":
+        if self.graph_type == "undirected":
             temp = {}
             for key in self.edge_dict.keys():
                 temp.update({(key[1], key[0]): self.edge_dict[key]})

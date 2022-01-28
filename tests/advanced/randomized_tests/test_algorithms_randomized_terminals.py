@@ -84,7 +84,7 @@ class TestGenerateAndCompareResultsMAPFGridBase(unittest.TestCase):
     def tearDown(self):
         cfg.Algorithm.sstar_heuristic_type = self.old_setting  
 
-    @unittest.skip("not testing right now")
+    # @unittest.skip("not testing right now")
     def test_generate_randomized_terminals_results_compare_mapf(self):
         # This heuristic is good for 8-neighbor square grids
         cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
@@ -147,6 +147,7 @@ class TestGenerateAndCompareResultsMAPFGridBase(unittest.TestCase):
             pr.run()
 
 
+@unittest.skip("not testing right now")
 class TestGenerateRandomResultsSteinLibGenericGraph(unittest.TestCase):
 
     def setUp(self):

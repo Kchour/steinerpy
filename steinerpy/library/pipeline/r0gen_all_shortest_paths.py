@@ -1,4 +1,4 @@
-# MARK FOR DELETION
+""" DEPRECATED MARKED FOR DELETION """
 
 import pickle
 from timeit import default_timer as timer

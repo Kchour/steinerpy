@@ -1,6 +1,9 @@
+from ast import keyword
+from concurrent.futures import process
 import multiprocessing as mp
 import math
 import numpy as np
+import random
 from functools import partial
 import logging
 from timeit import default_timer as timer
@@ -13,8 +16,114 @@ import os
 
 my_logger = logging.getLogger(__name__)
 
-class AllPairsShortestPath:
+class SubPairsShortestPath:
+    """Used for computing the compressed differential heuristic (cdh)"""
 
+    @classmethod
+    def build(cls, G, size_limit, pivot_limit, processes=4, maxtasksperchild=1000):
+        """Given a memory limit build a cdh
+
+        Params:
+            size_limit (float or int): The limit in the number of items in the cdh 
+            pivot_limit (int): number of pivots (landmarks) in the graph to use
+        
+        Typically,
+        m := |P_a|, the number of pivot distances per state 'a' \in V
+        |P| := number of pivots  
+        memory_limit = m|V|, m >= 0
+
+        """
+        # leverage copy-on-write by creating global variables that are shared efficiently
+        global graph, ind_sz_lim, total_node_count
+        graph = G
+
+        WORKER_RESULTS = {}
+        STATS = {"time": 0, "expanded_nodes":0}
+
+        # randomly generate pivots
+        all_nodes = list(G.get_nodes())
+        total_node_count = len(all_nodes)
+        tasks = set() 
+        while len(tasks) < pivot_limit:
+            r_node = random.choice(all_nodes)
+            tasks.add(r_node)
+        tasks = list(tasks)
+        del all_nodes
+
+        ind_sz_lim = int(size_limit/pivot_limit)
+
+        # keep track of job progress
+        job_progress = Progress(len(tasks))
+
+        # create multiprocessing pool
+        pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
+
+        # now run the tasks
+        try:
+            my_logger.info("Computing cdh tables")
+            for result in pool.imap_unordered(cls._run_dijkstra, tasks):
+
+                # for i in range(total_node_count-ind_sz_lim):
+                #     result[1].pop(random.choice(list(result[1].keys())))
+
+                # store individual worker result
+                WORKER_RESULTS[result[0]] = result[1]
+
+                # update job progress
+                job_progress.next()
+
+        except Exception as e:
+            pool.terminate()
+            pool.close()
+            pool.join()
+            raise e
+        
+        # notify job finished
+        job_progress.finish()
+        pool.close()
+        pool.join()
+
+        # transpose results so that keys are all states, values are {pivot: dist}
+        new_data = {}
+        for pivot, values in WORKER_RESULTS.items():
+            if pivot == "type":
+                new_data[pivot] = values
+                continue
+            for state, dist in values.items():
+                if state not in new_data:
+                    new_data[state] = {pivot: dist}
+                else:
+                    new_data[state].update({pivot: dist})
+
+        return new_data
+                
+    @staticmethod
+    def _run_dijkstra(start):
+        search = UniSearch(graph, start, None, "zero", False)
+        # print(os.getpid(), start)
+        start_time = timer()
+        search.use_algorithm()
+        # number of nodes expanded
+        num_of_expanded = UniSearch.total_expanded_nodes
+        # time
+        total_time = timer() - start_time
+
+        # limit individual items in the results to size_limit/pivot
+        keys_to_del = set()
+        all_keys = list(search.g.keys())
+        while len(keys_to_del)< (total_node_count - ind_sz_lim):
+            keys_to_del.add(random.choice(all_keys))
+        for k in keys_to_del:
+            search.g.pop(k)
+
+        return start, search.g, num_of_expanded, total_time
+
+class AllPairsShortestPath:
+    """Multiple uses:
+        - creating the baseline (kruskal)  
+        - Building differential heuristic 
+
+    """
     @classmethod
     def dijkstra_in_parallel(cls,G, processes=4, maxtasksperchild=1000, flatten_results=False, return_stats=False, **kwargs):
         """Solve APSP problem with running Dijkstra on each node. Alternatively,
@@ -39,21 +148,28 @@ class AllPairsShortestPath:
         D = {}
         STATS = {"time": 0, "expanded_nodes": 0}
 
-
         # Run Dijkstra based on sampling technique:
         # 1) limit samples to a percentage of the configuration space.
         # 2) fixed samples given by user.
         # 3) limit samples to a fixed number of the configuration space.
         if "random_sampling_percentage" in kwargs:
             # len_ = G.node_count()
-            node_tasks = []
-            ## Look at boundary nodes only
-            # all_nodes = list(G.get_nodes())
+            node_tasks = set()
+
+            # look a boundary nodes only 
             all_nodes = list(G.get_boundary_nodes())
+
+            # case where map is empty
+            if not all_nodes:
+                all_nodes = list(G.get_nodes())
+
             limit = kwargs["random_sampling_percentage"]/100.*len(all_nodes)
 
             while len(node_tasks) < limit:
-                node_tasks.append(all_nodes[np.random.randint(len(all_nodes)-1)])
+                # node_tasks.append(all_nodes[np.random.randint(len(all_nodes)-1)])
+                # node_tasks.append(random.choice(all_nodes))
+                node_tasks.add(random.choice(all_nodes))
+            node_tasks = list(node_tasks)
             # clean up
             del all_nodes, limit
             num_tasks = len(node_tasks)
@@ -64,12 +180,24 @@ class AllPairsShortestPath:
             pass
         elif "random_sampling_limit" in kwargs:
             limit = kwargs["random_sampling_limit"]
-            node_tasks = []
-            ## Look at boundary nodes only
-            # all_nodes = list(G.get_nodes())
-            all_nodes = list(G.get_boundary_nodes())
+            node_tasks = set()
+
+            # get boundary nodes using gradient function
+            # all_nodes = list(G.get_boundary_nodes())
+
+            # handle case where map is empty
+            # if not all_nodes:
+            #     all_nodes = list(G.get_nodes())
+            all_nodes = list(G.get_nodes())
+            
             while len(node_tasks) < limit:
-                node_tasks.append(all_nodes[np.random.randint(len(all_nodes)-1)])
+                # node_tasks.append(random.choice(all_nodes)all_nodes[np.random.randint(len(all_nodes)-1)])
+                
+                # only add "boundary nodes" where degree < max
+                r_node = random.choice(all_nodes)
+                if len(list(G.neighbors(r_node))) < G.neighbor_type:
+                    node_tasks.add(random.choice(all_nodes))
+            node_tasks = list(node_tasks)
             # clean up
             del all_nodes
             num_tasks = len(node_tasks) 

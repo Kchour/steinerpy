@@ -12,6 +12,8 @@ class EnvType(Enum):
     STEINLIB = auto()
     HANOI = auto()
     PANCAKE = auto()
+    GRID_3D = auto()
+    GRID_2D = auto()
 
 class EnvLoader:
 
@@ -19,18 +21,37 @@ class EnvLoader:
     def load(cls, env_type: str, *args, **kwargs):
         """return a predefined environment based on env_type
 
-        For mapf maps, pass in the full map name as a string, i.e. 'XXXX.map'
-        For steinlib, pass in the relative path as a string, i.e. "B/XXXX.stp"
+        Params:
+            mapf maps, pass in the map name as a string, i.e. 'XXXX.map'
+            steinlib, pass in the relative path as a string, i.e. "B/XXXX.stp"
+            grid_2d: pass in the relative path as a string, i.e. 'sc/XXXX.map'
+            hanoi: pass in the integer number of disks 'n' and towers 'k'
+            pancake: pass in the integer number of pancakes
 
+
+            TODO: Not finished loading the rest yet
 
         """
-        if env_type == EnvType.MAPF.name:
+        if env_type == EnvType.MAPF:
             # pass the map name
             return cls._mapf_loader(args[0])
         elif env_type == EnvType.STEINLIB:
             # pass the relative path
             return cls._steinlib_loader(args[0])
+        elif env_type == EnvType.GRID_3D:
+            return cls._grid3d_loader(args[0])
+        elif env_type == EnvType.GRID_2D:
+            return cls._grid2d_loader(args[0])
 
+    @classmethod
+    def _grid2d_loader(cls, map_rel_name: str)->IGraph:
+        path = os.path.join(cfg.data_dir, "grid_2d", map_rel_name)
+        return DataParser.parse(path, dataset_type="grid_2d")
+
+    @classmethod
+    def _grid3d_loader(cls, map: str)->IGraph:
+        path = os.path.join(cfg.data_dir, "grid_3d", map)
+        return DataParser.parse(path, dataset_type="grid_3d")
 
     @classmethod
     def _mapf_loader(cls, map: str)->IGraph:
@@ -171,6 +192,7 @@ class PancakeGraph(IGraph):
         return neighs
 
     def cost(*args):
+        """Edge costs should be the number of pancakes above flip point"""
         return 1
 
 if __name__ == "__main__":

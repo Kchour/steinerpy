@@ -260,10 +260,9 @@ class SstarMMUN(Unmerged):
 
         return PathCriteria.path_criteria_mm(path_cost, c1, c2)
 
-
     def local_bound_value(self, comp_ind: tuple)->float:
-        return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
-
+        # return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
+        return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin]) 
 
 class SstarMM0UN(Unmerged):
     
@@ -313,9 +312,9 @@ def lb_prop_func(search: MultiSearch, next: tuple) ->float:
             if idx == search.id:
                 continue
             
-            # only do lb-propagation between nearest-neighbor
-            if minGoal not in comp.start:
-                continue
+            # # only do lb-propagation between nearest-neighbor
+            # if minGoal not in comp.start:
+            #     continue
 
             # loop over all nodes in the open set
             for item in list(comp.frontier):
@@ -323,14 +322,16 @@ def lb_prop_func(search: MultiSearch, next: tuple) ->float:
                 # best lower bound between two different search fronts
                 # ----------------------------------------------------
                 # try recompute backward heuristic?
-                # hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=v, goal=goal), comp.goal.values()))
-                # if hju:
-                #     minH = min(hju)
-                # else:
-                #     minH = 0
-                # f_backward = comp.g[v] + minH 
+                hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=v, goal=goal), comp.goal.values()))
+                if hju:
+                    minH = min(hju)
+                else:
+                    minH = 0
+                f_backward = comp.g[v] + minH 
+
                 # with respect to current forward direction's root only!
-                f_backward = comp.g[v] + Heuristics.heuristic_func_wrap(next=v, goal=search.root[next])
+                # f_backward = comp.g[v] + Heuristics.heuristic_func_wrap(next=v, goal=search.root[next])
+
                 # # dynamic update data structures?
                 # comp.f[v] = f_backward
                 # # comp.fmin_heap.put(v, f_backward)
@@ -362,6 +363,11 @@ class SstarHSLP(SstarHS):
 #### TRY THE SAME THING WITH UNMERGED VARIANTS ###
 
 class SstarMMUNLP(SstarMMUN):
+
+    def h_costs_func(self, search: MultiSearch, next: tuple) -> float:
+        return lb_prop_func(search, next)
+
+class SstarHSUNLP(SstarHSUN):
 
     def h_costs_func(self, search: MultiSearch, next: tuple) -> float:
         return lb_prop_func(search, next)

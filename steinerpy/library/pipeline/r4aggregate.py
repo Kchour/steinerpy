@@ -3,7 +3,7 @@
 import os
 import pandas as pd
 import re
-import xlsxwriter
+# import xlsxwriter
 # import cloudpickle as cp
 
 import steinerpy.config as cfg

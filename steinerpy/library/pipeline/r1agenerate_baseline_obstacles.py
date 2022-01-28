@@ -1,4 +1,4 @@
-'''Read baseline file and add obstacles to it'''
+'''DEPRECATED Read baseline file and add obstacles to it'''
 
 import os
 import pickle

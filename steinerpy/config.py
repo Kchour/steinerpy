@@ -6,7 +6,42 @@
 
 """
 import logging
+from multiprocessing import current_process
+from collections import defaultdict
+import threading
 #################### LOGGING CONFIGURATION #####################################
+
+# The following two custom classes is used to solve
+# issues related to logging in multithreaded applications
+# where locks() are reused!
+class ProcessSafeStreamHandler(logging.StreamHandler):
+    def __init__(self):
+        super().__init__()
+
+        self._locks = defaultdict(lambda: threading.RLock())
+
+    def acquire(self):
+        current_process_id = current_process().pid
+        self._locks[current_process_id].acquire()
+
+    def release(self):
+        current_process_id = current_process().pid
+        self._locks[current_process_id].release()
+
+class ProcessSafeFileHandler(logging.FileHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._locks = defaultdict(lambda: threading.RLock())
+
+    def acquire(self):
+        current_process_id = current_process().pid
+        self._locks[current_process_id].acquire()
+
+    def release(self):
+        current_process_id = current_process().pid
+        self._locks[current_process_id].release()
+
 class _ColoredFormatter(logging.Formatter):
     """Customized custom formatter class to allow colored outputs to the console!
         No need to import this at all!
@@ -130,6 +165,7 @@ class Algorithm:
     hFactor = 1.0    # Scalng factor for heuristics (located in common.grid_based_heuristics)
     graph_domain = "grid" # grid, generic
     always_nominate = True  # if True, then we wont cache nominations
+
     
     ########################################################
     # The following operations change a component's frontier costs
@@ -144,4 +180,11 @@ class Algorithm:
     reprioritize_after_merge = True     
     # Change the 2 components' frontier costs corresponding to a shortest path
     reprioritize_after_sp = False       
-    
+    # reprioritze before nominations
+    reprioritize_before_nominations = False
+
+class Pipeline:
+    """Pipeline settings"""
+
+    # whether to peform prerun operations during result generation
+    perform_prerun_r2 = True 

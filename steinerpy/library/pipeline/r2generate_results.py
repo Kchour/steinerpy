@@ -117,8 +117,9 @@ class GenerateResults(Generate):
                     self.solution[alg].append(context.return_solutions())
 
                     pg.next()
-            except: 
+            except Exception as e: 
                 my_logger.error("Something terrible has happened", exc_info=True)
+                raise e
 
         pg.finish()
 
@@ -143,7 +144,8 @@ class GenerateResults(Generate):
                }
 
 class GenerateResultsMulti(Generate):
-    def __init__(self, graph: IGraph, save_path: str="", file_behavior: str="HALT", num_processes=math.floor(mp.cpu_count()/2), maxtasksperchild=50, algs_to_run=None):
+    def __init__(self, graph: IGraph, save_path: str="", file_behavior: str="HALT", num_processes=math.floor(mp.cpu_count()/2), maxtasksperchild=50, algs_to_run=None,
+                pre_run_func=None, *kwargs):
         
         if algs_to_run is None:
             raise ValueError("No algorithms were specified!")
@@ -153,9 +155,13 @@ class GenerateResultsMulti(Generate):
         self.maxtasksperchild = maxtasksperchild
         self.num_processes = num_processes
 
+        self.pre_run = pre_run_func
+        self.pre_run_kwargs = kwargs
+
         self.algs_to_run = algs_to_run
         self.solution = {alg: [] for alg in self.algs_to_run}
         super().__init__(graph, save_path, file_behavior)
+
 
     def _generate(self):
         #start time
@@ -214,8 +220,25 @@ class GenerateResultsMulti(Generate):
     def _run_individual_algs(self, inputs):
         job_id, data = inputs
         # print("starting job id: ", job_id)
+
+
         terminals, alg = data
         context = Context(self.graph, terminals)
+
+        self.terminals = terminals
+        self.alg = alg 
+        self.job_id = job_id
+
+        # heuristic specific pre-run operations
+        # from steinerpy.library.pipeline import GenerateHeuristics
+        
+        # do pre-run operations here (like performing cdh bounding)
+        # # load heuristics (have each process connect to database...)
+        # if GenerateHeuristics.preload_name is not None:
+        #     GenerateHeuristics.load_results(db_location=GenerateHeuristics.preload_name)
+        if cfg.Pipeline.perform_prerun_r2 and self.pre_run is not None:
+            self.pre_run(self, *self.pre_run_kwargs)
+
         context.run(alg)
         # print("finished job id: ", job_id)
 

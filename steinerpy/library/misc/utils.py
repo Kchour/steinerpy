@@ -187,10 +187,13 @@ class Progress:
         self.n = num_of_iter 
         self.i = 0
         self.bar_length = 21
+        print("\n")
 
     def next(self):
         # for i in range(self.n):
-        sys.stdout.write('\r')
+        # sys.stdout.write('\r')
+        print('\r', end="")
+
         # the exact output you're looking for:
         # sys.stdout.write("[%-20s] %d%%" % ('='*i, 5*i))
         # incremental bar ===, length of bar, percentage 
@@ -198,15 +201,17 @@ class Progress:
             perc = 100
         else:
             perc = (100/(self.n-1)*self.i)
-        sys.stdout.write("[{:{}}] {:.1f}%".format("="*int(perc*(self.bar_length)/100), self.bar_length, perc))
-        sys.stdout.flush()
+        # sys.stdout.write("[{:{}}] {:.1f}%".format("="*int(perc*(self.bar_length)/100), self.bar_length, perc))
+        # sys.stdout.flush()
+        print("[{:{}}] {:.1f}%".format("="*int(perc*(self.bar_length)/100), self.bar_length, perc), end="")
         self.i+=1
         # sleep(0.25)
         # new line
         # sys.stdout.write("\n")
     
     def finish(self):
-        sys.stdout.write("\n")
+        # sys.stdout.write("\n")
+        print("")
 
 from collections import UserDict
 
@@ -320,18 +325,18 @@ class ChangingKeysDict(UserDict):
 if __name__ == "__main__":
 
 
-    ckd = ChangingKeysDict(["a", "b", "c", "d"])
-    ckd.update({("a", "b"): 1, ("b", "c"): 2, ("c", "d"): 3})
+    # ckd = ChangingKeysDict(["a", "b", "c", "d"])
+    # ckd.update({("a", "b"): 1, ("b", "c"): 2, ("c", "d"): 3})
 
-    # ckd.change_keys({"a": "apple"})
-    # ckd.change_keys({"b": "banana"})
-    # ckd.change_keys({"c": "cherry"})
-    # ckd.change_keys({"d": "deer"})
+    # # ckd.change_keys({"a": "apple"})
+    # # ckd.change_keys({"b": "banana"})
+    # # ckd.change_keys({"c": "cherry"})
+    # # ckd.change_keys({"d": "deer"})
 
-    ckd.change_keys({"a": "apple", "b": "banana", "c": "cherry", "d": "deer"})
+    # ckd.change_keys({"a": "apple", "b": "banana", "c": "cherry", "d": "deer"})
 
-    # try merging
-    ckd.change_keys({"apple": "sandwich", 'cherry': "sandwich"})
+    # # try merging
+    # ckd.change_keys({"apple": "sandwich", 'cherry': "sandwich"})
 
     p = Progress(1)
     for i in range(1):

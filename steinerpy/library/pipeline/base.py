@@ -8,8 +8,11 @@ from steinerpy.library.graphs import IGraph
 
 my_logger = logging.getLogger(__name__)
 
+
+
+
 class AFileHandle:
-    """
+    """ A virtual class for file handling
         Load from disk only applicable during "skip" file behavior
     """
     def __init__(self, save_path:str, file_behavior:str, load_from_disk=False):
@@ -30,16 +33,17 @@ class AFileHandle:
                 self.results = self._generate()
                 return self.results
         elif self.file_behavior == "SKIP":
-            # Simply move on, no need to halt
             if os.path.exists(self.save_path):
-                my_logger.info("".join((self.save_path, "already exists, but skipping")))
+                # Simply move on, (try to load previously generated results if desired)
+                my_logger.info("".join((self.save_path, "already exists, skipping")))
                 # try loading from disk if enabled
                 if self.load_from_disk == True:
                     self.results = self._load()
-                    # make sure instances are loaded from disk too
-                    self.instances = self.results['terminals']
+                    # # make sure instances are loaded from disk too
+                    # self.instances = self.results['terminals']
                     return self.results
             else:
+                # if path is unique, then generate results
                 self.results = self._generate()
                 return self.results
         elif self.file_behavior == "OVERWRITE":
@@ -62,19 +66,23 @@ class AFileHandle:
 
     def _load(self):
         """Load result from disk if desired
+
+        Make sure to return some results obj
         
         """
-        with open(self.save_path, 'rb') as f:
-            my_logger.info("Loading results from file {}".format(self.save_path))
-            results = pickle.load(f)
+        # with open(self.save_path, 'rb') as f:
+        #     my_logger.info("Loading results from file {}".format(self.save_path))
+        #     results = pickle.load(f)
         
-        return results
+        # return results
+        pass
     def _generate(self):
         """Run your generator here i.e. create results, output file etc.
         """
         pass
     
 class Generate(AFileHandle):
+    """Class for generating problem instances, results"""
     def __init__(self, graph: IGraph, save_path: str="", file_behavior: Union["SKIP", "HALT", "RENAME", "OVERWRITE"]="HALT", load_from_disk=False):
         super().__init__(save_path, file_behavior, load_from_disk)
         
@@ -124,6 +132,18 @@ class Generate(AFileHandle):
             list_of_instances.append(list(terminal_set))
 
         return list_of_instances
+
+    def _load(self):
+        """Load result from disk if desired
+        
+        """
+        with open(self.save_path, 'rb') as f:
+            my_logger.info("Loading results from file {}".format(self.save_path))
+            results = pickle.load(f)
+            # make sure instances are loaded from disk too
+            self.instances = self.results['terminals']
+        
+        return results
 
     def _generate(self):
         """

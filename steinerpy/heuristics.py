@@ -95,6 +95,7 @@ class _GridBasedHeuristics2D(type):
 
     @staticmethod
     def _gbh_preprocess(next, goal):
+        """Get heuristic value from pre-processed lookup table"""
         from steinerpy.library.pipeline import GenerateHeuristics
         return GenerateHeuristics.heuristic_wrap(next, goal)    
 

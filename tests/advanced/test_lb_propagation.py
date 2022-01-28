@@ -10,13 +10,13 @@ import random
 # random.seed(1)
 
 # turn on visualizations for debugging
-cfg.Animation.visualize = True
+cfg.Animation.visualize = False
 
 import matplotlib.pyplot as plt
 
 import steinerpy as sp
 l = sp.enable_logger()
-sp.set_level(sp.DEBUG)
+sp.set_level(sp.WARN)
 
 # add custom logging filter
 import logging
@@ -181,7 +181,7 @@ class TestUntilFailureDebug(unittest.TestCase):
     def gen(self):
         # generate random unique set of terminals
         T = set()
-        while len(T)<5:
+        while len(T)<10:
             x = random.randint(self.minX, self.maxX)
             y = random.randint(self.minY, self.maxY)
             if (x,y) not in self.graph.obstacles:
@@ -192,10 +192,10 @@ class TestUntilFailureDebug(unittest.TestCase):
 
     # @unittest.skip("not working just yet")
     def test_until_failure_seed(self):
-        # cnt = 343
-        # lim = 1000
-        cnt = 21
-        lim = 2000
+        # cnt = 21
+        cnt = 21    # un lb issue
+        # cnt = 70    # merged lb issue
+        lim = 2000  
         # load map
         self.load()
         while cnt < lim:
@@ -230,6 +230,8 @@ class TestUntilFailureDebug(unittest.TestCase):
 
     def with_unmerged_mm_and_lp(self):
         """Test unmerged mm against lb prop""" 
+        res1 = {'stats': None}
+        res2 = {'stats': None}
         # base = Kruskal(self.graph, self.T)
         # base.run_algorithm()
         # res5 = base.return_solutions()
@@ -248,7 +250,7 @@ class TestUntilFailureDebug(unittest.TestCase):
         res2 = mm.return_solutions()
         print(sum(res2['dist']), "".ljust(25), res2['stats']["expanded_nodes"])
 
-        self.assertTrue(    abs(sum(res1['dist']) - sum(res2['dist'])) < 1e-6)
+        # self.assertTrue(    abs(sum(res1['dist']) - sum(res2['dist'])) < 1e-6)
 
         print("MM Merged LB: ".ljust(25), end="")
         mm_lb = SstarMMLP(self.graph, self.T)
@@ -256,7 +258,7 @@ class TestUntilFailureDebug(unittest.TestCase):
         res3 = mm_lb.return_solutions()
         print(sum(res3['dist']), "".ljust(25), res3['stats']["expanded_nodes"])
 
-        self.assertTrue(    abs(sum(res2['dist']) - sum(res3['dist'])) < 1e-6)
+        # self.assertTrue(    abs(sum(res2['dist']) - sum(res3['dist'])) < 1e-6)
 
         print("MM Merged: ".ljust(25), end="")
         mm = SstarMM(self.graph, self.T)
@@ -266,13 +268,13 @@ class TestUntilFailureDebug(unittest.TestCase):
 
         self.assertTrue(    abs(sum(res3['dist']) - sum(res4['dist'])) < 1e-6)
 
-        print("Kruskal: ".ljust(25), end="")
+        # print("Kruskal: ".ljust(25), end="")
         base = Kruskal(self.graph, self.T)
         base.run_algorithm()
         res5 = base.return_solutions()
-        print(sum(res5['dist']))
+        print("Kruskal: ", sum(res5['dist']))
 
-        # self.assertTrue(    abs(sum(res5['dist']) - sum(res4['dist'])) < 1e-6)
+        self.assertTrue(    abs(sum(res5['dist']) - sum(res4['dist'])) < 1e-6)
 
         print("MMUN--------------------------------\n") 
         print("with lb: ", res1['stats'])

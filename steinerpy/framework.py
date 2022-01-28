@@ -196,6 +196,9 @@ class Framework(AbstractAlgorithm):
 
         for ndx, c in self.comps.items():
             if ndx not in self.node_queue or cfg.Algorithm.always_nominate:
+                if cfg.Algorithm.reprioritize_before_nominations:
+                    c.reprioritize()
+
                 if c.nominate():
                     self.node_queue.put(ndx, c.currentP)
                     # also update global bound
@@ -579,6 +582,7 @@ class Framework(AbstractAlgorithm):
                 break
 
         return sol
+
 
     ''' 'where the magic happens' function '''
     def run_algorithm(self):

@@ -158,7 +158,7 @@ class Search:
 
 class UniSearch(Search):
 
-    def __init__(self, graph, start, goal, heuristic_type="zero", visualize=False):
+    def __init__(self, graph, start, goal, heuristic_type="zero", visualize=False, stopping_critiera=None, **kwargs):
         """If heuristic_type is part of a grid, then cfg.Algorithm.graph_domain
         must be set to "grid"
 
@@ -172,7 +172,8 @@ class UniSearch(Search):
         self.frontier = PriorityQueueHeap()
         self.frontier.put(self.start, 0)      # PUT START IN THE OPENLIST
         self.parent = {}              # parent, {loc: parent}
-        # g function dict, {loc: f(loc)}, CLOSED LIST BASICALLY
+
+        # both the closed and open set shared in g.
         self.g = {}
         self.parent[self.start] = None
         self.g[self.start] = 0
@@ -184,7 +185,13 @@ class UniSearch(Search):
             else:
                 self.set_of_goal = self.goal
         else:
-            self.set_of_goal = set() 
+            self.set_of_goal = set()
+
+        # stopping criteria for early termination
+        self.stopping_criteria = stopping_critiera 
+
+        # additional kwargs for stopping criteria aside from self
+        self.kwargs = kwargs
 
     def use_algorithm(self):
         """Run algorithm until termination
@@ -198,8 +205,10 @@ class UniSearch(Search):
 
         while not self.frontier.empty():
             _, current = self.frontier.get()
+            self.current = current
 
-#            Update stats logging
+
+            # Update stats logging
             UniSearch.update_expanded_nodes()
 
             # Update stats
@@ -217,6 +226,11 @@ class UniSearch(Search):
                     return self.parent, self.g
             elif current == self.goal:
                 return self.parent, self.g
+
+            # custom stopping criteria
+            if self.stopping_criteria is not None:
+                if self.stopping_criteria(self, **self.kwargs):
+                    return self.parent, self.g
 
 
             # expand current node and check neighbors

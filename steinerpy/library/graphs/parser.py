@@ -47,7 +47,7 @@ class DataParser:
 
             return graph, terminalList
 
-        elif dataset_type == "mapf":
+        elif dataset_type == "mapf" or "grid_2d":
             # define some regex patterns
             heightPattern = r'(^height)\s(\d+)'
             widthPattern = r'(^width)\s(\d+)'
@@ -93,6 +93,20 @@ class DataParser:
 
 
             return graph
+
+        elif dataset_type == "grid_3d":
+            
+            pass
+            max_x, max_y, max_z = [int(v) for v in lines[0].strip().split(" ") if v.isdigit()]
+            grid_dim = [0, max_x, 0, max_y, 0, max_z]
+            obstacles = []
+            for line in lines[1::]:
+                ox, oy, oz = [int(v) for v in line.strip().split(" ")]
+                obstacles.append((ox, oy, oz))
+
+            graph = GraphFactory.create_graph("SquareGrid3D", grid_dim, grid_size=1, obstacles=obstacles)
+            return graph
+
 
     @staticmethod
     def _regex_mapf(lines, patterns):
