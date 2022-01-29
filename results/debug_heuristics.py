@@ -12,7 +12,9 @@ cfg.Animation.visualize = False
 # visualize bounds function?
 cfg.Pipeline.debug_vis_bounds = False
 # profile the code
-cfg.Misc.profile_frame = True
+cfg.Misc.profile_frame = False
+# reprioritize after merge?
+cfg.Algorithm.reprioritize_after_merge = True
 
 import steinerpy as sp
 sp.enable_logger()
@@ -54,6 +56,7 @@ instances = gen_bs.instances
 
 # try loading heuristics 
 GenerateHeuristics.load_results(results=data)
+# specify heuristic database type
 
 # pass this pre run func to generator
 def pre_run_func(self, *kwargs):
@@ -71,6 +74,8 @@ def pre_run_func(self, *kwargs):
     #     GenerateHeuristics.cdh_compute_bounds(graph, self.terminals)
     
     # cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
+
+    GenerateHeuristics.preload_type="CDH"
     cfg.Algorithm.sstar_heuristic_type = "preprocess"
     cfg.Algorithm.use_bpmx = True
     GenerateHeuristics.cdh_compute_bounds(graph, self.terminals)

@@ -8,6 +8,7 @@ For larger graphs (i.e > 700 nodes), we will have to resort to using "landmarks"
 a running limited number of Dijkstra search. Doing so will give a set of "lower bounds".
 
 """
+import numba as nb
 import logging
 import math
 import pickle
@@ -77,17 +78,38 @@ class HFileHandle(AFileHandle):
 
         return results
 
+###################################
+# for use with numba
+###################################
+def numba_dict(ndim):
+    """Assumes keys are n-tuples, values are float64
+    
+    """
+    return nb.typed.Dict.empty(
+        key_type=nb.types.UniTuple(nb.types.int64, ndim),
+        value_type=nb.types.float64,
+    )
+
+def numba_nested_dict(ndim):
+    return nb.typed.Dict.empty(
+        key_type=nb.types.UniTuple(nb.types.int64, ndim),
+        value_type=nb.typeof(numba_dict(ndim)),
+    )
 
 class GenerateHeuristics:
     #user preloaded
     preload_results = None
-    # name or path to heuristic preprocessed database
+    # name or path to heuristic preprocessed database (unused atm)
     preload_name = None 
+    # heuristic_type
+    preload_type = None
 
     # for cdh use
     cdh_lower_bound = {}
     cdh_upper_bound = {}
-    graph = None
+    # lower_bound = None
+    # upper_bound = None
+    # dist_ap = None
 
     @classmethod
     def get_heuristics(cls, graph, processes):
@@ -158,8 +180,45 @@ class GenerateHeuristics:
     ################################################################################################
     #   Create lookup table of functions, to mimic switch case speed
     ################################################################################################
+    @nb.njit
+    def _cdh(cdh_table, ub, lb, from_node, to_node):
+
+        x1, y1 = from_node
+        x2, y2 = to_node
+        dmax = max(abs(x1 - x2), abs(y1 - y2))
+        dmin = min(abs(x1 - x2), abs(y1 - y2))
+        h1 = 1.414*dmin + (dmax - dmin)
+        if from_node not in cdh_table:
+            return h1
+        else:
+            # cdhp = float("-inf")
+            cdhp = -math.inf
+            # loop over pivots reachable from surrogate "from_node"
+            for ndx, (p, dist) in enumerate(cdh_table[from_node].items()):
+                a = dist - ub[to_node][p]
+                b = lb[to_node][p] - dist
+                if a >= b:
+                    if a > cdhp:
+                        cdhp = a
+                else:
+                    if b > cdhp:
+                        cdhp = b
+
+            if cdhp >= h1:
+                return cdhp
+            else:
+                return h1
 
     def retrieve_from_cdh(result, from_node, to_node):
+
+        return GenerateHeuristics._cdh(result, 
+                                        GenerateHeuristics.cdh_upper_bound, 
+                                        GenerateHeuristics.cdh_lower_bound,
+                                        from_node,
+                                        to_node)
+
+    def retrieve_from_cdh_old(result, from_node, to_node):
+
         # compute octile heuristic
         x1, y1 = from_node
         x2, y2 = to_node
@@ -172,13 +231,48 @@ class GenerateHeuristics:
         else:
             # try to use numpy array for speed?
             # dist_ap = np.array(result[from_node].values())
-            p_list = result[from_node].keys()
-            dist_ap = np.fromiter(result[from_node].values(), dtype=np.float32)
-            lower_bound = np.fromiter((GenerateHeuristics.cdh_lower_bound[to_node][p] for p in p_list), dtype=np.float32)
-            upper_bound = np.fromiter((GenerateHeuristics.cdh_upper_bound[to_node][p] for p in p_list), dtype=np.float32)
-            cdhp = max(np.max(dist_ap - upper_bound), np.max(lower_bound - dist_ap))
+            # p_list = result[from_node].keys()
+            # dist_ap = np.fromiter(result[from_node].values(), dtype=np.float32)
+            # lower_bound = np.fromiter((GenerateHeuristics.cdh_lower_bound[to_node][p] for p in p_list), dtype=np.float32)
+            # upper_bound = np.fromiter((GenerateHeuristics.cdh_upper_bound[to_node][p] for p in p_list), dtype=np.float32)
 
-            max_lb = max(cdhp, h1)
+            cdhp = float("-inf")
+            for ndx, (p, dist) in enumerate(result[from_node].items()):
+                # a = dist - GenerateHeuristics.cdh_upper_bound[to_node][p]
+                # b = GenerateHeuristics.cdh_lower_bound[to_node][p] - dist
+                # if a >= b:
+                #     if a > cdhp:
+                #         cdhp = a
+                # else:
+                #     if b > cdhp:
+                #         cdhp = b
+
+                GenerateHeuristics.dist_ap[ndx] = dist
+                GenerateHeuristics.lower_bound[ndx] = GenerateHeuristics.cdh_lower_bound[to_node][p]
+                GenerateHeuristics.upper_bound[ndx] = GenerateHeuristics.cdh_upper_bound[to_node][p]
+            cdhp = max(np.nanmax(GenerateHeuristics.dist_ap - GenerateHeuristics.upper_bound), 
+                                np.nanmax(GenerateHeuristics.lower_bound - GenerateHeuristics.dist_ap))
+
+            # a = np.nanmax(GenerateHeuristics.dist_ap - GenerateHeuristics.upper_bound)
+            # b = np.nanmax(GenerateHeuristics.lower_bound - GenerateHeuristics.dist_ap)
+            
+            # if a >= b:
+            #     cdhp = a
+            # else:
+            #     cdhp = b
+
+            # cdhp = max(np.max(dist_ap - upper_bound), np.max(lower_bound - dist_ap))
+            if cdhp >= h1:
+                max_lb = cdhp
+            else:
+                max_lb = h1
+            # max_lb = max(cdhp, h1)
+
+            # reset temp arrays
+            # GenerateHeuristics.dist_ap[:] = np.inf
+            # GenerateHeuristics.upper_bound[:] = np.inf
+            # GenerateHeuristics.lower_bound[:] = 0
+
             return max_lb
             # loop over pivots, dists reachable by "from_node"
             # max_lb = -float('inf')
@@ -216,6 +310,9 @@ class GenerateHeuristics:
         To use this function correctly:
             1) load the cdh table into memory via 'load_results" function.
             2) generate a problem instance and then call this function 'cdh_compute_bounds'.
+
+
+        Requires Numba library as we use numba.typed.Dict instead of built-in python
 
         """
         cdh_table = GenerateHeuristics.preload_results
@@ -336,6 +433,41 @@ class GenerateHeuristics:
             # GenerateHeuristics.cdh_lower_bound[goal_point] = lb
             # GenerateHeuristics.cdh_upper_bound[goal_point] = ub
         # plt.close(fig)
+    
+        # finish setting up upper and lower bound temp class variables
+        # GenerateHeuristics.upper_bound = np.full(len(pivot_set), np.inf, dtype=np.float32)
+        # GenerateHeuristics.lower_bound = np.zeros(len(pivot_set), dtype=np.float32)
+        # GenerateHeuristics.dist_ap = np.full(len(pivot_set), np.inf, dtype=np.float32)
+
+        # convert cdh relevant dicts into special numba dict types
+        one_pivot = next(iter(pivot_set))
+        _lb = numba_nested_dict(len(one_pivot))
+        _ub = numba_nested_dict(len(one_pivot))
+        _cdh = numba_nested_dict((len(one_pivot)))
+        for k,values in GenerateHeuristics.cdh_lower_bound.items():
+            temp = numba_dict(len(one_pivot))
+            for k2, v in values.items():
+                temp[k2] = v
+            _lb[k] = temp
+
+        for k,values in GenerateHeuristics.cdh_upper_bound.items():
+            temp = numba_dict(len(one_pivot))
+            for k2, v in values.items():
+                temp[k2] = v
+            _ub[k] = temp
+        
+        for k,values in GenerateHeuristics.preload_results.items():
+            if k == "type":
+                continue
+            temp = numba_dict(len(one_pivot))
+            for k2, v in values.items():
+                temp[k2] = v
+            _cdh[k] = temp
+        
+        # replace loaded stuff with numba types
+        GenerateHeuristics.cdh_lower_bound = _lb
+        GenerateHeuristics.cdh_upper_bound = _ub
+        GenerateHeuristics.preload_results = _cdh
 
         if cfg.Pipeline.debug_vis_bounds:
             AnimateV2.close()
@@ -387,7 +519,8 @@ class GenerateHeuristics:
         """Entry-point into heuristic look-up table 
 
         """
-        return GenerateHeuristics.return_type[result["type"]](result, from_node, to_node)
+        # return GenerateHeuristics.return_type[result["type"]](result, from_node, to_node)
+        return GenerateHeuristics.return_type[GenerateHeuristics.preload_type](result, from_node, to_node)
 
     #########################
     # User interface functions

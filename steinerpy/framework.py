@@ -504,7 +504,11 @@ class Framework(AbstractAlgorithm):
             h = self.h_costs_func(search, next)
             # parent node
             parent_node = search.parent[next]
-            h = max(h, search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next))            
+            # propagated h value
+            parent_h_prop = search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next)
+            # h = max(h, search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next))            
+            if parent_h_prop > h:
+                h = parent_h_prop
         else:
             h = self.h_costs_func(search, next)
 
