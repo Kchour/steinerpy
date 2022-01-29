@@ -9,6 +9,7 @@ import numpy as np
 from timeit import default_timer as timer
 import logging
 from typing import Iterable, List
+import random
 
 import steinerpy.config as cfg
 from steinerpy.library.animation import AnimateV2
@@ -262,6 +263,104 @@ class UniSearch(Search):
                 if data:
                     AnimateV2.add_line("frontier", np.array(data).T.tolist(), markersize=8, marker='D', draw_clean=True)
                     AnimateV2.update()
+
+class UniSearchMemLimit(UniSearch):
+    """Same as unidirectional search, but with a memory limit
+    i.e., after len(g) is big enough, we start deleting a closed, non-boundary
+    node from g 
+    
+    """
+    def __init__(self, graph, start, goal, memory_limit=float('inf'), heuristic_type="zero", visualize=False, stopping_critiera=None, **kwargs):
+        super().__init__(graph, start, goal, heuristic_type, visualize, stopping_critiera, **kwargs)
+
+        self.memory_limit = memory_limit
+
+    def use_algorithm(self):
+        """Run algorithm until termination
+
+            Returns:
+            - a linked list, 'parent'
+            - hash table of nodes and their associated min cost, 'g'
+        """
+        # Ensure searched nodes have been reset
+        UniSearch.reset()
+        if self.visualize:
+            # reset figure between runs
+            AnimateV2.delete("current")
+            AnimateV2.delete("current_animate_closure")
+            AnimateV2.delete("frontier")
+
+        while not self.frontier.empty():
+            _, current = self.frontier.get()
+            self.current = current
+
+            # preserve memory limit by removing closed, non-boundary nodes
+            if len(self.g)>self.memory_limit:
+                to_repeat = True
+                while to_repeat:
+                    # pick a random g node, make sure it is not a boundary!
+                    node = random.choice(list(self.g))
+                    # scan frontier and make sure "node" is not a parent or in the frontier
+                    for o in self.frontier:
+                        if node == self.parent[o] or node == o:
+                            to_repeat = True
+                            break
+                        else:
+                            to_repeat = False
+
+                # delete closed, non-boundary node
+                del self.g[node] 
+
+            # Update stats logging
+            UniSearch.update_expanded_nodes()
+
+            # Update stats
+            if self.visualize:
+                # if np.fmod(self.total_expanded_nodes, 2000)==0:
+                AnimateV2.add_line("current", current[0], current[1], markersize=10, marker='o')
+                # Animate closure
+                AnimateV2.add_line("current_animate_closure", current[0], current[1], markersize=10, marker='o', draw_clean=True)
+                AnimateV2.update()
+
+            # early exit if all of our goals in the closed set
+            if self.set_of_goal:
+                self.set_of_goal -= set({current}) 
+                if len(self.set_of_goal) == 0:
+                    return self.parent, self.g
+            elif current == self.goal:
+                return self.parent, self.g
+
+            # custom stopping criteria
+            if self.stopping_criteria is not None:
+                if self.stopping_criteria(self, **self.kwargs):
+                    return self.parent, self.g
+
+
+            # expand current node and check neighbors
+            neighbors_data = []
+            for next in self.graph.neighbors(current):
+                g_next = self.g[current] + self.graph.cost(current, next)
+                # if next location not in CLOSED LIST or its cost is less than before
+                # Newer implementation
+                if next not in self.g or g_next < self.g[next]:
+                    self.g[next] = g_next
+                    if self.heuristic_type == 'zero' or self.goal == None or self.h_type is None:
+                        priority = g_next 
+                    else:
+                        priority = g_next + Heuristics.grid_based_heuristics(type_=self.heuristic_type, next=next, goal=self.goal)
+                    self.frontier.put(next, priority)
+                    self.parent[next] = current
+                    neighbors_data.append(next)
+
+            if self.visualize:
+                # # self.animateNeighbors.update(next)
+                # if np.fmod(self.total_expanded_nodes, 100000)==0 or self.total_expanded_nodes == 0:
+
+                data = [k[2] for k in self.frontier.elements.values()]
+                if data:
+                    AnimateV2.add_line("frontier", np.array(data).T.tolist(), markersize=8, marker='D', draw_clean=True)
+                    AnimateV2.update()
+
 
 class MultiSearch(Search):
     """The class is used for multi-uni-directional search where multiple search directions (components) are performed (pseudo-)concurrently.
@@ -676,8 +775,6 @@ class MultiSearch(Search):
         mergedRoot = {}
         mergedChildren = {}
 
-
-
         ## Merge the terminal indices
         # TODO. PROB DONT NEED list
         # mergedID.extend(list(self.id))
@@ -793,6 +890,7 @@ class MultiSearch(Search):
             # hacky, ideally should be nonzero from beginning of algorithm
             mergedGS.f[s] = 0
 
+
         for next in setF:
             if next in f1 and next in f2:
                 if g1[next] < g2[next]:
@@ -869,6 +967,12 @@ class MultiSearch(Search):
         ################################################
         if cfg.Algorithm.reprioritize_after_merge:
             for next in setF:
+                if next in c2 and g2[next] < g1[next] or \
+                    next in c1 and g1[next] < g2[next]:
+                    # If node is closer to terminal 2, DONT retain node in frontier of 1
+                    # this was optional before
+                    # mergedGS.f[next] = self.f[next]
+                    continue
                 # Try updating the F costs here explicitly if mergedGoal is not empty
                 # if mergedGoal:
                 priority = self.pCosts(mergedGS, mergedG, next)

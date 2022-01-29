@@ -7,7 +7,12 @@ from steinerpy.library.pipeline import GenerateResultsMulti, GenerateBaseLine, P
 from steinerpy.library.pipeline.r0generate_heuristics import GenerateHeuristics
 import steinerpy.config as cfg
 
-cfg.Animation.visualize = False 
+# visualize algorithm?
+cfg.Animation.visualize = False
+# visualize bounds function?
+cfg.Pipeline.debug_vis_bounds = False
+# profile the code
+cfg.Misc.profile_frame = True
 
 import steinerpy as sp
 sp.enable_logger()
@@ -15,7 +20,8 @@ sp.set_level(sp.WARN)
 
 # for deterministic behavior
 import random
-random.seed(123)
+# random.seed(123)
+random.seed(1)
 
 # load heuristic preprocessed file
 # with open("./heuristics/h_maze-32-32-4.map.pkl", 'rb') as f:
@@ -27,14 +33,15 @@ with open("./heuristics/h_den520d.map.pkl", 'rb') as f:
 graph = EnvLoader.load(EnvType.MAPF, "den520d.map")
 
 # with open("./heuristics/h_Archipelago.map.pkl", 'rb') as f:
-    # data = pickle.load(f)
+#     data = pickle.load(f)
 # graph = EnvLoader.load(EnvType.GRID_2D, os.path.join("sc", "Archipelago.map"))
 
 pass
 
-# make sure you dont run the following if visualize=True
+# # make sure you dont run the following if visualize=True
 # graph.show_grid()
 # for k in data.keys():
+#     # plot all surrogate states
 #     if k != "type":
 #         plt.scatter(k[0], k[1])
 # plt.show(block=False)
@@ -42,7 +49,7 @@ pass
 
 # use baseline to generate a random problem
 gen_bs = GenerateBaseLine(graph=graph)
-gen_bs.randomly_generate_instances(1, 10)
+gen_bs.randomly_generate_instances(1, 50)
 instances = gen_bs.instances
 
 # try loading heuristics 
@@ -72,16 +79,18 @@ def pre_run_func(self, *kwargs):
 # algs = ["S*-MM", "S*-BS"]
 # algs = ["S*-MM", 'S*-MM2']
 # algs = ['S*-MM-LP']
-algs = ['S*-MM']
+# algs = ['S*-HS']
 # algs = ['S*-MM-UN']
+algs = ['S*-MM']
 gen_res = GenerateResultsMulti(graph=graph, algs_to_run=algs, pre_run_func=pre_run_func)
 gen_res.input_specifed_instances(instances)
 res = gen_res.run()
 
 gen_proc = Process()
 gen_proc.specify_data(main_results_data=res)
-df = gen_proc.run()
-print(df)
+cost_df, time_df = gen_proc.run()
+print(cost_df)
+print(time_df)
 # np.array(list(data[(421, 17)]))
 # process for printing
 
