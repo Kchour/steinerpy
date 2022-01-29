@@ -523,6 +523,8 @@ class SquareGrid(IGraph):
         self.fig.canvas.flush_events()
         # plt.pause(0.5)
 
+        return self.fig, self.ax
+
 class SquareGridDepot(SquareGrid):
     """Subclass of SquareGrid which explicitly handles the case of
         zero-cost edges between depots

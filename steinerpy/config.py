@@ -166,7 +166,9 @@ class Algorithm:
     graph_domain = "grid" # grid, generic
     always_nominate = True  # if True, then we wont cache nominations
 
-    
+    # from bidirectional path max (the '1' variant, i.e. only updated immedate children)
+    use_bpmx = False
+
     ########################################################
     # The following operations change a component's frontier costs
     # which theoretically helps reduce node expansions.
@@ -187,4 +189,7 @@ class Pipeline:
     """Pipeline settings"""
 
     # whether to peform prerun operations during result generation
-    perform_prerun_r2 = True 
+    perform_prerun_r2 = True
+
+    # debug cdh bounds by visualizing
+    debug_vis_bounds = False 

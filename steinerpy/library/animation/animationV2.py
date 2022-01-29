@@ -284,8 +284,15 @@ class AnimateV2:
         cls.instances = {}
 
     @classmethod
-    def close(cls):
-        plt.close()
+    def close(cls, figure_number=None):
+        if figure_number is None:
+            figure_number = plt.get_fignums()[-1]
+
+        # delete fig from class
+        del cls.instances[figure_number]
+
+
+        plt.close(figure_number)
 
     @classmethod
     def prevent_clipping(cls):

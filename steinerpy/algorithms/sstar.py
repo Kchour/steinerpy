@@ -116,15 +116,15 @@ class SstarMM(Merged):
             priority (float): The priority value for the node 'next'
 
         """
-        # keep track of 
-        g_next = cost_so_far[next]
-        fCost =  g_next + self.h_costs_func(search, next) 
+        # # keep track of 
+        # fCost =  g_next + self.h_costs_func(search, next) 
 
-        # Keep track of Fcosts
-        search.f[next] = fCost
+        # # Keep track of Fcosts
+        # search.f[next] = fCost
+        super().p_costs_func(search, cost_so_far, next)
 
         # From MM paper
-        priority = max(fCost, 2*g_next)
+        priority = max(search.f[next], 2*cost_so_far[next])
         return priority
 
     def shortest_path_check(self, comps_colliding:List[tuple], path_cost:float)->bool:
@@ -161,14 +161,10 @@ class SstarMM0(Merged):
             * Rename this function!
 
         """
-        g_next = cost_so_far[next]
-        fCost =  g_next 
-
-        # Keep track of Fcosts
-        search.f[next] = fCost
+        super().p_costs_func(search, cost_so_far, next)
 
         # From MM paper
-        priority = max(fCost, 2*g_next)
+        priority = max(search.f[next], 2*cost_so_far[next])
         return priority
 
     def h_costs_func(self, search: MultiSearch, next: tuple):
@@ -261,8 +257,8 @@ class SstarMMUN(Unmerged):
         return PathCriteria.path_criteria_mm(path_cost, c1, c2)
 
     def local_bound_value(self, comp_ind: tuple)->float:
-        # return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
-        return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin]) 
+        return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
+        # return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin]) 
 
 class SstarMM0UN(Unmerged):
     

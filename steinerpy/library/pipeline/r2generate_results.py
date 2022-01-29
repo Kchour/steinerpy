@@ -239,10 +239,10 @@ class GenerateResultsMulti(Generate):
         if cfg.Pipeline.perform_prerun_r2 and self.pre_run is not None:
             self.pre_run(self, *self.pre_run_kwargs)
 
-        context.run(alg)
+        context.run(self.alg)
         # print("finished job id: ", job_id)
 
-        return alg, context.return_solutions()
+        return self.alg, context.return_solutions()
 
     # def init(self,l):
     #     """Required to avoid race conditions for lists

@@ -498,7 +498,17 @@ class Framework(AbstractAlgorithm):
         # MUST KEEP TRACK OF FCOSTS !!!!!!!!!
         # The implementation should call 
         # super().p_costs_func(search, cost_to_come, next)
-        search.f[next] = cost_to_come[next] + self.h_costs_func(search, next)
+
+        # propagate heuristic cost from parent using BPMX for inconsistent heuristic
+        if cfg.Algorithm.use_bpmx:
+            h = self.h_costs_func(search, next)
+            # parent node
+            parent_node = search.parent[next]
+            h = max(h, search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next))            
+        else:
+            h = self.h_costs_func(search, next)
+
+        search.f[next] = cost_to_come[next] + h
 
         # User must return a float
 

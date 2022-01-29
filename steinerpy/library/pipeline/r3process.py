@@ -60,32 +60,34 @@ class Process(AFileHandle):
     def _generate(self):
         """Generate a spreadsheet that summarizes all results
 
-            TODO: allow the case for either baseline data or pd_res input, but not both
-                Also need to clean this part up
-        
+        sheet 1 contains final tree values
+        sheet 2 contains statistics
+
         """
         # convert data to data frame (IGNORE THE TERMINALS FOR NOW)
-        pd_baseline = pd.DataFrame(self.baseline_data["solution"]) 
-        pd_res = pd.DataFrame(self.main_results_data["solution"])
+        if self.baseline_data is not None:
+            pd_baseline = pd.DataFrame(self.baseline_data["solution"]) 
+            base_dist = [sum(pd_baseline['dist'][i]) for i in range(len(pd_baseline))]
+            '''Create data frames'''
+            # processs the base into df
+            out_df = pd.DataFrame({
+                'Baseline-Kruskal': base_dist
+            })
+        else:
+            out_df = pd.DataFrame()
 
         # extract data comparing steiner tree values
-        # use .iloc method to get an non-indexed row
-        base_dist = [sum(pd_baseline['dist'][i]) for i in range(len(pd_baseline))]
-        res_dist =  [   [sum(pd_res.iloc[i][name]['dist']) for name in pd_res.iloc[i].keys()] for i in range(len(pd_res))]
+        if self.main_results_data is not None:
+            pd_res = pd.DataFrame(self.main_results_data["solution"])
+            res_dist =  [   [sum(pd_res.iloc[i][name]['dist']) for name in pd_res.iloc[i].keys()] for i in range(len(pd_res))]
 
-        '''Create data frames'''
-        # processs the base into df
-        out_df = pd.DataFrame({
-            'Baseline-Kruskal': base_dist
-        })
-
-        # proccess the results into df (use assign with ** to add multiple columns)
-        # To add a column to DF, unpack with ** operator on a dictionary
-        np_res_dist = np.array(res_dist)
-        out_df = out_df.assign(**{
-                    name :np_res_dist[:,i]
-                    for i, name in enumerate(pd_res.iloc[0].keys())
-        })
+            # proccess the results into df (use assign with ** to add multiple columns)
+            # To add a column to DF, unpack with ** operator on a dictionary
+            np_res_dist = np.array(res_dist)
+            out_df = out_df.assign(**{
+                        name :np_res_dist[:,i]
+                        for i, name in enumerate(pd_res.iloc[0].keys())
+            })
         
         # Calculate %variation, add a column to df,   abs(1-x/avg)
         thresh = lambda x : 0.0 if (x < 0.0001) else x
@@ -137,7 +139,7 @@ class Process(AFileHandle):
                 if j not in statsDict:
                     if j is not "Kruskal":
                         statsDict[j] = pd_res.iloc[i][j]['stats']
-                    elif 'stats' in pd_baseline.iloc[i]:
+                    elif self.baseline_data is not None and 'stats' in pd_baseline.iloc[i]:
                         statsDict[j] = pd_baseline.iloc[i]['stats']
 
             # convert to dataframe and transpose

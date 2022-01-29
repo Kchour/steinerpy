@@ -685,5 +685,5 @@ tests/advanced/randomized_tests/temp/
 
 # ignore 3dmaps (make user download them)
 *.3dmap
-*.sqlite
+*.sqlite*
 *.pkl

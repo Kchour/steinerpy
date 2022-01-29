@@ -21,7 +21,7 @@ from steinerpy.library.pipeline import GenerateHeuristics
 # names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.map", "Sandstorm.amp"]
 # names = ["Archipelago.map"]
 names = ["den520d.map"]
-names = ["maze-32-32-4.map"]
+# names = ["maze-32-32-4.map"]
 
 for n in names:
     print("preprocessing: {}".format(n))

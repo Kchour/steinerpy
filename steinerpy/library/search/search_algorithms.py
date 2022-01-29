@@ -202,6 +202,11 @@ class UniSearch(Search):
         """
         # Ensure searched nodes have been reset
         UniSearch.reset()
+        if self.visualize:
+            # reset figure between runs
+            AnimateV2.delete("current")
+            AnimateV2.delete("current_animate_closure")
+            AnimateV2.delete("frontier")
 
         while not self.frontier.empty():
             _, current = self.frontier.get()
@@ -287,6 +292,7 @@ class MultiSearch(Search):
             self.start = start
             self.goal = goal
             self.current = None
+            # parent creation is delayed during merging
         
         # Visualize algorithm flag
         self.visualize = visualize
@@ -494,6 +500,9 @@ class MultiSearch(Search):
             if next not in g or g_next < g[next]:
                 # Store neighbor's gcost
                 g[next] = g_next
+
+                # update parent list
+                parent[next] = current
                 
                 # update root node pointer (extra)
                 self.root[next] = self.root[current]
@@ -521,8 +530,6 @@ class MultiSearch(Search):
                     if next in self.children[parent[next]]:
                         self.children[parent[next]].remove(next)
 
-                # update parent list
-                parent[next] = current
 
                 # update gmin,rmin, fmin heaps
                 self.gmin_heap.put(next,g_next)
@@ -548,8 +555,8 @@ class MultiSearch(Search):
         # if self.visualize:
         #     AnimateV2.update()
 
-        # consider deleting fvalues to save memory, since it's only relevant to openset
-        del self.f[current]
+        # # consider deleting fvalues to save memory, since it's only relevant to openset
+        # del self.f[current]
 
         self.nominated = False
         # MyLogger.add_message("{} updated!".format(self.id), __name__, "DEBUG")
@@ -739,22 +746,27 @@ class MultiSearch(Search):
                     g_next = g1[next]
                     current = p1[next]
                     root = r1[next]
+                    fvalue = self.f[next]
                 else:
                     g_next = g2[next]
                     current = p2[next]
                     root = r2[next]
+                    fvalue = other.f[next]
             elif next in g1:
                 g_next = g1[next]
                 current = p1[next]
                 root = r1[next]
+                fvalue = self.f[next]
             elif next in g2:
                 g_next = g2[next]
                 current = p2[next]
                 root = r2[next]
+                fvalue = other.f[next]
 
             mergedG[next] = g_next
             mergedP[next] = current
             mergedRoot[next] = root
+            mergedGS.f[next] = fvalue
 
             if current not in mergedChildren:
                 mergedChildren[current] = set({next})
@@ -773,6 +785,13 @@ class MultiSearch(Search):
         mergedGS.root = mergedRoot
         # set up g
         mergedGS.g = mergedG
+        # parent dict (linked list)
+        mergedGS.parent = mergedP
+
+        # put terminals in search.f as well
+        for s in start:
+            # hacky, ideally should be nonzero from beginning of algorithm
+            mergedGS.f[s] = 0
 
         for next in setF:
             if next in f1 and next in f2:
@@ -791,6 +810,8 @@ class MultiSearch(Search):
             elif next in f1:
                 if next in c2 and g2[next] < g1[next]:
                     # If node is closer to terminal 2, DONT retain node in frontier of 1
+                    # this was optional before
+                    # mergedGS.f[next] = self.f[next]
                     continue
                 elif next in c2 and g2[next] >= g1[next]:
                     # If node is closer to terminal 1, DO retain node in frontier and remove
@@ -808,6 +829,8 @@ class MultiSearch(Search):
                     mergedGS.f[next] = self.f[next]
             elif next in f2:
                 if next in c1 and g1[next] < g2[next]:
+                    # this was optional before
+                    # mergedGS.f[next] = self.f[next]
                     continue
                 elif next in c1 and g1[next] >= g2[next]:
                     priority = f2[next][0]
@@ -819,14 +842,15 @@ class MultiSearch(Search):
                     mergedGS.f[next] = other.f[next]
 
 
+            mergedP[next] = current
             # Try updating the F costs here explicitly if mergedGoal is not empty
             # if mergedGoal:
-            ################################################
-            # REPRIORTIZING AFTER MERGE
-            ################################################
-            if cfg.Algorithm.reprioritize_after_merge:
-                priority = self.pCosts(mergedGS, mergedG, next)
-            ################################################
+            # ################################################
+            # # REPRIORTIZING AFTER MERGE
+            # ################################################
+            # if cfg.Algorithm.reprioritize_after_merge:
+            #     priority = self.pCosts(mergedGS, mergedG, next)
+            # ################################################
 
             mergedF.put(next, priority)
 
@@ -838,7 +862,19 @@ class MultiSearch(Search):
                 mergedGS.rmin_heap.put(next, mergedG[current])
             mergedGS.fmin_heap.put(next, mergedGS.f[next])
 
-            mergedP[next] = current
+            # mergedP[next] = current
+
+        ################################################
+        # REPRIORTIZING AFTER MERGE
+        ################################################
+        if cfg.Algorithm.reprioritize_after_merge:
+            for next in setF:
+                # Try updating the F costs here explicitly if mergedGoal is not empty
+                # if mergedGoal:
+                priority = self.pCosts(mergedGS, mergedG, next)
+                ################################################
+                mergedGS.fmin_heap.put(next, mergedGS.f[next])
+                mergedF.put(next, priority)
 
         # # removed start="Temp" from frontier and related heaps
         # mergedGS.frontier.delete('Temp')
@@ -859,7 +895,7 @@ class MultiSearch(Search):
 
         ## modify generic search object values
         # mergedGS.g = mergedG
-        mergedGS.parent = mergedP
+        # mergedGS.parent = mergedP
         mergedGS.frontier = mergedF
         mergedGS.children = mergedChildren
         # if g1[self.current] < g2[other.current]

@@ -11,13 +11,17 @@ a running limited number of Dijkstra search. Doing so will give a set of "lower 
 import logging
 import math
 import pickle
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 
-from matplotlib import use
+from steinerpy.library.animation.animationV2 import AnimateV2
 from steinerpy.library.graphs.graph import IGraph
 from steinerpy.library.misc.utils import Progress
 
 from steinerpy.library.pipeline.base import AFileHandle
 from steinerpy.library.search.search_algorithms import UniSearch
+import steinerpy.config as cfg
 
 my_logger = logging.getLogger(__name__)
 
@@ -83,6 +87,7 @@ class GenerateHeuristics:
     # for cdh use
     cdh_lower_bound = {}
     cdh_upper_bound = {}
+    graph = None
 
     @classmethod
     def get_heuristics(cls, graph, processes):
@@ -111,8 +116,10 @@ class GenerateHeuristics:
 
         # limit size of cdh table to be sqrt(|V|)
         nodes = len(list(graph.get_nodes()))
-        size_limit = int(math.sqrt(nodes))
-        pivot_limit = 10
+        # size_limit = int(math.sqrt(nodes))
+        # size_limit = int(0.50*nodes)
+        size_limit = 2*nodes
+        pivot_limit = 20
 
         from steinerpy.library.search.all_pairs_shortest_path import SubPairsShortestPath
 
@@ -163,7 +170,7 @@ class GenerateHeuristics:
         if from_node not in result:
             return h1
         else:
-            # loop over pivots, dists
+            # loop over pivots, dists reachable by "from_node"
             max_lb = -float('inf')
             for p, dist_ap in result[from_node].items():
                 # either [g][p] is stored or not
@@ -173,14 +180,17 @@ class GenerateHeuristics:
                     # now compute lower bound from a to g
                     cdhp = abs(dist_ap - dist_gp)
                 except KeyError as e:
-                    # then compute bounds on dist_gp
+                    # if pivot to goal not known, compute bounds on dist_gp
                     lower_bound = GenerateHeuristics.cdh_lower_bound[to_node][p]
                     upper_bound = GenerateHeuristics.cdh_upper_bound[to_node][p]
                     cdhp = max(dist_ap - upper_bound, lower_bound - dist_ap)
                 except Exception as e:
+                    # catch unexpected error
                     raise e
 
-                max_lb = max(max_lb, max(cdhp, h1))
+                max_lb = max(cdhp, max_lb)
+
+            max_lb = max(max_lb, h1) 
             return max_lb
 
     @classmethod
@@ -196,7 +206,7 @@ class GenerateHeuristics:
         cdh_table = GenerateHeuristics.preload_results
         # perform a breadth-first search from each terminal (goal state), until
         # the goal is able to reach all of the pivots through some other surrogate goal/state
-        def stopping_critiera(self, cdh_table=None, searched_pivots=None, searched_pivot_dists=None, goal_point=None, pivot_set=None):
+        def stopping_critiera(self, cdh_table=None, searched_pivots=None, searched_pivot_dists=None, goal_point=None, pivot_set=None, lb=None, ub=None):
 
             expanded_node = self.current
             current_g_cost = self.g[self.current]
@@ -206,9 +216,26 @@ class GenerateHeuristics:
                 for pivot in  cdh_table[expanded_node]:
                     # pivot is reachable through surrogate
                     searched_pivots.add(pivot)
-                    # store distance to surrogate 
-                    if goal_point not in searched_pivot_dists:
-                        searched_pivot_dists[expanded_node] = current_g_cost
+                    # # store distance to surrogate 
+                    # if goal_point not in searched_pivot_dists:
+                    #     searched_pivot_dists[expanded_node] = current_g_cost
+                    
+                    # update bounds wrt to pivot directly here
+                    dist_g_to_x = current_g_cost
+                    dist_x_to_p = cdh_table[expanded_node][pivot]
+
+                    curr_lb = abs(dist_g_to_x - dist_x_to_p)
+                    curr_ub = dist_g_to_x + dist_x_to_p
+
+                    if pivot not in lb[goal_point]:
+                        lb[goal_point][pivot] = curr_lb
+                    else:
+                        lb[goal_point][pivot] = max(lb[goal_point][pivot], curr_lb)
+
+                    if pivot not in ub[goal_point]:
+                        ub[goal_point][pivot] = curr_ub
+                    else:
+                        ub[goal_point][pivot] = min(ub[goal_point][pivot], curr_ub)
 
             # stop once every pivot is reachable (r=1 from table)
             return searched_pivots == pivot_set
@@ -221,32 +248,64 @@ class GenerateHeuristics:
             for pivot in value.keys():
                 pivot_set.add(pivot)
 
-        # debug graphically
+        if cfg.Pipeline.debug_vis_bounds:
+            # debug graphically
+            fig, ax = graph.show_grid()
+            # plot pivots
+            p = np.array(list(pivot_set))
+            plt.scatter(p[:,0], p[:,1])
+
+            # plot surrogate states
+            test = np.array(list(x for x in cdh_table if x != "type"))
+            plt.scatter(test[:,0], test[:,1], marker="*")
+
+            # draw edges between pivots and surrogate states
+            lines = []
+            for surr, values in cdh_table.items():
+                if surr == "type":
+                    continue
+                for pivot, dist in values.items():
+                    lines.append((surr, pivot))
+            # convert to np
+            lines = np.array(lines)
+            lc = LineCollection(lines)
+            ax.add_collection(lc)
+
+            minX, maxX, minY, maxY = graph.grid_dim
+            AnimateV2.init_figure(fig, ax, xlim=(minX, maxX), ylim=(minY,maxY))
 
         # now run unisearch from terminal
+        lb = GenerateHeuristics.cdh_lower_bound
+        ub = GenerateHeuristics.cdh_upper_bound
         for t in terminals:
             searched_pivots = set()
             searched_pivot_dists = dict()
             goal_point = t
-            search = UniSearch(graph, t, None, "zero", False, stopping_critiera,
+            lb[goal_point] = {}
+            ub[goal_point] = {}
+            search = UniSearch(graph, t, None, "zero", cfg.Pipeline.debug_vis_bounds, stopping_critiera,
                 cdh_table=cdh_table, searched_pivots=searched_pivots,
-                searched_pivot_dists = searched_pivot_dists, goal_point=goal_point, pivot_set=pivot_set)
+                searched_pivot_dists = searched_pivot_dists, goal_point=goal_point, pivot_set=pivot_set,
+                lb=lb, ub=ub)
         
             search.use_algorithm()
 
             # compute bounds
-            lb = {}
-            ub = {}
-            # loop over distance to surrogates
-            for surrogate, dist_t_to_s in searched_pivot_dists.items():
-                pivot, dist_p_to_s = next(iter(cdh_table[(surrogate)].items()))
+            # lb = {}
+            # ub = {}
+            # # loop over distance to surrogates
+            # for surrogate, dist_t_to_s in searched_pivot_dists.items():
+            #     pivot, dist_p_to_s = next(iter(cdh_table[(surrogate)].items()))
 
-                lb[pivot] = abs(dist_t_to_s - dist_p_to_s) 
-                ub[pivot] = dist_t_to_s + dist_p_to_s 
+            #     lb[pivot] = abs(dist_t_to_s - dist_p_to_s) 
+            #     ub[pivot] = dist_t_to_s + dist_p_to_s 
 
-            GenerateHeuristics.cdh_lower_bound[goal_point] = lb
-            GenerateHeuristics.cdh_upper_bound[goal_point] = ub
+            # GenerateHeuristics.cdh_lower_bound[goal_point] = lb
+            # GenerateHeuristics.cdh_upper_bound[goal_point] = ub
+        # plt.close(fig)
 
+        if cfg.Pipeline.debug_vis_bounds:
+            AnimateV2.close()
 
     def retrieve_from_landmark(result, from_node, to_node):
         """For each landmark, distances to every other node is stored
