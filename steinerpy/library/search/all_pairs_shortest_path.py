@@ -7,8 +7,9 @@ import random
 from functools import partial
 import logging
 from timeit import default_timer as timer
+from steinerpy.config import Animation
 
-from steinerpy.library.search.search_algorithms import UniSearch
+from steinerpy.library.search.search_algorithms import UniSearch, UniSearchMemLimit
 from steinerpy.library.misc.utils import Progress
 
 # DEBUG
@@ -40,17 +41,21 @@ class SubPairsShortestPath:
         WORKER_RESULTS = {}
         STATS = {"time": 0, "expanded_nodes":0}
 
-        # randomly generate pivots
-        all_nodes = list(G.get_nodes())
-        total_node_count = len(all_nodes)
-        tasks = set() 
-        while len(tasks) < pivot_limit:
-            r_node = random.choice(all_nodes)
-            tasks.add(r_node)
-        tasks = list(tasks)
-        del all_nodes
+        # # randomly generate pivots
+        # all_nodes = list(G.get_nodes())
+        # total_node_count = len(all_nodes)
+        # tasks = set() 
+        # while len(tasks) < pivot_limit:
+        #     r_node = random.choice(all_nodes)
+        #     tasks.add(r_node)
+        # tasks = list(tasks)
+        # del all_nodes
 
+
+        total_node_count = G.node_count()
         ind_sz_lim = int(size_limit/pivot_limit)
+        # randomly sample free space to get pivots
+        tasks = G.sample_uniform(pivot_limit)
 
         # keep track of job progress
         job_progress = Progress(len(tasks))
@@ -99,22 +104,31 @@ class SubPairsShortestPath:
                 
     @staticmethod
     def _run_dijkstra(start):
-        search = UniSearch(graph, start, None, "zero", False)
+        # this is regular dijkstra
+        # search = UniSearch(graph, start, None, "zero", False)
+        # debugging purposes
+        # from steinerpy.library.animation.animationV2 import AnimateV2
+        # fig, ax = graph.show_grid()
+        # AnimateV2.init_figure(fig, ax)
+
+        # this is memory limited dijkstra
+        search = UniSearchMemLimit(graph, start, None, ind_sz_lim, "zero", False)
+
         # print(os.getpid(), start)
         start_time = timer()
         search.use_algorithm()
         # number of nodes expanded
-        num_of_expanded = UniSearch.total_expanded_nodes
+        num_of_expanded = UniSearchMemLimit.total_expanded_nodes
         # time
         total_time = timer() - start_time
 
-        # limit individual items in the results to size_limit/pivot
-        keys_to_del = set()
-        all_keys = list(search.g.keys())
-        while len(keys_to_del)< (total_node_count - ind_sz_lim):
-            keys_to_del.add(random.choice(all_keys))
-        for k in keys_to_del:
-            search.g.pop(k)
+        # # limit individual items in the results to size_limit/pivot
+        # keys_to_del = set()
+        # all_keys = list(search.g.keys())
+        # while len(keys_to_del)< (total_node_count - ind_sz_lim):
+        #     keys_to_del.add(random.choice(all_keys))
+        # for k in keys_to_del:
+        #     search.g.pop(k)
 
         return start, search.g, num_of_expanded, total_time
 
@@ -148,64 +162,10 @@ class AllPairsShortestPath:
         D = {}
         STATS = {"time": 0, "expanded_nodes": 0}
 
-        # Run Dijkstra based on sampling technique:
-        # 1) limit samples to a percentage of the configuration space.
-        # 2) fixed samples given by user.
-        # 3) limit samples to a fixed number of the configuration space.
-        if "random_sampling_percentage" in kwargs:
-            # len_ = G.node_count()
-            node_tasks = set()
-
-            # look a boundary nodes only 
-            all_nodes = list(G.get_boundary_nodes())
-
-            # case where map is empty
-            if not all_nodes:
-                all_nodes = list(G.get_nodes())
-
-            limit = kwargs["random_sampling_percentage"]/100.*len(all_nodes)
-
-            while len(node_tasks) < limit:
-                # node_tasks.append(all_nodes[np.random.randint(len(all_nodes)-1)])
-                # node_tasks.append(random.choice(all_nodes))
-                node_tasks.add(random.choice(all_nodes))
-            node_tasks = list(node_tasks)
-            # clean up
-            del all_nodes, limit
-            num_tasks = len(node_tasks)
-            pass
-        elif "nodes" in kwargs:
-            node_tasks = kwargs["nodes"]  
-            num_tasks = len(node_tasks)      
-            pass
-        elif "random_sampling_limit" in kwargs:
-            limit = kwargs["random_sampling_limit"]
-            node_tasks = set()
-
-            # get boundary nodes using gradient function
-            # all_nodes = list(G.get_boundary_nodes())
-
-            # handle case where map is empty
-            # if not all_nodes:
-            #     all_nodes = list(G.get_nodes())
-            all_nodes = list(G.get_nodes())
-            
-            while len(node_tasks) < limit:
-                # node_tasks.append(random.choice(all_nodes)all_nodes[np.random.randint(len(all_nodes)-1)])
-                
-                # only add "boundary nodes" where degree < max
-                r_node = random.choice(all_nodes)
-                if len(list(G.neighbors(r_node))) < G.neighbor_type:
-                    node_tasks.add(random.choice(all_nodes))
-            node_tasks = list(node_tasks)
-            # clean up
-            del all_nodes
-            num_tasks = len(node_tasks) 
-            pass
-        else:
-            # default without any arguments
-            num_tasks = G.node_count()
-            node_tasks = G.get_nodes()
+        # sampling limit
+        limit = kwargs["random_sampling_limit"]
+        node_tasks = G.sample_uniform(limit)
+        num_tasks = len(node_tasks)
 
         # job_progress = IncrementalBar("Dijkstra in Parallel: ",max=num_tasks)
         job_progress = Progress(num_tasks)

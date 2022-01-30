@@ -264,6 +264,8 @@ class UniSearch(Search):
                     AnimateV2.add_line("frontier", np.array(data).T.tolist(), markersize=8, marker='D', draw_clean=True)
                     AnimateV2.update()
 
+
+
 class UniSearchMemLimit(UniSearch):
     """Same as unidirectional search, but with a memory limit
     i.e., after len(g) is big enough, we start deleting a closed, non-boundary
@@ -274,6 +276,18 @@ class UniSearchMemLimit(UniSearch):
         super().__init__(graph, start, goal, heuristic_type, visualize, stopping_critiera, **kwargs)
 
         self.memory_limit = memory_limit
+        assert self.memory_limit < 20e7
+
+        # all nodes with child in the frontier
+        self.boundary_nodes = {}
+    
+    def random_sample(self, it):
+        length = len(it)
+        stop = random.sample(range(length), 1)
+        for index, key in enumerate(it):
+            if index == stop:
+                return key
+
 
     def use_algorithm(self):
         """Run algorithm until termination
@@ -283,7 +297,7 @@ class UniSearchMemLimit(UniSearch):
             - hash table of nodes and their associated min cost, 'g'
         """
         # Ensure searched nodes have been reset
-        UniSearch.reset()
+        UniSearchMemLimit.reset()
         if self.visualize:
             # reset figure between runs
             AnimateV2.delete("current")
@@ -294,25 +308,49 @@ class UniSearchMemLimit(UniSearch):
             _, current = self.frontier.get()
             self.current = current
 
-            # preserve memory limit by removing closed, non-boundary nodes
-            if len(self.g)>self.memory_limit:
-                to_repeat = True
-                while to_repeat:
-                    # pick a random g node, make sure it is not a boundary!
-                    node = random.choice(list(self.g))
-                    # scan frontier and make sure "node" is not a parent or in the frontier
-                    for o in self.frontier:
-                        if node == self.parent[o] or node == o:
-                            to_repeat = True
-                            break
-                        else:
-                            to_repeat = False
+            # decrement boundary node frontier-child counter
+            if self.parent[current] is not None:
+                self.boundary_nodes[self.parent[current]] -= 1
+                if self.boundary_nodes[self.parent[current]] <= 0:
+                    # remove boundary node if counter is zero (no more children in frontier)
+                    del self.boundary_nodes[self.parent[current]]
 
-                # delete closed, non-boundary node
-                del self.g[node] 
+            # add current node as boundary
+            self.boundary_nodes[current] = 0
+
+            # preserve memory limit by removing closed, non-boundary nodes
+            if len(self.g)>2*self.memory_limit:
+                    # for i in range(len(neighbors_data)):
+                    #     to_repeat = True
+                    #     while to_repeat or len(self.g)>self.memory_limit:
+                    #         # pick a random g node, make sure it is not a boundary!
+                    #         node = random.sample(self.g.keys(), )[0]
+                    #         # node = self.random_sample(self.g.keys())
+                    #         if node in self.boundary_nodes or node in self.frontier or node == current:
+                    #             to_repeat = True
+                    #         else:
+                    #             to_repeat = False
+                    
+                    # nodes = random.choices(list(self.g.keys()), k=int(3*self.memory_limit))
+                    nodes = random.sample(self.g.keys(), k=int(self.memory_limit))
+                    for node in nodes:
+                        if node not in self.boundary_nodes and node not in self.frontier and node != current:
+                            del self.g[node] 
+
+
+                    # del self.g[node] 
+                    # delete closed, non-boundary node
+                    # remove point from plot too
+                    # if cfg.Animation.visualize:
+                    #     artist = AnimateV2.get_artist_ex("current")
+                    #     xy = artist.get_offsets()
+                    #     y,x = np.where(xy==node)
+
+                    #     artist.set_offsets(np.delete(xy, x[1], axis=0))
+            print(self.memory_limit, len(self.g), UniSearchMemLimit.total_expanded_nodes,)
 
             # Update stats logging
-            UniSearch.update_expanded_nodes()
+            UniSearchMemLimit.update_expanded_nodes()
 
             # Update stats
             if self.visualize:
@@ -352,6 +390,9 @@ class UniSearchMemLimit(UniSearch):
                     self.parent[next] = current
                     neighbors_data.append(next)
 
+                    # increment boundary node's frontier child counter
+                    self.boundary_nodes[current] += 1
+
             if self.visualize:
                 # # self.animateNeighbors.update(next)
                 # if np.fmod(self.total_expanded_nodes, 100000)==0 or self.total_expanded_nodes == 0:
@@ -361,6 +402,8 @@ class UniSearchMemLimit(UniSearch):
                     AnimateV2.add_line("frontier", np.array(data).T.tolist(), markersize=8, marker='D', draw_clean=True)
                     AnimateV2.update()
 
+
+        
 
 class MultiSearch(Search):
     """The class is used for multi-uni-directional search where multiple search directions (components) are performed (pseudo-)concurrently.

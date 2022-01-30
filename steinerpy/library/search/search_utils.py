@@ -133,9 +133,12 @@ class PriorityQueueHeap:
         # for iterator
         self.i = 0
 
-    def __iter__(self):
-        return iter(self.elements.values())
+    # def __iter__(self):
+    #     return iter(self.elements.values())
     
+    def __iter__(self):
+        return iter(self.elements.keys())
+
     def __len__(self):
         return len(self.entry_table)
 
@@ -375,4 +378,6 @@ class CycleDetection:
                 self.parent_table.update({(t,): temp[0]+temp[1]})
 
         return False
+
+
 

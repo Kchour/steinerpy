@@ -6,3 +6,9 @@ BigGameHunters.map		1361.3559148829954
 Brushfire.map			846.6474788920023
 WheelofWar.map			2787.2882601499878
 Sandstorm.map			586.2972709780006
+Caldera.map: 			8435.761629575001		Attempt 1
+						1375.7065553870016		Attempt 2
+|P| = 100, memory limit = |V|
+
+
+

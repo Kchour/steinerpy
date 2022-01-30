@@ -70,6 +70,8 @@ class AnimateV2:
 
     @classmethod
     def get_artist(cls, artist_name, figure_number=None):
+        if figure_number is None:
+            figure_number = plt.get_fignums()[-1]
         if artist_name in cls.instances[figure_number].artists:
             return cls.instances[figure_number].artists[artist_name]['artist'][0]
 

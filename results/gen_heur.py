@@ -1,5 +1,6 @@
 from timeit import default_timer as timer
 import os
+import steinerpy.config as cfg
 
 from steinerpy.environment import EnvType, EnvLoader 
 from steinerpy.library.pipeline import GenerateHeuristics
@@ -15,13 +16,16 @@ from steinerpy.library.pipeline import GenerateHeuristics
 #################
 
 # mapf maps 
-# names = ["room-32-32-4.map"]
 
 # load sc grid2d maps
 names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.map", "Sandstorm.map"]
 # names = ["Archipelago.map"]
 # names = ["den520d.map"]
-# names = ["maze-32-32-4.map"]
+# names = ["room-32-32-4.map"]
+
+# try memory limited dijkstra (real slow prob) (sc)
+# names = ["Caldera.map"]
+names = ["Caldera.map"]
 
 for n in names:
     print("preprocessing: {}".format(n))
@@ -35,7 +39,7 @@ for n in names:
     # res = GenerateHeuristics.gen_and_save_results(graph, save_path=os.path.join("heuristics", "h_"+n+".sqlite"))
 
     # gen/save heuristics as .pkl file
-    res = GenerateHeuristics.gen_and_save_results(graph, save_path=os.path.join("heuristics", "h_"+n+".pkl"), file_behavior="SKIP")
+    res = GenerateHeuristics.gen_and_save_results(graph, save_path=os.path.join("heuristics", "h_"+n+".pkl"), file_behavior="OVERWRITE")
 
     # give namespace to redis database
     # res = GenerateHeuristics.gen_and_save_results(graph, save_path="{}.redis".format(n))

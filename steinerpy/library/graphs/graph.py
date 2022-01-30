@@ -106,10 +106,13 @@ class GraphFactory:
             print(_e)
             raise
 
+
 class SquareGrid3D(IGraph):
     """a 3d based grid class using numpy array as an underlying data structure
     
-    Assume a unit grid size for now!
+    Assume a unit grid size for now and origin of (0,0,0)
+
+    Add support to differentiate indices and world coordinates
     
     """
     # constants, the first is based on grid_size 
@@ -121,7 +124,9 @@ class SquareGrid3D(IGraph):
     C3 = vl
 
     def __init__(self, grid_dim: list, grid_size: float, obstacles: list=None):
-        self.name = None
+        # self.name = None
+        self.type = "grid_3d"
+
         self.grid_size = grid_size
         self.grid_dim = grid_dim
         self.x_len = int((grid_dim[1] - grid_dim[0] + 1)/grid_size)
@@ -131,8 +136,8 @@ class SquareGrid3D(IGraph):
         # create a 3d np array
         self.grid = np.zeros((self.x_len, self.y_len, self.z_len))
 
-        # set cells to 1 if obstacle
-        self.obstacles = obstacles 
+        # set cells to 1 if obstacle. no need to store obstacles list
+        # self.obstacles = obstacles 
         if obstacles is not None:
             for o in obstacles:
                 x,y,z = o
@@ -199,10 +204,30 @@ class SquareGrid3D(IGraph):
         dmid = dx + dy + dz - dmin - dmax 
         return SquareGrid3D.C1*dmin + SquareGrid3D.C2*dmid + SquareGrid3D.C3*dmax
     
-    def show_grid(self):
-        ax = plt.figure().add_subplot(projection='3d')
-        ax.voxels(self.grid, facecolors="red", edgecolor='k')
-        plt.show(block=False)
+    # def show_grid(self):
+    #     ax = plt.figure().add_subplot(projection='3d')
+    #     ax.voxels(self.grid, facecolors="red", edgecolor='k')
+    #     plt.show(block=False)
+
+    def node_count(self):
+       return np.count_nonzero(self.grid==0) 
+    
+    def edge_count(self):
+        """LuLs not implemented, not needed"""
+        pass
+
+    def sample_uniform(self, num_of_samples: int):
+        """uniformly sample the free space"""
+        min_x, max_x, min_y, max_y, min_z, max_z = self.grid_dim
+        samples = set()
+        while len(samples) < min(num_of_samples, self.node_count()):
+            x,y,z = np.random.randint((min_x, min_y, min_z), (max_x, max_y, max_z))
+            if self.grid[y,x] == 0:
+                # add samples as tuples
+                samples.add((x,y))
+        
+        return list(samples)
+
 
 class SquareGrid(IGraph):
     """A grid based graph class. Physical coordinates origin (0,0) starts at the lower-left corner,
@@ -276,9 +301,10 @@ class SquareGrid(IGraph):
         return self._edge_count
 
     def node_count(self):
-        if self._node_count is None:
-            self._node_count = len(list(self.get_nodes()))
-        return self._node_count 
+        return np.count_nonzero(self.grid==0) 
+        # if self._node_count is None:
+        #     self._node_count = len(list(self.get_nodes()))
+        # return self._node_count 
 
     def get_nodes(self):
         # return ((self.grid_dim[0]+x*self.grid_size, self.grid_dim[2]+y*self.grid_size) for x in range(self.xwidth) for y in range(self.yheight))       
@@ -524,6 +550,18 @@ class SquareGrid(IGraph):
         # plt.pause(0.5)
 
         return self.fig, self.ax
+
+    def sample_uniform(self, num_of_samples: int):
+        """uniformly sample the free space"""
+        min_x, max_x, min_y, max_y = self.grid_dim
+        samples = set()
+        while len(samples) < min(num_of_samples, self.node_count()):
+            x,y = np.random.randint((min_x, min_y), (max_x, max_y))
+            if self.grid[y,x] == 0:
+                # add samples as tuples
+                samples.add((x,y))
+        
+        return list(samples)
 
 class SquareGridDepot(SquareGrid):
     """Subclass of SquareGrid which explicitly handles the case of

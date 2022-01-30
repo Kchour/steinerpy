@@ -95,7 +95,8 @@ class DataParser:
             return graph
 
         elif dataset_type == "grid_3d":
-            
+            # 3d graphs may get really large, so let's rely on a database            
+
             pass
             max_x, max_y, max_z = [int(v) for v in lines[0].strip().split(" ") if v.isdigit()]
             grid_dim = [0, max_x, 0, max_y, 0, max_z]
@@ -106,6 +107,8 @@ class DataParser:
 
             graph = GraphFactory.create_graph("SquareGrid3D", grid_dim, grid_size=1, obstacles=obstacles)
             return graph
+            
+
 
 
     @staticmethod
