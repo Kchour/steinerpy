@@ -24,3 +24,8 @@ def set_level(level):
     """equivalent to setting numerical level. see logging library"""
     l = logging.getLogger('steinerpy')
     l.setLevel(level)
+
+#try a different backend?
+import matplotlib
+# matplotlib.use('Agg')
+matplotlib.use('Qt5Agg')

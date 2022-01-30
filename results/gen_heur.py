@@ -25,13 +25,18 @@ names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.m
 
 # try memory limited dijkstra (real slow prob) (sc)
 # names = ["Caldera.map"]
-names = ["Caldera.map"]
+
+# 3d map
+# names = ["A1.3dmap"]
+names = ["Simple.3dmap"]
 
 for n in names:
     print("preprocessing: {}".format(n))
     t1 = timer()
+    # for 3d grid map
+    graph = EnvLoader.load(EnvType.GRID_3D, n)
     # for sc maps
-    graph = EnvLoader.load(EnvType.GRID_2D, os.path.join("sc", n))
+    # graph = EnvLoader.load(EnvType.GRID_2D, os.path.join("sc", n))
     # for mapf maps
     # graph = EnvLoader.load(EnvType.MAPF, n)
     

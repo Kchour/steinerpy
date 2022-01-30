@@ -115,7 +115,8 @@ class GenerateHeuristics:
     def get_heuristics(cls, graph, processes):
         """Entry point for generating heuristics"""
         # get number of nodes
-        n = len(list(graph.get_nodes()))
+        # n = len(list(graph.get_nodes()))
+        n = graph.node_count()
 
         # STOP THE USER IF THERE ARE TOO MANY NODES
         if n >= 400:
@@ -137,7 +138,8 @@ class GenerateHeuristics:
         """wrapper to call cdh builder"""
 
         # limit size of cdh table to be sqrt(|V|)
-        nodes = len(list(graph.get_nodes()))
+        # nodes = len(list(graph.get_nodes()))
+        nodes = graph.node_count()
         # size_limit = int(math.sqrt(nodes))
         # size_limit = int(0.50*nodes)
         size_limit = 16*nodes

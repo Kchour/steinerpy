@@ -47,7 +47,7 @@ class DataParser:
 
             return graph, terminalList
 
-        elif dataset_type == "mapf" or "grid_2d":
+        elif dataset_type == "mapf" or dataset_type=="grid_2d":
             # define some regex patterns
             heightPattern = r'(^height)\s(\d+)'
             widthPattern = r'(^width)\s(\d+)'

@@ -33,6 +33,9 @@ from .grid_utils import get_world
 from .ogm import OccupancyGridMap
 import matplotlib.pyplot as plt
 
+from mayavi.mlab import points3d
+from mayavi import mlab
+
 class IGraph(ABC):
     """ Create an abstract interface factory interface class    
 
@@ -205,9 +208,16 @@ class SquareGrid3D(IGraph):
         return SquareGrid3D.C1*dmin + SquareGrid3D.C2*dmid + SquareGrid3D.C3*dmax
     
     # def show_grid(self):
+    #     """matplotlib is garbage with tons of data"""
     #     ax = plt.figure().add_subplot(projection='3d')
     #     ax.voxels(self.grid, facecolors="red", edgecolor='k')
     #     plt.show(block=False)
+    @mlab.show
+    def show_grid(self):
+        xx, yy, zz = np.where(self.grid==1)
+        mlab.points3d(xx,yy,zz, mode="cube")
+        
+
 
     def node_count(self):
        return np.count_nonzero(self.grid==0) 
@@ -222,9 +232,9 @@ class SquareGrid3D(IGraph):
         samples = set()
         while len(samples) < min(num_of_samples, self.node_count()):
             x,y,z = np.random.randint((min_x, min_y, min_z), (max_x, max_y, max_z))
-            if self.grid[y,x] == 0:
+            if self.grid[x,y,z] == 0:
                 # add samples as tuples
-                samples.add((x,y))
+                samples.add((x,y,z))
         
         return list(samples)
 
