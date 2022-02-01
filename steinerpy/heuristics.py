@@ -46,6 +46,13 @@ class _CustomHeuristics:
         """
         raise ValueError("User needs to specify a heuristic function, i.e. call {}".format("CustomHeuristics.bind(lambda next,goal: 0)"))
 
+# constants for voxel heuristic 
+vl = 1
+SQ3 = 1.7320508075688772
+SQ2 = 1.4142135623730951
+C1 = SQ3 - SQ2
+C2 = SQ2 - vl
+C3 = vl
 
 class _GridBasedHeuristics2D(type):
     """
@@ -60,12 +67,13 @@ class _GridBasedHeuristics2D(type):
     def __init__(cls): 
     
         cls.mapper = {"manhattan": _GridBasedHeuristics2D._gbh_manhattan,
-                                    "zero": _GridBasedHeuristics2D._gbh_zero,
-                                    "euclidean": _GridBasedHeuristics2D._gbh_euclidean,
-                                    "diagonal_uniform": _GridBasedHeuristics2D._gbh_diagonal_uniform,
-                                    "diagonal_nonuniform": _GridBasedHeuristics2D._gbh_diagonal_nonuniform,
-                                    "preprocess": _GridBasedHeuristics2D._gbh_preprocess,
-                                    "custom": _CustomHeuristics.h_func}
+                    "zero": _GridBasedHeuristics2D._gbh_zero,
+                    "euclidean": _GridBasedHeuristics2D._gbh_euclidean,
+                    "diagonal_uniform": _GridBasedHeuristics2D._gbh_diagonal_uniform,
+                    "diagonal_nonuniform": _GridBasedHeuristics2D._gbh_diagonal_nonuniform,
+                    "preprocess": _GridBasedHeuristics2D._gbh_preprocess,
+                    "custom": _CustomHeuristics.h_func,
+                    "voxel": _GridBasedHeuristics2D._gbh_voxel}
     @staticmethod
     def _gbh_manhattan(cls, next: tuple, goal: tuple):
         (x1, y1) = next
@@ -92,6 +100,17 @@ class _GridBasedHeuristics2D(type):
         dmax = max(abs(x1 - x2), abs(y1 - y2))
         dmin = min(abs(x1 - x2), abs(y1 - y2))
         return 1.414*dmin + (dmax - dmin)
+
+
+    @staticmethod
+    def _gbh_voxel(next, goal):
+        x1, y1, z1 = next 
+        x2, y2, z2 = goal
+        dx, dy, dz = abs(x1 - x2), abs(y1 - y2), abs(z1 - z2)
+        dmax = max(dx, dy, dz)
+        dmin = min(dx, dy, dz)
+        dmid = dx + dy + dz - dmin - dmax 
+        return C1*dmin + C2*dmid + C3*dmax        
 
     @staticmethod
     def _gbh_preprocess(next, goal):

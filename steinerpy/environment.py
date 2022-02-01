@@ -1,19 +1,11 @@
 """Interface for loading predefined environments"""
 
-import enum
 import os
-from enum import Enum, auto
 import steinerpy.config as cfg
 from steinerpy.library.graphs.graph import IGraph
 from steinerpy.library.graphs.parser import DataParser
 
-class EnvType(Enum):
-    MAPF = auto()
-    STEINLIB = auto()
-    HANOI = auto()
-    PANCAKE = auto()
-    GRID_3D = auto()
-    GRID_2D = auto()
+from .env_type import EnvType
 
 class EnvLoader:
 

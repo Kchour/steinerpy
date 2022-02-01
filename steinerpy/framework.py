@@ -204,7 +204,7 @@ class Framework(AbstractAlgorithm):
                     # also update global bound
                     self.update_global_bound(ndx)
 
-        # Ensure each component has a nomination
+        # Ensure each component has a nomination (this fails if we run out of nodes to explore)
         assert(len(self.node_queue)==len(self.comps))
 
     def update(self):

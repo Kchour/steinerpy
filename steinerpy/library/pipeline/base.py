@@ -3,8 +3,10 @@ import os
 import logging
 import random as rd
 import pickle
+import numpy as np
 
 from steinerpy.library.graphs import IGraph
+from steinerpy.env_type import EnvType
 
 my_logger = logging.getLogger(__name__)
 
@@ -106,30 +108,10 @@ class Generate(AFileHandle):
 
     def _generate_random_instances_func(self, num_of_inst: int, num_of_terms: int):
 
-
-
         list_of_instances = []
         for _ in range(num_of_inst):
-            terminal_set = set()
-            while len(terminal_set) < num_of_terms:
-                # randomly generate a point
-                if "Square" in str(type(self.graph)):
-                    # SquareGrid based
-                    minX, maxX, minY, maxY = self.graph.grid_dim
-                    pt = (rd.randint(minX, maxX), rd.randint(minY, maxY))
-                     # make sure point is unique using set and not an obstacle!
-                    if self.graph.obstacles is not None :
-                        if  pt not in self.graph.obstacles:
-                            terminal_set.add(pt)
-                    else:
-                        # adding to set ensures unique-ness
-                        terminal_set.add(pt)
-                else:
-                    # Generic graph
-                    pt = rd.choice(list(self.graph.vertices.keys()))
-                    # adding to set ensures unique-ness
-                    terminal_set.add(pt)
-            list_of_instances.append(list(terminal_set))
+            list_of_instances.append(self.graph.sample_uniform(num_of_terms))
+            # TODO: need to compute up with sample_uniform method for generic graphs
 
         return list_of_instances
 

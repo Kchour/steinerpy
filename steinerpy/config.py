@@ -9,6 +9,8 @@ import logging
 from multiprocessing import current_process
 from collections import defaultdict
 import threading
+
+from numpy import r_
 #################### LOGGING CONFIGURATION #####################################
 
 # The following two custom classes is used to solve
@@ -187,9 +189,14 @@ class Algorithm:
 
 class Pipeline:
     """Pipeline settings"""
+    #### compressed differential heuristics (set by user) #####
 
     # whether to peform prerun operations during result generation
     perform_prerun_r2 = True
 
     # debug cdh bounds by visualizing
     debug_vis_bounds = False 
+
+    pivot_limit = 1
+    min_reach_pivots = 10   #r value
+    node_limit = 1

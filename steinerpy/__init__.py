@@ -26,6 +26,8 @@ def set_level(level):
     l.setLevel(level)
 
 #try a different backend?
-import matplotlib
-# matplotlib.use('Agg')
-matplotlib.use('Qt5Agg')
+# import matplotlib
+# # # matplotlib.use('Agg')
+# # matplotlib.use('Qt5Agg')
+# matplotlib.use('Qt4Agg')
+# matplotlib.interactive(True)

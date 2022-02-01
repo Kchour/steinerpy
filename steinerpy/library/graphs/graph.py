@@ -128,7 +128,7 @@ class SquareGrid3D(IGraph):
 
     def __init__(self, grid_dim: list, grid_size: float, obstacles: list=None):
         # self.name = None
-        self.type = "grid_3d"
+        self.domain_type = "GRID_3D"
 
         self.grid_size = grid_size
         self.grid_dim = grid_dim
@@ -141,10 +141,11 @@ class SquareGrid3D(IGraph):
 
         # set cells to 1 if obstacle. no need to store obstacles list
         # self.obstacles = obstacles 
-        if obstacles is not None:
-            for o in obstacles:
-                x,y,z = o
-                self.grid[x][y][z] = 1
+        # if obstacles is not None:
+        #     for o in obstacles:
+        #         x,y,z = o
+        #         self.grid[x][y][z] = 1
+        self.grid[np.array(obstacles)] = 1
 
         # C2 = SquareGrid3D.SQ2 - grid_size
         # C3 = grid_size
@@ -215,9 +216,7 @@ class SquareGrid3D(IGraph):
     @mlab.show
     def show_grid(self):
         xx, yy, zz = np.where(self.grid==1)
-        mlab.points3d(xx,yy,zz, mode="cube")
-        
-
+        mlab.points3d(xx, yy, zz, mode="cube")
 
     def node_count(self):
        return np.count_nonzero(self.grid==0) 
@@ -266,26 +265,27 @@ class SquareGrid(IGraph):
     """
     def __init__(self, grid=None, grid_dim=None, grid_size=None, n_type=4, obstacles=None, name=None, graph_type="undirected"):
         self.name = None
+        self.domain_type = "GRID_2D" 
 
-        self.obstacles = obstacles
-        self.xwidth = grid_dim[1] - grid_dim[0]  + 1
-        self.yheight = grid_dim[3] - grid_dim[2] + 1
-
+        # self.obstacles = obstacles
+        self.xwidth = int(grid_dim[1] - grid_dim[0]  + 1)
+        self.yheight = int(grid_dim[3] - grid_dim[2] + 1)
         self.graph_type = graph_type
-
-        # FIXME: the corrected width and height
-        # self.xwidth = grid_dim[1] - grid_dim[0] +  1
-        # self.yheight = grid_dim[3] - grid_dim[2] + 1
 
         self.n_type = n_type
 
-        # if obstacles are defined, add ogm. Else init an empty grid
-        if obstacles is not None and obstacles:
-            ogm = OccupancyGridMap(grid_size, grid_dim, obstacles)
-            self.grid = ogm.grid 
-        else:
-            self.grid = init_grid(grid_dim, grid_size, 0)
-        
+        # # if obstacles are defined, add ogm. Else init an empty grid
+        # if obstacles is not None and obstacles:
+        #     ogm = OccupancyGridMap(grid_size, grid_dim, obstacles)
+        #     self.grid = ogm.grid 
+        # else:
+        #     self.grid = init_grid(grid_dim, grid_size, 0)
+
+        self.grid = np.zeros((self.xwidth, self.yheight))
+        # use fancy indexing to set multiple indices at once
+        o = np.array(obstacles)
+        self.grid[o[:,0], o[:,1]] = 1
+
         self.grid_dim = grid_dim
         self.grid_size = grid_size
         self.neighbor_type = n_type
@@ -347,6 +347,9 @@ class SquareGrid(IGraph):
         # d = {(from_node, to_node): self.cost(from_node, to_node) for from_node in self.get_nodes() for to_node in self.neighbors(from_node)}
         return d
 
+    def is_obstacle(self, node):
+        return self.grid[node] > 0
+
     def get_adjacency_matrix(self):
         nodes = list(self.get_nodes())
         edges = self.get_edges()
@@ -403,11 +406,11 @@ class SquareGrid(IGraph):
             obstacle (list): a list of tuples, where tuple is an obstacle (x,y)
 
         """
-        ogm = OccupancyGridMap(self.grid_size, self.grid_dim, obstacles)
-        self.obstacles = obstacles
-        self.grid = ogm.grid 
+        # use fancy indexing
+        o = np.array(obstacles)
+        self.grid[o[:,0], o[:,1]] = 1
 
-    def in_bounds(self, ind, type_='map'):
+    def in_bounds(self, node):
         """ Test whether a coordinate is inside the grid boundaries
 
         Parameters:
@@ -419,17 +422,19 @@ class SquareGrid(IGraph):
             False: otherwise
 
         """
-        if type_ == 'world':
-            (x, y) = ind
-            return self.grid_dim[0] <= x <= self.grid_dim[1] and self.grid_dim[2] <= y <= self.grid_dim[3]
-        else:
-            # grid indices
-            (indx, indy) = ind
-            xcells = int(np.floor((self.xwidth) / self.grid_size))
-            ycells = int(np.floor((self.yheight) / self.grid_size))
-            return 0 <= indx <= xcells and 0 <= indy <= ycells
+        (x, y) = node
+        return self.grid_dim[0] <= x <= self.grid_dim[1] and self.grid_dim[2] <= y <= self.grid_dim[3]
+        # if type_ == 'world':
+        #     (x, y) = ind
+        #     return self.grid_dim[0] <= x <= self.grid_dim[1] and self.grid_dim[2] <= y <= self.grid_dim[3]
+        # else:
+        #     # grid indices
+        #     (indx, indy) = ind
+        #     xcells = int(np.floor((self.xwidth) / self.grid_size))
+        #     ycells = int(np.floor((self.yheight) / self.grid_size))
+        #     return 0 <= indx <= xcells and 0 <= indy <= ycells
 
-    def not_obstacles(self, ind, type_='map'):
+    def not_obstacles(self, node): 
         """ Test whether a coordinate coincides with an obstacle
 
         Parameters:
@@ -441,13 +446,16 @@ class SquareGrid(IGraph):
             False: otherwise
 
         """
-        if type_ == 'world':
-            # convert world to ind first
-            (indx, indy) = get_index(ind[0], ind[1], self.grid_size, self.grid_dim)
-            return self.grid[indy, indx] == 0
-        else:
-            (indx, indy) = ind
-            return self.grid[indy, indx] == 0
+        (indx, indy) = node
+        return self.grid[indy, indx] < 1
+
+        # if type_ == 'world':
+        #     # convert world to ind first
+        #     (indx, indy) = get_index(ind[0], ind[1], self.grid_size, self.grid_dim)
+        #     return self.grid[indy, indx] == 0
+        # else:
+        #     (indx, indy) = ind
+        #     return self.grid[indy, indx] == 0
             
 
     def neighbors(self, node):
@@ -471,10 +479,10 @@ class SquareGrid(IGraph):
                        (x - self.grid_size, y - self.grid_size), (x - self.grid_size, y + self.grid_size)]
 
         # Only return coordinates that are in range
-        results = filter(lambda x: self.in_bounds(x, type_='world'), results)
+        results = filter(lambda x: self.in_bounds(x), results)
 
         # Only return coordinates that are not obstacles
-        results = filter(lambda x: self.not_obstacles(x, type_='world'), results)
+        results = filter(lambda x: self.not_obstacles(x), results)
 
         return results
 
@@ -532,14 +540,14 @@ class SquareGrid(IGraph):
             alpha=1,
             vmin=0,
             vmax=1,
-            extent=[
-                minX-self.grid_size/2,
-                maxX+self.grid_size/2,
-                minY-self.grid_size/2,
-                maxY+self.grid_size/2],
+            # extent=[
+            #     minX-self.grid_size/2,
+            #     maxX+self.grid_size/2,
+            #     minY-self.grid_size/2,
+            #     maxY+self.grid_size/2],
             cmap='Blues', aspect='equal')
 
-        xmin, xmax, ymin, ymax = self.grid_dim
+        # xmin, xmax, ymin, ymax = self.grid_dim
         # self.ax.set_xticks(np.arange(xmin, xmax+1, self.grid_size))
         # self.ax.set_yticks(np.arange(ymin, ymax+1, self.grid_size))
         # self.ax.set_xticklabels(np.arange(xmin, xmax+1, self.grid_size))
@@ -553,7 +561,8 @@ class SquareGrid(IGraph):
         # Draw artists on helper objects
         self.ax.draw_artist(im)
 
-        self.fig.canvas.blit(self.ax.bbox)
+        # self.fig.canvas.blit(self.ax.bbox)
+        self.fig.canvas.update()
 
         # must call fig.canvas.flush_events() (called by pause internally)
         self.fig.canvas.flush_events()
@@ -682,6 +691,7 @@ class MyGraph(IGraph):
         self.adjList = {}
         self.graph_type = graph_type
         self.graph_name=None
+        self.domain_type = "GENERIC"
 
         # Deep copy to avoid modifying original graph by reference
         if deep_copy:

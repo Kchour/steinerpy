@@ -107,7 +107,10 @@ class RectGrid3D:
 
     def neighbors(self, node):
         """There are at most 26 neighbors, subject to obstacles"""
-        x,y,z = node
+        x = int(node[0])
+        y = int(node[1])
+        z = int(node[2])
+
         if self.grid[x,y,z] > 0:
             return None
 
@@ -179,7 +182,7 @@ class RectGrid3D:
 
 def grid3d_wrap(grid_dim, grid_size, obstacles):
 
-    for i, v in enumerate([0, 99, 0, 99, 0, 99]):
+    for i, v in enumerate(grid_dim):
         list_instance[i] = v
     # convert obstacles to typed list
     obs = nb.typed.List(obstacles)

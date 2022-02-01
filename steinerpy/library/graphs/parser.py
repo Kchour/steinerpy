@@ -1,6 +1,7 @@
 """This module is used to parse different online datasets and convert them to a format we can use """
 import re
 from steinerpy.library.graphs.graph import GraphFactory
+from steinerpy.library.graphs.graph_numba import grid3d_wrap 
 import pdb
 
 class DataParser:
@@ -105,7 +106,11 @@ class DataParser:
                 ox, oy, oz = [int(v) for v in line.strip().split(" ")]
                 obstacles.append((ox, oy, oz))
 
+            # non-optimized graph
             graph = GraphFactory.create_graph("SquareGrid3D", grid_dim, grid_size=1, obstacles=obstacles)
+
+            # # optimized
+            # graph = grid3d_wrap(grid_dim, 1, obstacles)
             return graph
             
 
@@ -149,12 +154,21 @@ class DataParser:
 
         # get indices of obstacles
         obsMask = (test == patterns['non-regex']['obstacles'][0]) + (test == patterns['non-regex']['obstacles'][1])
-        
+
+        # Flip values along given axis
+        # obsMask = np.flip(obsMask, axis=0)
+        # obsMask = np.flip(obsMask, axis=1)
+        # set origin to be the bottom left
+
         # flatten
         ind = np.where(obsMask==True)
 
-        # flip x/y to show origin at bottom left. convert to list       
-        obs_coords = np.vstack((ind[1], ind[0])).T.tolist()
+        # flip x/y      
+        # obs_coords = np.vstack((ind[1], ind[0])).T.tolist()
+        obs_coords = np.vstack((ind[1], ind[0])).T
+
+
+            
 
         # convert to list of tuples
         obs_coords = [tuple(i) for i in obs_coords]

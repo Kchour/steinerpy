@@ -128,10 +128,10 @@ class GenerateHeuristics:
             my_logger.info("Creating differential heuristic")
 
             return cls.gen_landmark_heuristic(graph, processes=processes)
-        else:
-            # find all pairs shortest distance
-            my_logger.info("Computing ALL PAIRS SHORTEST DISTANCE")
-            return cls.gen_all_pairs_shortest_dist(graph, processes=processes)
+        # else:
+        #     # find all pairs shortest distance
+        #     my_logger.info("Computing ALL PAIRS SHORTEST DISTANCE")
+        #     return cls.gen_all_pairs_shortest_dist(graph, processes=processes)
 
     @staticmethod
     def gen_compressed_diff_heuristic(graph):
@@ -139,15 +139,30 @@ class GenerateHeuristics:
 
         # limit size of cdh table to be sqrt(|V|)
         # nodes = len(list(graph.get_nodes()))
-        nodes = graph.node_count()
-        # size_limit = int(math.sqrt(nodes))
-        # size_limit = int(0.50*nodes)
-        size_limit = 16*nodes
-        pivot_limit = 100
+        # nodes = graph.node_count()
+        # # size_limit = int(math.sqrt(nodes))
+        # # size_limit = int(0.50*nodes)
+
+        # # for grid_2d sc
+        # # size_limit = 16*nodes
+        # # pivot_limit = 100
+
+        # # for grid_3d (simple map)
+        # size_limit = nodes/16
+        # pivot_limit = 4
+
+
+        # # for grid_3d (7e6 map)
+        # size_limit = nodes/16
+        # pivot_limit = 4
+        # # r = 
+
+        node_limit = cfg.Pipeline.node_limit
+        pivot_limit = cfg.Pipeline.pivot_limit
 
         from steinerpy.library.search.all_pairs_shortest_path import SubPairsShortestPath
 
-        results = SubPairsShortestPath.build(graph, size_limit, pivot_limit)
+        results = SubPairsShortestPath.build(graph, node_limit, pivot_limit)
         results["type"] = "CDH"
         return results
 
@@ -184,12 +199,22 @@ class GenerateHeuristics:
     ################################################################################################
     @nb.njit
     def _cdh(cdh_table, ub, lb, from_node, to_node):
+        
+        if len(from_node)==2:
+            x1, y1 = from_node
+            x2, y2 = to_node
+            dmax = max(abs(x1 - x2), abs(y1 - y2))
+            dmin = min(abs(x1 - x2), abs(y1 - y2))
+            h1 = 1.414*dmin + (dmax - dmin)
+        else:
+            x1, y1, z1 = from_node
+            x2, y2, z2 = to_node
+            dx, dy, dz = abs(x1 - x2), abs(y1 - y2), abs(z1 - z2)
+            dmax = max(dx, dy, dz)
+            dmin = min(dx, dy, dz)
+            dmid = dx + dy + dz - dmin - dmax 
+            h1 = C1*dmin + C2*dmid + C3*dmax        
 
-        x1, y1 = from_node
-        x2, y2 = to_node
-        dmax = max(abs(x1 - x2), abs(y1 - y2))
-        dmin = min(abs(x1 - x2), abs(y1 - y2))
-        h1 = 1.414*dmin + (dmax - dmin)
         if from_node not in cdh_table:
             return h1
         else:
@@ -404,7 +429,7 @@ class GenerateHeuristics:
             AnimateV2.init_figure(fig, ax, xlim=(minX, maxX), ylim=(minY,maxY))
 
         # minimum of reaches to a pivot
-        r = 10
+        r = cfg.Pipeline.min_reach_pivots
 
         # now run unisearch from terminal
         lb = GenerateHeuristics.cdh_lower_bound

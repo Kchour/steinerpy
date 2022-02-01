@@ -8,7 +8,16 @@ WheelofWar.map			2787.2882601499878
 Sandstorm.map			586.2972709780006
 Caldera.map: 			8435.761629575001		Attempt 1
 						1375.7065553870016		Attempt 2
-|P| = 100, memory limit = |V|
+|P| = 100, memory limit = 16|V|
 
 
+#-----------------------------------------------------------------------------
+grid_3d maps
 
+
+# simple 3d map
+|P| = 100, memory limit = 0.25|V|			317.8116316109954
+
+
+# 7e6 map
+|P|=4, memory limit = |V|/16				1463.7418863729981

@@ -4,16 +4,17 @@ from mayavi import mlab
 import time 
 import math
 
-@mlab.show
-def test_points3d():
-    t = np.linspace(0, 4 * np.pi, 20)
 
-    x = np.sin(2 * t)
-    y = np.cos(t)
-    z = np.cos(2 * t)
-    s = 2 + np.sin(t)
+# @mlab.show
+# def test_points3d():
+#     t = np.linspace(0, 4 * np.pi, 20)
 
-    return points3d(x, y, z, s, colormap="copper", scale_factor=.25)
+#     x = np.sin(2 * t)
+#     y = np.cos(t)
+#     z = np.cos(2 * t)
+#     s = 2 + np.sin(t)
+
+#     return points3d(x, y, z, s, colormap="copper", scale_factor=.25)
 
 # to show the above example uncomment
 # test_points3d()
@@ -47,7 +48,7 @@ z = np.sin(n_long*mu/n_mer)*0.5
 l = mlab.plot3d(x, y, z, np.sin(mu), tube_radius=0.025, colormap='Spectral')
 
 # Now animate the data.
-@mlab.animate(delay=10)
+# @mlab.animate(delay=10)
 def anim():
     ms = l.mlab_source
     for i in np.linspace(0,60,1000):
@@ -56,45 +57,49 @@ def anim():
         scalars = np.sin(mu + np.pi*(i+1)/5)
         # print(x, scalars)
         ms.trait_set(x=x, scalars=scalars)
-        yield
+        # yield
+        # mlab.show(stop=True)
+        # mlab.show()
 anim()
-mlab.show()
+# mlab.show()
 
+for i in range(2000):
+    print("hello")
 ################## Another example #####################3
 
-def produce_verts(A, t):
-    def delta(A, t):
-        return A * math.sin(t)
-    def verts(d):
-        return [(1 + d, 0, 0), (0, 1 + d, 0), (-1 - d, 0, 0), (0, -1 - d, 0),
-                (0, 0, 1 + d), (0, 0, -1 - d)]
-    return zip(*verts(delta(A, t)))
+# def produce_verts(A, t):
+#     def delta(A, t):
+#         return A * math.sin(t)
+#     def verts(d):
+#         return [(1 + d, 0, 0), (0, 1 + d, 0), (-1 - d, 0, 0), (0, -1 - d, 0),
+#                 (0, 0, 1 + d), (0, 0, -1 - d)]
+#     return zip(*verts(delta(A, t)))
 
-@mlab.animate(delay=100)
-def anim():
-    t = 0.
-    dt = 0.1
-    A = 0.5
-    f = mlab.gcf()
-    nverts = 6
-    x, y, z = produce_verts(A, t)
-    # Each triangle is a 3-tuple of indices. The indices are indices of `verts`.
-    triangles = [(i, (i + 1) % 4, j) for i in range(4) for j in (4, 5)]
-    colorval = [xi ** 2 + yi ** 2 + zi ** 2 for xi, yi, zi in zip(x, y, z)]
-    mesh = mlab.triangular_mesh(
-        x, y, z, triangles, scalars=colorval, opacity=1, representation='mesh')
-    ms = mesh.mlab_source
-    while True:
-        f.scene.camera.azimuth(10)
-        f.scene.render()
-        t = (t + dt) % (2 * math.pi)
-        x, y, z = produce_verts(A, t)
-        colorval = [xi ** 2 + yi ** 2 + zi ** 2 for xi, yi, zi in zip(x, y, z)]
-        ms.set(x=x, y=y, z=z, scalars=colorval)
-        # time.sleep(0.1)
-        print(t, dt)
-        if t > 4:
-            break
-        yield
-anim()
-mlab.show()
+# @mlab.animate(delay=100)
+# def anim():
+#     t = 0.
+#     dt = 0.1
+#     A = 0.5
+#     f = mlab.gcf()
+#     nverts = 6
+#     x, y, z = produce_verts(A, t)
+#     # Each triangle is a 3-tuple of indices. The indices are indices of `verts`.
+#     triangles = [(i, (i + 1) % 4, j) for i in range(4) for j in (4, 5)]
+#     colorval = [xi ** 2 + yi ** 2 + zi ** 2 for xi, yi, zi in zip(x, y, z)]
+#     mesh = mlab.triangular_mesh(
+#         x, y, z, triangles, scalars=colorval, opacity=1, representation='mesh')
+#     ms = mesh.mlab_source
+#     while True:
+#         f.scene.camera.azimuth(10)
+#         f.scene.render()
+#         t = (t + dt) % (2 * math.pi)
+#         x, y, z = produce_verts(A, t)
+#         colorval = [xi ** 2 + yi ** 2 + zi ** 2 for xi, yi, zi in zip(x, y, z)]
+#         ms.set(x=x, y=y, z=z, scalars=colorval)
+#         # time.sleep(0.1)
+#         print(t, dt)
+#         if t > 4:
+#             break
+#         yield
+# anim()
+# mlab.show()

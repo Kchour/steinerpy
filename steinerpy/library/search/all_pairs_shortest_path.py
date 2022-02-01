@@ -1,5 +1,3 @@
-from ast import keyword
-from concurrent.futures import process
 import multiprocessing as mp
 import math
 import numpy as np
@@ -7,7 +5,6 @@ import random
 from functools import partial
 import logging
 from timeit import default_timer as timer
-from steinerpy.config import Animation
 
 from steinerpy.library.search.search_algorithms import UniSearch, UniSearchMemLimit
 from steinerpy.library.misc.utils import Progress
@@ -50,7 +47,6 @@ class SubPairsShortestPath:
         #     tasks.add(r_node)
         # tasks = list(tasks)
         # del all_nodes
-
 
         total_node_count = G.node_count()
         ind_sz_lim = int(size_limit/pivot_limit)
@@ -111,26 +107,36 @@ class SubPairsShortestPath:
         # fig, ax = graph.show_grid()
         # AnimateV2.init_figure(fig, ax)
 
+        # get some goals (surrogate states)
+        goals = set(graph.sample_uniform(int(ind_sz_lim)))
+
         # this is memory limited dijkstra
-        search = UniSearchMemLimit(graph, start, None, ind_sz_lim, "zero", False)
+        search = UniSearchMemLimit(graph, start, goals)
+
+        # this is opt dijkstra
+        # search = UniSearchMemLimit3DOpt(graph, start, None, ind_sz_lim)
 
         # print(os.getpid(), start)
         start_time = timer()
         search.use_algorithm()
         # number of nodes expanded
+        # num_of_expanded = UniSearchMemLimit3DOpt.total_expanded_nodes
         num_of_expanded = UniSearchMemLimit.total_expanded_nodes
+        print("nodes expanded", num_of_expanded)
         # time
         total_time = timer() - start_time
 
-        # # limit individual items in the results to size_limit/pivot
-        # keys_to_del = set()
-        # all_keys = list(search.g.keys())
-        # while len(keys_to_del)< (total_node_count - ind_sz_lim):
-        #     keys_to_del.add(random.choice(all_keys))
-        # for k in keys_to_del:
-        #     search.g.pop(k)
+        # limit items in dictionary to at most ind_sz_lim
+        nvalues = {n:search.g[n] for n in goals}
 
-        return start, search.g, num_of_expanded, total_time
+        # minX, maxX, minY, maxY, minZ, maxZ = graph.grid_dim
+        # while len(reduced_dict) < min(total_node_count, ind_sz_lim):
+        #    x,y,z = np.random.randint((minX, minY, minZ), (maxX, maxY, maxZ))
+        #    if search.g[x,y,z] < np.inf:
+        #        reduced_dict[(x,y,z)] = search.g[x,y,z]
+
+
+        return start, nvalues, num_of_expanded, total_time
 
 class AllPairsShortestPath:
     """Multiple uses:
