@@ -3,6 +3,7 @@ from numba import typed
 import math
 import numpy as np
 import random
+from typing import Iterable
 
 from .numba_search_utils import PriorityQueue2D, PriorityQueue3D
 from steinerpy.library.graphs.graph_numba import RectGrid3D
@@ -14,7 +15,7 @@ class UniSearchMemLimitFast:
 
     """
     total_expanded_nodes = 0
-    def __init__(self, graph, start:tuple, goal:tuple):
+    def __init__(self, graph, start:tuple, goal:Iterable[tuple]):
         # # try to load numba if not already loaded
         # if "numba" in sys.modules:
         #     pass
@@ -39,10 +40,11 @@ class UniSearchMemLimitFast:
             self.g = np.full((graph.x_len, graph.y_len, graph.z_len), np.inf)
             self.frontier = PriorityQueue3D()
         self.g[start] = 0
+
         self.goal = goal
         
         # init the front
-        self.frontier.put(start, 0) 
+        self.frontier.put(start, 0.0) 
 
     @classmethod
     def update_expanded_nodes(cls):
@@ -64,13 +66,14 @@ class UniSearchMemLimitFast:
 
         """ 
         iteration = 0 
-        while pq:
+        while not pq.empty():
             _, current = pq.pop()
 
             # early stopping
             if current in goal:
-                goal = goal - set(current)
-                if not goal:
+                # print(current)
+                goal.remove(current)
+                if len(goal)==0:
                     break
 
             if iteration % 1e3 == 0:

@@ -7,7 +7,8 @@ from numba.experimental import jitclass
 entry_def = (0.0, 0, (0,0,0), nb.typed.List([False]))
 entry_type = nb.typeof(entry_def)
 
-class PriorityQueue3D:
+# @jitclass
+class PriorityQueue:
     pq: List[entry_type]
     entry_finder: Dict[Tuple[int, int], entry_type]
     counter: int
@@ -15,7 +16,7 @@ class PriorityQueue3D:
 
     def __init__(self):
         # add an item to help numba infer type
-        self.pq = nb.typed.List.empty_list((0.0, 0, (0,0,0), nb.typed.List([False])))
+        self.pq = nb.typed.List.empty_list( (0.0, 0, (0,0,0), nb.typed.List([False])) )
         self.entry_finder = nb.typed.Dict.empty( (0, 0, 0), (0.0, 0, (0,0,0), nb.typed.List([False])))
         self.counter = 0
 
@@ -49,11 +50,27 @@ class PriorityQueue3D:
                 return priority, item
         raise KeyError("pop from an empty priority queue")
 
+@jitclass
+class PriorityQueue3D(PriorityQueue):
+    pq: List[entry_type]
+    entry_finder: Dict[Tuple[int, int, int], entry_type]
+    counter: int
+    entry: entry_type
+
+    def __init__(self):
+        # add an item to help numba infer type
+        self.pq = nb.typed.List.empty_list( (0.0, 0, (0,0,0), nb.typed.List([False])) )
+        self.entry_finder = nb.typed.Dict.empty( (0, 0, 0), (0.0, 0, (0,0,0), nb.typed.List([False])))
+        self.counter = 0
+
+    def empty(self):
+        return len(self.entry_finder)==0
+
 
 entry_def = (0.0, 0, (0,0), nb.typed.List([False]))
 entry_type = nb.typeof(entry_def)
 @jitclass
-class PriorityQueue2D(PriorityQueue3D):
+class PriorityQueue2D(PriorityQueue):
     pq: List[entry_type]
     entry_finder: Dict[Tuple[int, int], entry_type]
     counter: int

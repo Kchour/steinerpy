@@ -24,7 +24,8 @@ C3 = vl
 list_instance = typed.List([0]*6)
 
 spec = [("type", nb.types.unicode_type),
-        ('grid_size', nb.types.float64),
+        ('grid_size', nb.types.int64),
+        # ('grid_size', nb.types.float64),
         ('grid_dim', typeof(list_instance)),
         ('x_len', nb.types.int16),
         ('y_len', nb.types.int16),
@@ -32,6 +33,8 @@ spec = [("type", nb.types.unicode_type),
         ('coord_dims', nb.types.UniTuple(nb.types.int16, 3)),
         ('grid', nb.types.float64[:,:,:]),
 ]
+
+samples_def = nb.typeof(nb.typed.List.empty_list((0,0,0)) )
 
 @jitclass(spec)
 class RectGrid3D:
@@ -48,7 +51,8 @@ class RectGrid3D:
         # self.name = None
         self.type = "grid_3d"
 
-        self.grid_size = grid_size
+        # assume unit grid spacing    
+        self.grid_size = 1
         self.grid_dim = grid_dim
         self.x_len = int((grid_dim[1] - grid_dim[0] + 1)/grid_size)
         self.y_len = int((grid_dim[3] - grid_dim[2] + 1)/grid_size)
@@ -180,10 +184,10 @@ class RectGrid3D:
         #         # add samples as tuples
         #         samples.add((x,y,z))
         
-        # return list(samples)
+        # samples = nb.typed.List.empty_list((0,0,0)) 
+        # with objmode(samples=samples_def):
+
         samples = np.empty((num_of_samples, 3),dtype=nb.int64)
-        # samples = list()
-        # with objmode(samples='int64(Tuple((0,0,0))'):
         with objmode(samples='int64[:,:]'):
             min_x, max_x, min_y, max_y, min_z, max_z = self.grid_dim
             samples = set()
@@ -206,12 +210,20 @@ class RectGrid3D:
                 current_size = num_of_samples - len(samples)
             samples = list(samples)
             samples = np.array(samples)
+
+            # conver to nb typed list
+            # samples = nb.typed.List.empty_list((0,0,0))
+            # for s in _samples:
+            #     samples.append(s)
+
             # return list(samples)
-        # _s = list()
-        # for s in samples:
-        #     _s.append(tuple(s.to_list()))
-        # return _s
-        return samples
+
+        # conver to a list of 3-tuples before returning
+        _s = list()
+        for s in samples:
+            _s.append((s[0], s[1], s[2]))
+        return _s
+        # return samples
 
 def grid3d_wrap(grid_dim, grid_size, obstacles):
 
