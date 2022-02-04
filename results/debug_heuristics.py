@@ -41,15 +41,18 @@ np.random.seed(1)
 #     data = pickle.load(f)
 # graph = EnvLoader.load(EnvType.GRID_2D, os.path.join("sc", "Archipelago.map"))
 
-# with open("./heuristics/h_Complex.3dmap.pkl", 'rb') as f:
+with open("./heuristics/h_Complex.3dmap.pkl", 'rb') as f:
+    data = pickle.load(f)
+graph = EnvLoader.load(EnvType.GRID_3D, "Complex.3dmap")
+pass
+
+# with open("./heuristics/h_Simple.3dmap.pkl", 'rb') as f:
 #     data = pickle.load(f)
-# graph = EnvLoader.load(EnvType.GRID_3D, "Complex.3dmap")
+# graph = EnvLoader.load(EnvType.GRID_3D, "Simple.3dmap")
 # pass
 
-with open("./heuristics/h_Simple.3dmap.pkl", 'rb') as f:
-    data = pickle.load(f)
-graph = EnvLoader.load(EnvType.GRID_3D, "Simple.3dmap")
-pass
+# viewing graph
+# graph.show_grid()
 
 cfg.Pipeline.min_reach_pivots = 4
 
@@ -64,14 +67,14 @@ cfg.Pipeline.min_reach_pivots = 4
 
 # use baseline to generate a random problem
 gen_bs = GenerateBaseLine(graph=graph)
-gen_bs.randomly_generate_instances(1, 4)
+gen_bs.randomly_generate_instances(1, 20)
 instances = gen_bs.instances
 
 # very specific instance
 # instances = [(37, 72, 9), (16, 129, 76)]
 # instances = [[(37, 72, 9), (16,129,76)]]
 # instances = [[(84, 50, 68), (20, 101, 18), (37, 72, 9), (16, 129, 76)]]
-instances = [[(84,50,68), (20, 101, 18), (37, 72, 9),]] 
+# instances = [[(84,50,68), (20, 101, 18), (37, 72, 9),]] 
 
 # try loading heuristics 
 GenerateHeuristics.load_results(results=data)
@@ -94,13 +97,14 @@ def pre_run_func(self, *kwargs):
     
     # for grid_2d/mapf instances only!
     # cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
-    # for grid_3d only
-    cfg.Algorithm.sstar_heuristic_type = "voxel"
 
-    # GenerateHeuristics.preload_type="CDH"
-    # cfg.Algorithm.sstar_heuristic_type = "preprocess"
-    # cfg.Algorithm.use_bpmx = True
-    # GenerateHeuristics.cdh_compute_bounds(graph, self.terminals)
+    # for grid_3d only
+    # cfg.Algorithm.sstar_heuristic_type = "voxel"
+
+    GenerateHeuristics.preload_type="CDH"
+    cfg.Algorithm.sstar_heuristic_type = "preprocess"
+    cfg.Algorithm.use_bpmx = True
+    GenerateHeuristics.cdh_compute_bounds(graph, self.terminals)
 
 # now pass instances to results generator
 # algs = ["S*-MM", "S*-BS"]

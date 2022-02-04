@@ -100,17 +100,17 @@ class DataParser:
 
             pass
             max_x, max_y, max_z = [int(v) for v in lines[0].strip().split(" ") if v.isdigit()]
-            grid_dim = [0, max_x, 0, max_y, 0, max_z]
+            grid_dim = [0, max_x-1, 0, max_y-1, 0, max_z-1]
             obstacles = []
             for line in lines[1::]:
                 ox, oy, oz = [int(v) for v in line.strip().split(" ")]
                 obstacles.append((ox, oy, oz))
 
             # non-optimized graph
-            graph = GraphFactory.create_graph("SquareGrid3D", grid_dim, grid_size=1, obstacles=obstacles)
+            # graph = GraphFactory.create_graph("SquareGrid3D", grid_dim, grid_size=1, obstacles=obstacles)
 
             # # optimized
-            # graph = grid3d_wrap(grid_dim, 1, obstacles)
+            graph = grid3d_wrap(grid_dim, 1, obstacles)
             return graph
             
 

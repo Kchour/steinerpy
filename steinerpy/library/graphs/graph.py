@@ -143,9 +143,11 @@ class SquareGrid3D(IGraph):
         # self.obstacles = obstacles 
         # if obstacles is not None:
         #     for o in obstacles:
-        #         x,y,z = o
-        #         self.grid[x][y][z] = 1
-        self.grid[np.array(obstacles)] = 1
+        #         # x,y,z = o
+        #         self.grid[o] = 1
+        # self.grid[np.array(obstacles)] = 1
+        self.grid[obstacles[:,0], obstacles[:,1], obstacles[:,2]] = 1
+
 
         # C2 = SquareGrid3D.SQ2 - grid_size
         # C3 = grid_size
@@ -215,11 +217,11 @@ class SquareGrid3D(IGraph):
     #     plt.show(block=False)
     @mlab.show
     def show_grid(self):
-        xx, yy, zz = np.where(self.grid==1)
+        xx, yy, zz = np.where(self.grid>0)
         mlab.points3d(xx, yy, zz, mode="cube")
 
     def node_count(self):
-       return np.count_nonzero(self.grid==0) 
+       return np.count_nonzero(self.grid<1) 
     
     def edge_count(self):
         """LuLs not implemented, not needed"""
@@ -227,16 +229,34 @@ class SquareGrid3D(IGraph):
 
     def sample_uniform(self, num_of_samples: int):
         """uniformly sample the free space"""
+        # min_x, max_x, min_y, max_y, min_z, max_z = self.grid_dim
+        # samples = set()
+        # while len(samples) < min(num_of_samples, self.node_count()):
+        #     x,y,z = np.random.randint((min_x, min_y, min_z), (max_x, max_y, max_z))
+        #     if self.grid[x,y,z] == 0:
+        #         # add samples as tuples
+        #         samples.add((x,y,z))
+        
+        # return list(samples)
         min_x, max_x, min_y, max_y, min_z, max_z = self.grid_dim
         samples = set()
-        while len(samples) < min(num_of_samples, self.node_count()):
-            x,y,z = np.random.randint((min_x, min_y, min_z), (max_x, max_y, max_z))
-            if self.grid[x,y,z] == 0:
-                # add samples as tuples
-                samples.add((x,y,z))
-        
-        return list(samples)
+        current_size = num_of_samples
+        while len(samples) < num_of_samples:
+            # randomly generate N number of indices samples
+            gen = np.random.randint((min_x, min_y, min_z), (max_x, max_y, max_z), size=(current_size,3))
+            # non-obstacle cell mask
+            get = self.grid[gen[:,0], gen[:,1], gen[:,2]] < 1
+            # grab all non-obstacle indices
+            items = gen[get]
+            # add to samples set for uniquenes
+            for i in items:
+                if len(samples)<num_of_samples:
+                    samples.add(tuple(i))
+                else:
+                    break
+            current_size = num_of_samples - len(samples)
 
+        return list(samples)
 
 class SquareGrid(IGraph):
     """A grid based graph class. Physical coordinates origin (0,0) starts at the lower-left corner,

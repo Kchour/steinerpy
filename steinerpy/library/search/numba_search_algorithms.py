@@ -4,18 +4,17 @@ import math
 import numpy as np
 import random
 
-from steinerpy.library.search.search_algorithms import UniSearchMemLimit
-from .numba_search_utils import PriorityQueue
+from .numba_search_utils import PriorityQueue2D, PriorityQueue3D
 from steinerpy.library.graphs.graph_numba import RectGrid3D
 
-class UniSearchMemLimit3DOpt:
+class UniSearchMemLimitFast:
     """Optimized version of Uni-directional, memory-limited search
     
     Requires numba
 
     """
     total_expanded_nodes = 0
-    def __init__(self, graph, start:tuple, goal:tuple, memory_limit=math.inf):
+    def __init__(self, graph, start:tuple, goal:tuple):
         # # try to load numba if not already loaded
         # if "numba" in sys.modules:
         #     pass
@@ -26,17 +25,24 @@ class UniSearchMemLimit3DOpt:
         #     spec.loader.exec_module(module)
         # else:
         #     raise ImportError("Cannot find 'numba', it's not installed?!")
-        self.start = start
-        self.pq = PriorityQueue()
-        self.g = typed.Dict.empty(nb.types.UniTuple(nb.int64, len(start)), nb.types.float64)
-        self.goal = goal
-        self.memory_limit = memory_limit
-        self.parent = typed.Dict.empty(nb.types.UniTuple(nb.int64, len(start)), nb.types.UniTuple(nb.int64, len(start)))
-        self.boundary = typed.Dict.empty(nb.types.UniTuple(nb.int64, len(start)), nb.types.int64)
         self.graph = graph
+        self.start = start
+        # self.g = typed.Dict.empty(nb.types.UniTuple(nb.int64, len(start)), nb.types.float64)
+        if len(start) == 2:
+            # 3d graph
+            # store cost-to-come, init start state
+            self.g = np.full((graph.xwidth, graph.yheight), np.inf)
+            self.frontier = PriorityQueue2D()
+        elif len(start) == 3:
+            # 3d graph
+            # store cost-to-come, init start state
+            self.g = np.full((graph.x_len, graph.y_len, graph.z_len), np.inf)
+            self.frontier = PriorityQueue3D()
+        self.g[start] = 0
+        self.goal = goal
         
         # init the front
-        self.pq.put(start, 0) 
+        self.frontier.put(start, 0) 
 
     @classmethod
     def update_expanded_nodes(cls):
@@ -47,8 +53,8 @@ class UniSearchMemLimit3DOpt:
         """Reset all class variables """
         cls.total_expanded_nodes = 0
 
-    @nb.njit
-    def _search(pq, graph, g, b, p, memory_limit):
+    @nb.njit(cache=True)
+    def _search(pq, graph, g, goal):
         """
         Params:
             pq: priority queue
@@ -60,39 +66,29 @@ class UniSearchMemLimit3DOpt:
         iteration = 0 
         while pq:
             _, current = pq.pop()
-            # keep track of boundary nodes
-            b[current] = 0
 
-            # delete any parents that have no remaining frontier children
-            if p[current] is not None:
-                b[p[current]] -= 1
-                if b[p[current]] <= 0:
-                    del b[p[current]]
+            # early stopping
+            if current in goal:
+                goal = goal - set(current)
+                if not goal:
+                    break
 
-            if len(g)>2*memory_limit:
-                    nodes = random.sample(g.keys(), k=int(memory_limit))
-                    for node in nodes:
-                        if node not in b and node not in pq:
-                            del g[node] 
-                            del p[node]
+            if iteration % 1e3 == 0:
+                print("searched nodes: ", iteration)
 
             for n in graph.neighbors(current):
                 g_next = g[current] + graph.cost(current, n)
-                if n not in g or g_next < g[n]:
+                if g[n] == np.inf or g_next < g[n]:
                     g[n] = g_next
                     pq.put(n, g_next)
-                    p[n] = current
-
-                    # increment frontier children counter
-                    b[current] += 1
 
             iteration += 1
-        return g, p, iteration
+        return g, iteration
 
     def use_algorithm(self):
         # need to wrap each guy properly
-        UniSearchMemLimit3DOpt.total_expanded_nodes = 0
-        g, p, iteration = UniSearchMemLimit3DOpt._search(self.pq, self.graph, self.g, self.boundary, self.parent, self.memory_limit)
+        UniSearchMemLimitFast.total_expanded_nodes = 0
+        g, iteration = UniSearchMemLimitFast._search(self.frontier, self.graph, self.g, self.goal)
         self.g = g
-        self.parent = p
-        UniSearchMemLimit3DOpt.total_expanded_nodes = iteration
+        # self.parent = p
+        UniSearchMemLimitFast.total_expanded_nodes = iteration

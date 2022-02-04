@@ -471,12 +471,14 @@ class GenerateHeuristics:
         _lb = numba_nested_dict(len(one_pivot))
         _ub = numba_nested_dict(len(one_pivot))
         _cdh = numba_nested_dict((len(one_pivot)))
+        # k:= goals
         for k,values in GenerateHeuristics.cdh_lower_bound.items():
             temp = numba_dict(len(one_pivot))
             for k2, v in values.items():
                 temp[k2] = v
             _lb[k] = temp
 
+        # k := goals
         for k,values in GenerateHeuristics.cdh_upper_bound.items():
             temp = numba_dict(len(one_pivot))
             for k2, v in values.items():

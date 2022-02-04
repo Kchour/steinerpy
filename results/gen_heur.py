@@ -23,40 +23,48 @@ names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.m
 # names = ["den520d.map"]
 # names = ["room-32-32-4.map"]
 
+cfg.Pipeline.pivot_limit = 100
+
 # try memory limited dijkstra (real slow prob) (sc)
 # names = ["Caldera.map"]
 
 # 3d map
 # names = ["A1.3dmap"]
 # names = ["Simple.3dmap"]
-# names = ["FA1.3dmap"]
-# names = ["Complex.3dmap", "Simple.3dmap"]
+names = ["FA1.3dmap"]
+# names = ["Complex.3dmap"]
+# names = ["FA1.3dmap", "Complex.3dmap", "Simple.3dmap"]
+
+cfg.Pipeline.pivot_limit = 4
 
 #mapf
 # names = ["den312d.map"]
 
-cfg.Pipeline.pivot_limit = 100
-cfg.Pipeline.min_reach_pivots = 10
 
 stats = []
 for n in names:
     print("preprocessing: {}".format(n))
-    t1 = timer()
+    # t1 = timer()
     # for 3d grid map
-    # graph = EnvLoader.load(EnvType.GRID_3D, n)
+    graph = EnvLoader.load(EnvType.GRID_3D, n)
     # for sc maps
-    graph = EnvLoader.load(EnvType.GRID_2D, os.path.join("sc", n))
+    # graph = EnvLoader.load(EnvType.GRID_2D, os.path.join("sc", n))
     # for mapf maps
     # graph = EnvLoader.load(EnvType.MAPF, n)
 
-    # set memory limit of cdh table (for sc graphs |V|, 3d, 0.5|V|)
-    cfg.Pipeline.node_limit = graph.node_count()
+    # set memory limit of cdh table (for sc graphs 16|V|, 3d, 0.5|V|)
+    # cfg.Pipeline.node_limit = int(16*graph.node_count())
+    # for Complex map
+    cfg.Pipeline.node_limit = int(graph.node_count()/64)
+    # for FAI map
+    # cfg.Pipeline.node_limit = int(graph.node_count()/64)
 
     # graph.show_grid()
     # to actually gen and save heuristics as .sqlite db
     # res = GenerateHeuristics.gen_and_save_results(graph, save_path=os.path.join("heuristics", "h_"+n+".sqlite"))
 
     # gen/save heuristics as .pkl file
+    t1 = timer()
     res = GenerateHeuristics.gen_and_save_results(graph, save_path=os.path.join("heuristics", "h_"+n+".pkl"), file_behavior="OVERWRITE")
 
     # give namespace to redis database

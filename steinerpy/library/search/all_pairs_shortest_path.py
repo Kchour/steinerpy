@@ -7,6 +7,7 @@ import logging
 from timeit import default_timer as timer
 
 from steinerpy.library.search.search_algorithms import UniSearch, UniSearchMemLimit
+from steinerpy.library.search.numba_search_algorithms import UniSearchMemLimitFast
 from steinerpy.library.misc.utils import Progress
 
 # DEBUG
@@ -109,9 +110,9 @@ class SubPairsShortestPath:
 
         # get some goals (surrogate states)
         goals = set(graph.sample_uniform(int(ind_sz_lim)))
-
         # this is memory limited dijkstra
-        search = UniSearchMemLimit(graph, start, goals)
+        # search = UniSearchMemLimit(graph, start, goals)
+        search = UniSearchMemLimitFast(graph, start, goals)
 
         # this is opt dijkstra
         # search = UniSearchMemLimit3DOpt(graph, start, None, ind_sz_lim)
@@ -121,12 +122,13 @@ class SubPairsShortestPath:
         search.use_algorithm()
         # number of nodes expanded
         # num_of_expanded = UniSearchMemLimit3DOpt.total_expanded_nodes
-        num_of_expanded = UniSearchMemLimit.total_expanded_nodes
+        # num_of_expanded = UniSearchMemLimit.total_expanded_nodes
+        num_of_expanded = UniSearchMemLimitFast.total_expanded_nodes
         print("nodes expanded", num_of_expanded)
         # time
         total_time = timer() - start_time
 
-        # limit items in dictionary to at most ind_sz_lim
+        # only get dist to goals
         nvalues = {n:search.g[n] for n in goals}
 
         # minX, maxX, minY, maxY, minZ, maxZ = graph.grid_dim

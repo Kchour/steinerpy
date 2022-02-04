@@ -1,5 +1,5 @@
 import numba as nb
-from numba import typed, typeof
+from numba import typed, typeof, objmode
 from numba.experimental import jitclass
 import numpy as np
 import logging
@@ -30,7 +30,7 @@ spec = [("type", nb.types.unicode_type),
         ('y_len', nb.types.int16),
         ('z_len', nb.types.int16),
         ('coord_dims', nb.types.UniTuple(nb.types.int16, 3)),
-        ('grid', nb.types.float64[:,:,:])
+        ('grid', nb.types.float64[:,:,:]),
 ]
 
 @jitclass(spec)
@@ -64,6 +64,8 @@ class RectGrid3D:
             for o in obstacles:
                 x,y,z = o
                 self.grid[x][y][z] = 1
+        # self.obs = np.array(obstacles)
+        # self.grid[self.obs[:,0], self.obs[:,1], self.obs[:,2]] = 1
 
         # C2 = SquareGrid3D.SQ2 - grid_size
         # C3 = grid_size
@@ -167,18 +169,49 @@ class RectGrid3D:
 
     def sample_uniform(self, num_of_samples: int):
         """uniformly sample the free space"""
-        min_x, max_x, min_y, max_y, min_z, max_z = self.grid_dim
-        samples = set()
-        while len(samples) < min(num_of_samples, self.node_count()):
-            # blah = np.random.randint((min_x, min_y, min_z), (max_x, max_y, max_z))
-            x = np.random.randint(min_x, max_x)
-            y = np.random.randint(min_y, max_y)
-            z = np.random.randint(min_z, max_z)
-            if self.grid[x,y,z] == 0:
-                # add samples as tuples
-                samples.add((x,y,z))
+        # min_x, max_x, min_y, max_y, min_z, max_z = self.grid_dim
+        # samples = set()
+        # while len(samples) < min(num_of_samples, self.node_count()):
+        #     # blah = np.random.randint((min_x, min_y, min_z), (max_x, max_y, max_z))
+        #     x = np.random.randint(min_x, max_x)
+        #     y = np.random.randint(min_y, max_y)
+        #     z = np.random.randint(min_z, max_z)
+        #     if self.grid[x,y,z] == 0:
+        #         # add samples as tuples
+        #         samples.add((x,y,z))
         
-        return list(samples)
+        # return list(samples)
+        samples = np.empty((num_of_samples, 3),dtype=nb.int64)
+        # samples = list()
+        # with objmode(samples='int64(Tuple((0,0,0))'):
+        with objmode(samples='int64[:,:]'):
+            min_x, max_x, min_y, max_y, min_z, max_z = self.grid_dim
+            samples = set()
+            current_size = num_of_samples
+            while len(samples) < num_of_samples:
+                # randomly generate N number of indices samples
+                # gen = np.empty((current_size, 3))
+                # gen = np.random.randint((min_x, min_y, min_z), (max_x, max_y, max_z), size=(current_size,3))
+                gen = np.random.randint(low=(min_x, min_y, min_z), high=(max_x, max_y, max_z), size=(current_size,3))
+                # non-obstacle cell mask
+                get = self.grid[gen[:,0], gen[:,1], gen[:,2]] < 1
+                # grab all non-obstacle indices
+                items = gen[get]
+                # add to samples set for uniquenes
+                for i in items:
+                    if len(samples)<num_of_samples:
+                        samples.add(tuple(i))
+                    else:
+                        break
+                current_size = num_of_samples - len(samples)
+            samples = list(samples)
+            samples = np.array(samples)
+            # return list(samples)
+        # _s = list()
+        # for s in samples:
+        #     _s.append(tuple(s.to_list()))
+        # return _s
+        return samples
 
 def grid3d_wrap(grid_dim, grid_size, obstacles):
 
