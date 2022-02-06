@@ -10,6 +10,13 @@ Caldera.map: 			8435.761629575001		Attempt 1
 						1375.7065553870016		Attempt 2
 |P| = 100, memory limit = 16|V|
 
+# newer attempt with numba
+('WheelofWar.map', 65.48188286600634)
+('Archipelago.map', 29.38035058300011)
+('BigGameHunters.map', 36.57324054600031)
+('Brushfire.map', 23.507250106005813)
+('Sandstorm.map', 19.27844671199273)
+
 
 #-----------------------------------------------------------------------------
 grid_3d maps
@@ -19,5 +26,8 @@ grid_3d maps
 |P| = 100, memory limit = 0.25|V|			317.8116316109954
 
 
-# 7e6 map
-|P|=4, memory limit = |V|/16				1463.7418863729981
+# h-Complex.3dmap
+|P|=4, memory limit = |V|/16				97.27355645899661
+
+# FA1
+|P|=4, memory limit = |V|/64				3722.000430068001

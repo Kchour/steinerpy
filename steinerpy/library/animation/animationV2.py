@@ -142,10 +142,10 @@ class AnimateV2:
         plt.pause(0.1)
 
         #resize to prevent marker clipping on the edges
-        if xlim != None and ylim != None:
-            ax.set_xlim(xlim[0], xlim[1])
-            ax.set_ylim(ylim[0], ylim[1])
-        cls.prevent_clipping()
+        # if xlim != None and ylim != None:
+        #     ax.set_xlim(xlim[0], xlim[1])
+        #     ax.set_ylim(ylim[0], ylim[1])
+        # cls.prevent_clipping()
 
         # # try setting equal axis?
         ax.set_aspect("equal")

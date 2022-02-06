@@ -31,11 +31,12 @@ cfg.Pipeline.pivot_limit = 100
 # 3d map
 # names = ["A1.3dmap"]
 # names = ["Simple.3dmap"]
-names = ["FA1.3dmap"]
+# names = ["FA1.3dmap"]
 # names = ["Complex.3dmap"]
 # names = ["FA1.3dmap", "Complex.3dmap", "Simple.3dmap"]
+names = ["Complex.3dmap", "Simple.3dmap"]
 
-cfg.Pipeline.pivot_limit = 4
+cfg.Pipeline.pivot_limit = 100
 
 #mapf
 # names = ["den312d.map"]
@@ -55,7 +56,7 @@ for n in names:
     # set memory limit of cdh table (for sc graphs 16|V|, 3d, 0.5|V|)
     # cfg.Pipeline.node_limit = int(16*graph.node_count())
     # for Complex map
-    cfg.Pipeline.node_limit = int(graph.node_count()/64)
+    cfg.Pipeline.node_limit = int(graph.node_count()/16)
     # for FAI map
     # cfg.Pipeline.node_limit = int(graph.node_count()/64)
 
@@ -75,4 +76,4 @@ for n in names:
     stats.append((n, t2-t1))
 
 for s in stats:
-    print(stats)
+    print(s)

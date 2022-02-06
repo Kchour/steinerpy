@@ -5,8 +5,10 @@ import numpy as np
 import random
 from typing import Iterable
 
+from steinerpy.library.search.search_algorithms import UniSearchMemLimit
+
 from .numba_search_utils import PriorityQueue2D, PriorityQueue3D
-from steinerpy.library.graphs.graph_numba import RectGrid3D
+# from steinerpy.library.graphs.graph_numba import RectGrid3D
 
 class UniSearchMemLimitFast:
     """Optimized version of Uni-directional, memory-limited search
@@ -39,12 +41,15 @@ class UniSearchMemLimitFast:
             # store cost-to-come, init start state
             self.g = np.full((graph.x_len, graph.y_len, graph.z_len), np.inf)
             self.frontier = PriorityQueue3D()
-        self.g[start] = 0
+        self.g[start] = 0.0
 
-        self.goal = goal
+        if goal is not None:
+            self.goal = goal.copy()
+            print(list(self.goal)[20:25])
         
         # init the front
-        self.frontier.put(start, 0.0) 
+        self.frontier.put(start, 0.0)
+
 
     @classmethod
     def update_expanded_nodes(cls):
@@ -54,6 +59,7 @@ class UniSearchMemLimitFast:
     def reset(cls):
         """Reset all class variables """
         cls.total_expanded_nodes = 0
+
 
     @nb.njit(cache=True)
     def _search(pq, graph, g, goal):
@@ -76,7 +82,7 @@ class UniSearchMemLimitFast:
                 if len(goal)==0:
                     break
 
-            if iteration % 1e3 == 0:
+            if iteration % 1e6 == 0:
                 print("searched nodes: ", iteration)
 
             for n in graph.neighbors(current):
@@ -92,6 +98,49 @@ class UniSearchMemLimitFast:
         # need to wrap each guy properly
         UniSearchMemLimitFast.total_expanded_nodes = 0
         g, iteration = UniSearchMemLimitFast._search(self.frontier, self.graph, self.g, self.goal)
-        self.g = g
+        # self.g = g
         # self.parent = p
         UniSearchMemLimitFast.total_expanded_nodes = iteration
+
+class UniSearchMemLimitFastSC(UniSearchMemLimitFast):
+    """Same as above except stopping criteria is allowed
+    
+    WORK IN PROGRESS"""
+
+    def __init__(self, graph, start, goals, stopping_critiera:callable, cdh_table, lb, ub, pivot_counter):
+        super().__init__(graph, start, goals)
+
+        # also 
+        self.stopping_criteria = stopping_critiera
+        self.cdh_table = cdh_table
+        self.lb = lb
+        self.ub = ub
+        self.pivot_counter = pivot_counter
+
+    @nb.njit(cache=True)
+    def _search(pq, graph, g, sc, cdh_table, start, lb, ub, pivot_counter):
+        """dijkstra with stopping condition"""
+        iteration = 0 
+        while not pq.empty():
+            _, current = pq.pop()
+
+            # early stopping
+            if sc(g, current, cdh_table, start, lb, ub, pivot_counter):
+                break
+
+            for n in graph.neighbors(current):
+                g_next = g[current] + graph.cost(current, n)
+                if g[n] == np.inf or g_next < g[n]:
+                    g[n] = g_next
+                    pq.put(n, g_next)
+
+            iteration += 1
+        return g, iteration
+
+    def use_algorithm(self):
+        # need to wrap each guy properly
+        UniSearchMemLimitFastSC.total_expanded_nodes = 0
+        g, iteration = UniSearchMemLimitFastSC._search(self.frontier, self.graph, self.g, self.stopping_criteria, self.cdh_table, self.start, self.lb, self.ub, self.pivot_counter)
+        # self.g = g
+        # self.parent = p
+        UniSearchMemLimitFastSC.total_expanded_nodes = iteration

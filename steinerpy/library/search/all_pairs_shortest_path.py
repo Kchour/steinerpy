@@ -52,10 +52,38 @@ class SubPairsShortestPath:
         total_node_count = G.node_count()
         ind_sz_lim = int(size_limit/pivot_limit)
         # randomly sample free space to get pivots
-        tasks = G.sample_uniform(pivot_limit)
+        pivot_sample = G.sample_uniform(pivot_limit)
+        # return a pivot for each pivot
+        pivot_identity = {i:p for i,p in enumerate(pivot_sample)}
+        # returns the index of a pivot
+        pivot_index = {p:i for i,p in enumerate(pivot_sample)}
+
+        # randomly sample surrogate nodes
+        # surrogate_sample = G.sample_uniform(size_limit)
+        surrogate_sample = set(G.sample_uniform(ind_sz_lim))
+
+        # # assign each surrogate to a pivot in round robin fashion
+        # pivot_goals = {}
+        # for ndx, s in enumerate(surrogate_sample):
+        #     # if ndx%pivot_limit not in pivot_goals:
+        #     #     pivot_goals[ndx%pivot_limit] = set()
+        #     #     pivot_goals[ndx%pivot_limit].add(s)
+        #     # else:
+        #     #     pivot_goals[ndx%pivot_limit].add(s)
+        #     pivot_goals
+
+        # pass seed number to guarantee deterministic behavior
+        seed_no = range(pivot_limit)
+
+        # construct tasks, each task consists of a pivot, seed number, and goals)
+        # tasks = zip(pivot_sample, seed_no, pivot_goals.values())
+        tasks = zip(pivot_sample, seed_no) 
+
+        # create paritla function to fix goals
+        task_func = partial(cls._run_dijkstra, surrogate_sample)
 
         # keep track of job progress
-        job_progress = Progress(len(tasks))
+        job_progress = Progress(pivot_limit)
 
         # create multiprocessing pool
         pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
@@ -63,7 +91,8 @@ class SubPairsShortestPath:
         # now run the tasks
         try:
             my_logger.info("Computing cdh tables")
-            for result in pool.imap_unordered(cls._run_dijkstra, tasks):
+            # for result in pool.imap_unordered(cls._run_dijkstra, tasks):
+            for result in pool.imap_unordered(task_func, tasks):
 
                 # for i in range(total_node_count-ind_sz_lim):
                 #     result[1].pop(random.choice(list(result[1].keys())))
@@ -86,43 +115,38 @@ class SubPairsShortestPath:
         pool.join()
 
         # transpose results so that keys are all states, values are {pivot: dist}
-        new_data = {}
+        new_data = {"pivot_index": pivot_index, "pivot_identity": pivot_identity, "table": {}}
         for pivot, values in WORKER_RESULTS.items():
-            if pivot == "type":
-                new_data[pivot] = values
-                continue
+            # if pivot == "type":
+            #     new_data[pivot] = values
+            #     continue
             for state, dist in values.items():
-                if state not in new_data:
-                    new_data[state] = {pivot: dist}
+                if state not in new_data["table"]:
+                    # new_data[state] = {pivot: dist}
+                    new_data["table"][state] = np.full(pivot_limit, np.inf)
+                    new_data["table"][state][pivot_index[pivot]] = dist
                 else:
-                    new_data[state].update({pivot: dist})
+                    # new_data[state].update({pivot: dist})
+                    new_data["table"][state][pivot_index[pivot]] = dist
+        
 
         return new_data
                 
     @staticmethod
-    def _run_dijkstra(start):
-        # this is regular dijkstra
-        # search = UniSearch(graph, start, None, "zero", False)
-        # debugging purposes
-        # from steinerpy.library.animation.animationV2 import AnimateV2
-        # fig, ax = graph.show_grid()
-        # AnimateV2.init_figure(fig, ax)
+    def _run_dijkstra(goals, tasks):
+        start, seed_no = tasks
+        # set seed of numpy
+        np.random.seed(seed_no)
 
         # get some goals (surrogate states)
-        goals = set(graph.sample_uniform(int(ind_sz_lim)))
-        # this is memory limited dijkstra
-        # search = UniSearchMemLimit(graph, start, goals)
+        # goals = set(graph.sample_uniform(int(ind_sz_lim)))
         search = UniSearchMemLimitFast(graph, start, goals)
 
-        # this is opt dijkstra
-        # search = UniSearchMemLimit3DOpt(graph, start, None, ind_sz_lim)
 
         # print(os.getpid(), start)
         start_time = timer()
         search.use_algorithm()
         # number of nodes expanded
-        # num_of_expanded = UniSearchMemLimit3DOpt.total_expanded_nodes
-        # num_of_expanded = UniSearchMemLimit.total_expanded_nodes
         num_of_expanded = UniSearchMemLimitFast.total_expanded_nodes
         print("nodes expanded", num_of_expanded)
         # time
@@ -170,10 +194,10 @@ class AllPairsShortestPath:
         D = {}
         STATS = {"time": 0, "expanded_nodes": 0}
 
-        # sampling limit
-        limit = kwargs["random_sampling_limit"]
-        node_tasks = G.sample_uniform(limit)
-        num_tasks = len(node_tasks)
+        # # sampling limit
+        # limit = kwargs["random_sampling_limit"]
+        # node_tasks = G.sample_uniform(limit)
+        # num_tasks = len(node_tasks)
 
         # job_progress = IncrementalBar("Dijkstra in Parallel: ",max=num_tasks)
         job_progress = Progress(num_tasks)

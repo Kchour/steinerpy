@@ -47,6 +47,22 @@ while len(samples) < desired_size:
 samples = list(samples)
 print("Alternate: ", timer()-t1, "len: ",len(samples))
 
+
+t1 = timer()
+test = {}
+for i in range(10000):
+    for j in range(1000):
+        test[(i,j)] = i*j
+print("dict creationg: ", timer()-t1)
+
+t1 = timer()
+test = np.full((10000, 1000), np.inf)
+for i in range(10000):
+    for j in range(1000):
+        test[i,j] = i*j
+
+print("np creating and setting", timer()-t1)
+
 # # try random sampling
 # # ind = np.where(test_3d1<1)
 # ind = test_3d1<1

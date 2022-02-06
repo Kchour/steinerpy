@@ -1,7 +1,7 @@
 """This module is used to parse different online datasets and convert them to a format we can use """
 import re
 from steinerpy.library.graphs.graph import GraphFactory
-from steinerpy.library.graphs.graph_numba import grid3d_wrap 
+from steinerpy.library.graphs.graph_numba import grid3d_wrap, grid2d_wrap 
 import pdb
 
 class DataParser:
@@ -85,13 +85,15 @@ class DataParser:
             # neighbor type (4 or 8)
             n_type = 8    
             
-            # use GraphFactory class to create desired graph
-            if depots is None:
-                graph = GraphFactory.create_graph("SquareGrid", grid_dim=grid_dim, grid_size=grid_size, n_type=n_type, obstacles=obs_coords)
-                # g.show_grid() #debugging
-            else:
-                graph = GraphFactory.create_graph("SquareGridDepot", grid_dim=grid_dim, grid_size=grid_size, n_type=n_type, obstacles=obs_coords, depots=depots)
+            # # use GraphFactory class to create desired graph
+            # if depots is None:
+            #     graph = GraphFactory.create_graph("SquareGrid", grid_dim=grid_dim, grid_size=grid_size, n_type=n_type, obstacles=obs_coords)
+            #     # g.show_grid() #debugging
+            # else:
+            #     graph = GraphFactory.create_graph("SquareGridDepot", grid_dim=grid_dim, grid_size=grid_size, n_type=n_type, obstacles=obs_coords, depots=depots)
 
+            # try optimized numba graph
+            graph = grid2d_wrap(grid_dim, obs_coords)
 
             return graph
 
@@ -110,7 +112,7 @@ class DataParser:
             # graph = GraphFactory.create_graph("SquareGrid3D", grid_dim, grid_size=1, obstacles=obstacles)
 
             # # optimized
-            graph = grid3d_wrap(grid_dim, 1, obstacles)
+            graph = grid3d_wrap(grid_dim, obstacles)
             return graph
             
 

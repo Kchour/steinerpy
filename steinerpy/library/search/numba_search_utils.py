@@ -50,6 +50,10 @@ class PriorityQueue:
                 return priority, item
         raise KeyError("pop from an empty priority queue")
 
+    def empty(self):
+        return len(self.entry_finder)==0
+
+# extend pure python class PriorityQueue (we can do this, but we cannot extend jitclasses)
 @jitclass
 class PriorityQueue3D(PriorityQueue):
     pq: List[entry_type]
@@ -62,10 +66,6 @@ class PriorityQueue3D(PriorityQueue):
         self.pq = nb.typed.List.empty_list( (0.0, 0, (0,0,0), nb.typed.List([False])) )
         self.entry_finder = nb.typed.Dict.empty( (0, 0, 0), (0.0, 0, (0,0,0), nb.typed.List([False])))
         self.counter = 0
-
-    def empty(self):
-        return len(self.entry_finder)==0
-
 
 entry_def = (0.0, 0, (0,0), nb.typed.List([False]))
 entry_type = nb.typeof(entry_def)

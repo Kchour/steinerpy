@@ -15,14 +15,17 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+from timeit import default_timer as timer
 
 from steinerpy.library.animation.animationV2 import AnimateV2
 from steinerpy.library.graphs.graph import IGraph
 from steinerpy.library.misc.utils import Progress
 
 from steinerpy.library.pipeline.base import AFileHandle
-from steinerpy.library.search.search_algorithms import UniSearch
+# from steinerpy.library.search.search_algorithms import UniSearch
+from steinerpy.library.search.numba_search_algorithms import UniSearchMemLimitFastSC
 import steinerpy.config as cfg
+
 
 my_logger = logging.getLogger(__name__)
 
@@ -81,20 +84,20 @@ class HFileHandle(AFileHandle):
 ###################################
 # for use with numba
 ###################################
-def numba_dict(ndim):
-    """Assumes keys are n-tuples, values are float64
+def numba_dict_array(ndim):
+    """Assumes keys are n-tuples, values are float64 ndarrays
     
     """
     return nb.typed.Dict.empty(
         key_type=nb.types.UniTuple(nb.types.int64, ndim),
-        value_type=nb.types.float64,
+        value_type=nb.types.float64[:],
     )
 
-def numba_nested_dict(ndim):
-    return nb.typed.Dict.empty(
-        key_type=nb.types.UniTuple(nb.types.int64, ndim),
-        value_type=nb.typeof(numba_dict(ndim)),
-    )
+# def numba_nested_dict(ndim):
+#     return nb.typed.Dict.empty(
+#         key_type=nb.types.UniTuple(nb.types.int64, ndim),
+#         value_type=nb.typeof(numba_dict(ndim)),
+#     )
 
 class GenerateHeuristics:
     #user preloaded
@@ -197,8 +200,41 @@ class GenerateHeuristics:
     ################################################################################################
     #   Create lookup table of functions, to mimic switch case speed
     ################################################################################################
+
+    def _voxel(from_node, to_node):
+        if len(from_node)==2:
+            x1, y1 = from_node
+            x2, y2 = to_node
+            dmax = max(abs(x1 - x2), abs(y1 - y2))
+            dmin = min(abs(x1 - x2), abs(y1 - y2))
+            h1 = 1.414*dmin + (dmax - dmin)
+        else:
+            x1, y1, z1 = from_node
+            x2, y2, z2 = to_node
+            dx, dy, dz = abs(x1 - x2), abs(y1 - y2), abs(z1 - z2)
+            dmax = max(dx, dy, dz)
+            dmin = min(dx, dy, dz)
+            dmid = dx + dy + dz - dmin - dmax 
+            h1 = C1*dmin + C2*dmid + C3*dmax        
+        return h1
+    
+    def _cdh(table, ub,lb, from_node, to_node):
+        h1 = GenerateHeuristics._voxel(from_node, to_node)
+        if from_node not in table:
+            return h1 
+        else:
+            a = np.nanmax(table[from_node] - ub[to_node])
+            b = np.nanmax(lb[to_node] - table[from_node])
+            if a >= b and a > h1:
+                return a
+            elif b > a and b > h1:
+                return b
+            else: 
+                return h1
+
+
     @nb.njit
-    def _cdh(cdh_table, ub, lb, from_node, to_node):
+    def _cdh_nb(cdh_table, ub, lb, from_node, to_node):
         
         if len(from_node)==2:
             x1, y1 = from_node
@@ -238,96 +274,17 @@ class GenerateHeuristics:
 
     def retrieve_from_cdh(result, from_node, to_node):
 
-        return GenerateHeuristics._cdh(result, 
+        return GenerateHeuristics._cdh(result["table"], 
                                         GenerateHeuristics.cdh_upper_bound, 
                                         GenerateHeuristics.cdh_lower_bound,
                                         from_node,
                                         to_node)
-
-    def retrieve_from_cdh_old(result, from_node, to_node):
-
-        # compute octile heuristic
-        x1, y1 = from_node
-        x2, y2 = to_node
-        dmax = max(abs(x1 - x2), abs(y1 - y2))
-        dmin = min(abs(x1 - x2), abs(y1 - y2))
-        h1 = 1.414*dmin + (dmax - dmin)
-
-        if from_node not in result:
-            return h1
-        else:
-            # try to use numpy array for speed?
-            # dist_ap = np.array(result[from_node].values())
-            # p_list = result[from_node].keys()
-            # dist_ap = np.fromiter(result[from_node].values(), dtype=np.float32)
-            # lower_bound = np.fromiter((GenerateHeuristics.cdh_lower_bound[to_node][p] for p in p_list), dtype=np.float32)
-            # upper_bound = np.fromiter((GenerateHeuristics.cdh_upper_bound[to_node][p] for p in p_list), dtype=np.float32)
-
-            cdhp = float("-inf")
-            for ndx, (p, dist) in enumerate(result[from_node].items()):
-                # a = dist - GenerateHeuristics.cdh_upper_bound[to_node][p]
-                # b = GenerateHeuristics.cdh_lower_bound[to_node][p] - dist
-                # if a >= b:
-                #     if a > cdhp:
-                #         cdhp = a
-                # else:
-                #     if b > cdhp:
-                #         cdhp = b
-
-                GenerateHeuristics.dist_ap[ndx] = dist
-                GenerateHeuristics.lower_bound[ndx] = GenerateHeuristics.cdh_lower_bound[to_node][p]
-                GenerateHeuristics.upper_bound[ndx] = GenerateHeuristics.cdh_upper_bound[to_node][p]
-            cdhp = max(np.nanmax(GenerateHeuristics.dist_ap - GenerateHeuristics.upper_bound), 
-                                np.nanmax(GenerateHeuristics.lower_bound - GenerateHeuristics.dist_ap))
-
-            # a = np.nanmax(GenerateHeuristics.dist_ap - GenerateHeuristics.upper_bound)
-            # b = np.nanmax(GenerateHeuristics.lower_bound - GenerateHeuristics.dist_ap)
-            
-            # if a >= b:
-            #     cdhp = a
-            # else:
-            #     cdhp = b
-
-            # cdhp = max(np.max(dist_ap - upper_bound), np.max(lower_bound - dist_ap))
-            if cdhp >= h1:
-                max_lb = cdhp
-            else:
-                max_lb = h1
-            # max_lb = max(cdhp, h1)
-
-            # reset temp arrays
-            # GenerateHeuristics.dist_ap[:] = np.inf
-            # GenerateHeuristics.upper_bound[:] = np.inf
-            # GenerateHeuristics.lower_bound[:] = 0
-
-            return max_lb
-            # loop over pivots, dists reachable by "from_node"
-            # max_lb = -float('inf')
-            # for p, dist_ap in result[from_node].items():
-            #     lower_bound = GenerateHeuristics.cdh_lower_bound[to_node][p]
-            #     upper_bound = GenerateHeuristics.cdh_upper_bound[to_node][p]
-            #     cdhp = max(dist_ap - upper_bound, lower_bound - dist_ap)
-            #     # # either [g][p] is stored or not
-            #     # try:
-            #     #     # [g][p] stored, retrieve dist
-            #     #     dist_gp = result[to_node][p]
-            #     #     # now compute lower bound from a to g
-            #     #     cdhp = abs(dist_ap - dist_gp)
-            #     # except KeyError as e:
-            #     #     # if pivot to goal not known, compute bounds on dist_gp
-            #     #     lower_bound = GenerateHeuristics.cdh_lower_bound[to_node][p]
-            #     #     upper_bound = GenerateHeuristics.cdh_upper_bound[to_node][p]
-            #     #     cdhp = max(dist_ap - upper_bound, lower_bound - dist_ap)
-            #     # except Exception as e:
-            #     #     # catch unexpected error
-            #     #     raise e
-
-            #     max_lb = max(cdhp, max_lb)
-
-            # assert abs(cdhp1 - max_lb) < 1e-6
-
-            # max_lb = max(max_lb, h1) 
-            # return max_lb
+        # previous implementation
+        # return GenerateHeuristics._cdh(result, 
+                                        # GenerateHeuristics.cdh_upper_bound, 
+                                        # GenerateHeuristics.cdh_lower_bound,
+                                        # from_node,
+                                        # to_node)
 
     @classmethod
     def cdh_compute_bounds(cls, graph: IGraph, terminals: list):
@@ -342,17 +299,25 @@ class GenerateHeuristics:
         Requires Numba library as we use numba.typed.Dict instead of built-in python
 
         """
-        cdh_table = GenerateHeuristics.preload_results
+        cdh_result = GenerateHeuristics.preload_results
+        cdh_table = cdh_result["table"]
+        pv_identity = cdh_result["pivot_identity"]
+        pv_index = cdh_result["pivot_index"]
+        lb = GenerateHeuristics.cdh_lower_bound
+        ub = GenerateHeuristics.cdh_upper_bound
         # perform a breadth-first search from each terminal (goal state), until
         # the goal is able to reach all of the pivots through some other surrogate goal/state
-        def stopping_critiera(self, cdh_table=None, searched_pivots=None, searched_pivot_dists=None, goal_point=None, pivot_set=None, lb=None, ub=None, pivot_counter=None):
-
-            expanded_node = self.current
-            current_g_cost = self.g[self.current]
+        # def stopping_critiera(self, cdh_table=None, goal_point=None, lb=None, ub=None, pivot_counter=None):
+        @nb.njit(cache=True)
+        def stopping_critiera(cost_to_come, current, cdh_table=None, goal_point=None, lb=None, ub=None, pivot_counter=None):
+            expanded_node = current
+            current_g_cost = cost_to_come[current]
+            # expanded_node = self.current
+            # current_g_cost = self.g[self.current]
             
-            # see if expanded node has indirect path to a pivot
+            # see if expanded node has indirect path to a pivot through a surrogate node
             if expanded_node in cdh_table:
-                for pivot in  cdh_table[expanded_node]:
+                for index, dist in  enumerate(cdh_table[expanded_node]):
                     # pivot is reachable through surrogate
                     # searched_pivots.add(pivot)
                     # # store distance to surrogate 
@@ -361,25 +326,29 @@ class GenerateHeuristics:
                     
                     # update bounds wrt to pivot directly here
                     dist_g_to_x = current_g_cost
-                    dist_x_to_p = cdh_table[expanded_node][pivot]
+                    # dist_x_to_p = cdh_table[expanded_node][pv_index[pivot]]
+                    dist_x_to_p = dist
 
                     curr_lb = abs(dist_g_to_x - dist_x_to_p)
                     curr_ub = dist_g_to_x + dist_x_to_p
 
-                    if pivot not in lb[goal_point]:
-                        lb[goal_point][pivot] = curr_lb
-                    else:
-                        lb[goal_point][pivot] = max(lb[goal_point][pivot], curr_lb)
+                    lb[goal_point][index] = max(lb[goal_point][index], curr_lb)
+                    ub[goal_point][index] = min(ub[goal_point][index], curr_ub)
 
-                    if pivot not in ub[goal_point]:
-                        ub[goal_point][pivot] = curr_ub
-                    else:
-                        ub[goal_point][pivot] = min(ub[goal_point][pivot], curr_ub)
+                    # if pivot not in lb[goal_point]:
+                    #     lb[goal_point][pivot] = curr_lb
+                    # else:
+                    #     lb[goal_point][pivot] = max(lb[goal_point][pivot], curr_lb)
+
+                    # if pivot not in ub[goal_point]:
+                    #     ub[goal_point][pivot] = curr_ub
+                    # else:
+                    #     ub[goal_point][pivot] = min(ub[goal_point][pivot], curr_ub)
 
                     # decrease pivot counter each time we are able to reach it
-                    pivot_counter[pivot] -= 1
-                    if pivot_counter[pivot] < 0:
-                        pivot_counter[pivot] = 0
+                    pivot_counter[index] -= 1
+                    if pivot_counter[index] < 0:
+                        pivot_counter[index] = 0
 
             # elif expanded_node in pivot_set:
             #     # expanded node forms a direct path to a pivot!
@@ -391,20 +360,36 @@ class GenerateHeuristics:
             # return searched_pivots == pivot_set
 
             # stop after reaching all pivots by r amount of times
-            return all(x ==0 for x in pivot_counter.values())
+            for x in pivot_counter.values():
+                if x != 0:
+                    return False
+            return True
+            # return all(x ==0 for x in pivot_counter.values())
 
 
-        # get all pivots
-        pivot_set = set()
-        for state, value in cdh_table.items():
-            if state == "type":
-                continue
-            for pivot in value.keys():
-                pivot_set.add(pivot)
+        # # get all pivots
+        # pivot_set = set()
+        # for state, value in cdh_table.items():
+        #     if state == "type":
+        #         continue
+        #     for pivot in value.keys():
+        #         pivot_set.add(pivot)
+
+        # debug 3d graph using mayavi
+        # xx, yy, zz = np.where(graph.grid>0)
+        # mlab.points3d(xx, yy, zz="cube")
+        # show pivots
+
+        # mlab.points3d(xx, yy, zz="cube")
+
 
         if cfg.Pipeline.debug_vis_bounds:
+            pivot_set = set(pv_index)
             # debug graphically
-            fig, ax = graph.show_grid()
+            # fig, ax = graph.show_grid()
+            graph.show_grid()
+            fig = plt.gcf()
+            ax = fig.axes[0]
             # plot pivots
             p = np.array(list(pivot_set))
             plt.scatter(p[:,0], p[:,1])
@@ -431,22 +416,64 @@ class GenerateHeuristics:
         # minimum of reaches to a pivot
         r = cfg.Pipeline.min_reach_pivots
 
+
+        t1= timer()
+
+        # create numba data structures for search
+        _lb = numba_dict_array(len(pv_identity[0]))
+        _ub = numba_dict_array(len(pv_identity[0]))
+        # for k,v in ub.items():
+        #     _ub[k] = v
+        # for k,v in lb.items():
+        #     _lb[k] = v
+        # replace
+        # GenerateHeuristics.cdh_lower_bound = _lb
+        # GenerateHeuristics.cdh_upper_bound = _ub
+
+        # lb = GenerateHeuristics.cdh_lower_bound
+        # ub = GenerateHeuristics.cdh_upper_bound
+
+        # convert cdh table
+        _cdh = numba_dict_array(len(pv_identity[0]))
+        for k,v in cdh_table.items():
+            _cdh[k] = v
+
+        _cdh_table = _cdh
+
+        # create a counter for number of times a pivot is indriectly encounered
+        # pivot_counter = {i: r for i in pv_identity}
+        pivot_counter = nb.typed.Dict.empty(nb.types.int64, nb.types.int64)
         # now run unisearch from terminal
-        lb = GenerateHeuristics.cdh_lower_bound
-        ub = GenerateHeuristics.cdh_upper_bound
-        for t in terminals:
-            searched_pivots = set()
-            pivot_counter = {p: r for p in pivot_set}
-            goal_point = t
-            lb[goal_point] = {}
-            ub[goal_point] = {}
-            search = UniSearch(graph, t, None, "zero", cfg.Pipeline.debug_vis_bounds, stopping_critiera,
-                cdh_table=cdh_table, searched_pivots=searched_pivots,
-                goal_point=goal_point, pivot_set=pivot_set, 
-                lb=lb, ub=ub, pivot_counter=pivot_counter)
+        for goal_point in terminals:
+            # initialize counter to r 
+            for i in pv_identity:
+                pivot_counter[i] = r
+
+            # init lower bound
+            _lb[goal_point] = np.zeros(len(pv_index))
+            # set lower bound to be voxel (generalized for 2d as well) heuristic for now 
+            for i in range(len(pv_index)):
+                _lb[goal_point][i] = GenerateHeuristics._voxel(goal_point, pv_identity[i])
+
+            # upper bound is initially infinity
+            _ub[goal_point] = np.full(len(pv_index), np.inf)
+
+            # search = UniSearch(graph, t, None, "zero", cfg.Pipeline.debug_vis_bounds, stopping_critiera,
+            #     cdh_table=cdh_table,
+            #     goal_point=goal_point, 
+            #     lb=lb, ub=ub, pivot_counter=pivot_counter)
+            search = UniSearchMemLimitFastSC(graph, goal_point, None, stopping_critiera, _cdh_table, _lb, _ub, pivot_counter)
         
             search.use_algorithm()
-
+        # now store results from computation
+        for k,v in _cdh_table.items():
+            cdh_table[k] = v
+        for k,v in _lb.items():
+            lb[k] = v
+        for k,v in _ub.items():
+            ub[k] = v
+        print("Computed bounds in ", timer()-t1)
+    
             # compute bounds
             # lb = {}
             # ub = {}
@@ -466,37 +493,37 @@ class GenerateHeuristics:
         # GenerateHeuristics.lower_bound = np.zeros(len(pivot_set), dtype=np.float32)
         # GenerateHeuristics.dist_ap = np.full(len(pivot_set), np.inf, dtype=np.float32)
 
-        # convert cdh relevant dicts into special numba dict types
-        one_pivot = next(iter(pivot_set))
-        _lb = numba_nested_dict(len(one_pivot))
-        _ub = numba_nested_dict(len(one_pivot))
-        _cdh = numba_nested_dict((len(one_pivot)))
-        # k:= goals
-        for k,values in GenerateHeuristics.cdh_lower_bound.items():
-            temp = numba_dict(len(one_pivot))
-            for k2, v in values.items():
-                temp[k2] = v
-            _lb[k] = temp
+        # # convert cdh relevant dicts into special numba dict types
+        # one_pivot = next(iter(pivot_set))
+        # _lb = numba_nested_dict(len(one_pivot))
+        # _ub = numba_nested_dict(len(one_pivot))
+        # _cdh = numba_nested_dict((len(one_pivot)))
+        # # k:= goals
+        # for k,values in GenerateHeuristics.cdh_lower_bound.items():
+        #     temp = numba_dict(len(one_pivot))
+        #     for k2, v in values.items():
+        #         temp[k2] = v
+        #     _lb[k] = temp
 
-        # k := goals
-        for k,values in GenerateHeuristics.cdh_upper_bound.items():
-            temp = numba_dict(len(one_pivot))
-            for k2, v in values.items():
-                temp[k2] = v
-            _ub[k] = temp
+        # # k := goals
+        # for k,values in GenerateHeuristics.cdh_upper_bound.items():
+        #     temp = numba_dict(len(one_pivot))
+        #     for k2, v in values.items():
+        #         temp[k2] = v
+        #     _ub[k] = temp
         
-        for k,values in GenerateHeuristics.preload_results.items():
-            if k == "type":
-                continue
-            temp = numba_dict(len(one_pivot))
-            for k2, v in values.items():
-                temp[k2] = v
-            _cdh[k] = temp
+        # for k,values in GenerateHeuristics.preload_results.items():
+        #     if k == "type":
+        #         continue
+        #     temp = numba_dict(len(one_pivot))
+        #     for k2, v in values.items():
+        #         temp[k2] = v
+        #     _cdh[k] = temp
         
-        # replace loaded stuff with numba types
-        GenerateHeuristics.cdh_lower_bound = _lb
-        GenerateHeuristics.cdh_upper_bound = _ub
-        GenerateHeuristics.preload_results = _cdh
+        # # replace loaded stuff with numba types
+        # GenerateHeuristics.cdh_lower_bound = _lb
+        # GenerateHeuristics.cdh_upper_bound = _ub
+        # GenerateHeuristics.preload_results = _cdh
 
         if cfg.Pipeline.debug_vis_bounds:
             AnimateV2.close()

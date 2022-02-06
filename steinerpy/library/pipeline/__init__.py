@@ -9,5 +9,5 @@ except ImportError as e:
     print("Pandas not detected")
     pass  # module doesn't exist, deal with it.
 
-from .r0gen_all_shortest_paths import OfflinePaths
+# from .r0gen_all_shortest_paths import OfflinePaths
 from .r0generate_heuristics import GenerateHeuristics

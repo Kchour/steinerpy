@@ -302,44 +302,54 @@ def lb_prop_func(search: MultiSearch, next: tuple) ->float:
 
         # now try lb-propagation (involves both forward and backward heuristics)
         # loop over all components except this one
+        
         lb = float('inf')
         for idx, comp in search.siblings.items():
             # skip self
             if idx == search.id:
                 continue
             
-            # # only do lb-propagation between nearest-neighbor
+            # try faster method
+            est_C = max(search.fmin, comp.fmin)
+
+            # get all nodes with f < est_C from neighbor
+            temp = []
+            while True:
+                item 
+
+
+            # # Try doing lb-propagation between nearest-neighbor only (wrong results)
             # if minGoal not in comp.start:
             #     continue
 
-            # loop over all nodes in the open set
-            for item in list(comp.frontier):
-                _,_,v = item
-                # best lower bound between two different search fronts
-                # ----------------------------------------------------
-                # try recompute backward heuristic?
-                hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=v, goal=goal), comp.goal.values()))
-                if hju:
-                    minH = min(hju)
-                else:
-                    minH = 0
-                f_backward = comp.g[v] + minH 
+            # # SLOW: loop over all nodes in the open set
+            # for item in list(comp.frontier):
+            #     _,_,v = item
+            #     # best lower bound between two different search fronts
+            #     # ----------------------------------------------------
+            #     # try recompute backward heuristic?
+            #     hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=v, goal=goal), comp.goal.values()))
+            #     if hju:
+            #         minH = min(hju)
+            #     else:
+            #         minH = 0
+            #     f_backward = comp.g[v] + minH 
 
-                # with respect to current forward direction's root only!
-                # f_backward = comp.g[v] + Heuristics.heuristic_func_wrap(next=v, goal=search.root[next])
+            #     # with respect to current forward direction's root only!
+            #     # f_backward = comp.g[v] + Heuristics.heuristic_func_wrap(next=v, goal=search.root[next])
 
-                # # dynamic update data structures?
-                # comp.f[v] = f_backward
-                # # comp.fmin_heap.put(v, f_backward)
-                # # comp.frontier.put(v, f_backward)
-                temp = max(f_forward, f_backward, search.g[next] + comp.g[v])
+            #     # # dynamic update data structures?
+            #     # comp.f[v] = f_backward
+            #     # # comp.fmin_heap.put(v, f_backward)
+            #     # # comp.frontier.put(v, f_backward)
+            #     temp = max(f_forward, f_backward, search.g[next] + comp.g[v])
 
-                # dont recompute backward h?
-                # temp = max(f_forward, comp.f[v], search.g[next] + comp.g[v])
+            #     # dont recompute backward h?
+            #     # temp = max(f_forward, comp.f[v], search.g[next] + comp.g[v])
 
-                # keep the minimum lower bound
-                if temp < lb:
-                    lb = temp
+            #     # keep the minimum lower bound
+            #     if temp < lb:
+            #         lb = temp
 
         # this is from the paper
         h = lb - search.g[next]

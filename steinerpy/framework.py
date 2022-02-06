@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 import cProfile
 import logging, logging.config
 import matplotlib.pyplot as plt
+from decimal import Decimal
 
 from steinerpy.library.misc.abc_utils import abstract_attribute, ABC as newABC
 from steinerpy.library.graphs.graph import IGraph
@@ -133,6 +134,7 @@ class Framework(AbstractAlgorithm):
 
         # Plotting Related
         # TODO: Make this more efficient
+        # TODO: Use mayaVI for 3d grids
         if cfg.Animation.visualize:        
             if self.run_debug <= 1:
                 # if not plt.fignum_exists(1):
@@ -152,10 +154,11 @@ class Framework(AbstractAlgorithm):
 
                      # Add obstacles
                     if self.graph.obstacles:
-                        AnimateV2.add_line("obstacles", np.array(self.graph.obstacles).T.tolist(), markersize=5, marker='o', color='k')
+                        # AnimateV2.add_line("obstacles", np.array(self.graph.obstacles).T.tolist(), markersize=5, marker='o', color='k')
+                        AnimateV2.add_line("obstacles", self.graph.obstacles(), markersize=1, marker='.', color='k')
                             
                         #ax.matshow(grid_data, cmap='seismic')
-                        im_artist = ax.imshow(self.graph.grid, cmap='Greys', origin='lower')
+                        im_artist = ax.imshow(self.graph.grid, cmap='Greys', origin='lower', alpha=0)
 
                         AnimateV2.add_artist_ex(im_artist, "obstacles")
                
@@ -395,8 +398,9 @@ class Framework(AbstractAlgorithm):
         my_logger.info("paths in solution set: {}".format(len(self.results['dist'])))
 
         if cfg.Animation.visualize:
-            # Don't plot every thing for large graphs
-            if np.mod(self.run_debug, np.ceil(self.graph.edge_count()/5000))==0:
+        #     # Don't plot every thing for large graphs
+        #     if np.mod(self.run_debug, np.ceil(self.graph.node_count()/5000))==0:
+        #         AnimateV2.update()
                 AnimateV2.update()
 
         if self.FLAG_STATUS_PATH_CONVERGED:
@@ -507,7 +511,7 @@ class Framework(AbstractAlgorithm):
             # propagated h value
             parent_h_prop = search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next)
             # h = max(h, search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next))            
-            if parent_h_prop > h:
+            if Decimal(parent_h_prop) > Decimal(h):
                 h = parent_h_prop
         else:
             h = self.h_costs_func(search, next)

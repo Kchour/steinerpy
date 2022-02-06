@@ -11,6 +11,9 @@ from functools import partial
 import logging
 from typing import List, Union
 
+# from results.debug_heuristics import pre_run_func
+# from steinerpy.library.pipeline.r0generate_heuristics import GenerateHeuristics
+
 from .base import Generate
 
 from steinerpy.context import Context
@@ -144,6 +147,11 @@ class GenerateResults(Generate):
                }
 
 class GenerateResultsMulti(Generate):
+
+    # class variables to allow global scope
+    graph = None
+    pre_run_func = None
+
     def __init__(self, graph: IGraph, save_path: str="", file_behavior: str="HALT", num_processes=math.floor(mp.cpu_count()/2), maxtasksperchild=50, algs_to_run=None,
                 pre_run_func=None, *kwargs):
         
@@ -155,8 +163,11 @@ class GenerateResultsMulti(Generate):
         self.maxtasksperchild = maxtasksperchild
         self.num_processes = num_processes
 
-        self.pre_run = pre_run_func
-        self.pre_run_kwargs = kwargs
+        # self.pre_run = pre_run_func
+        # self.pre_run_kwargs = kwargs
+
+        GenerateResultsMulti.graph = graph
+        GenerateResultsMulti.pre_run_func = pre_run_func
 
         self.algs_to_run = algs_to_run
         self.solution = {alg: [] for alg in self.algs_to_run}
@@ -182,7 +193,7 @@ class GenerateResultsMulti(Generate):
 
         t0 = timer()
         try:
-            for res in pool.imap(self._run_individual_algs, enumerate(jobs), chunksize=int(number_of_jobs // (self.num_processes**2) + 1)):
+            for res in pool.imap(GenerateResultsMulti._run_individual_algs, enumerate(jobs), chunksize=int(number_of_jobs // (self.num_processes**2) + 1)):
                 solution[res[0]].append(res[1])
                 pg.next()
             pg.finish()
@@ -217,17 +228,21 @@ class GenerateResultsMulti(Generate):
                 'solution': self.solution,
                }
 
-    def _run_individual_algs(self, inputs):
+    @staticmethod
+    def _run_individual_algs(inputs):
         job_id, data = inputs
         # print("starting job id: ", job_id)
 
+        # grab from class variables
+        graph = GenerateResultsMulti.graph
+        pre_run_func = GenerateResultsMulti.pre_run_func
 
         terminals, alg = data
-        context = Context(self.graph, terminals)
+        context = Context(graph, terminals)
 
-        self.terminals = terminals
-        self.alg = alg 
-        self.job_id = job_id
+        # self.terminals = terminals
+        # self.alg = alg 
+        # self.job_id = job_id
 
         # heuristic specific pre-run operations
         # from steinerpy.library.pipeline import GenerateHeuristics
@@ -236,13 +251,13 @@ class GenerateResultsMulti(Generate):
         # # load heuristics (have each process connect to database...)
         # if GenerateHeuristics.preload_name is not None:
         #     GenerateHeuristics.load_results(db_location=GenerateHeuristics.preload_name)
-        if cfg.Pipeline.perform_prerun_r2 and self.pre_run is not None:
-            self.pre_run(self, *self.pre_run_kwargs)
+        if cfg.Pipeline.perform_prerun_r2 and pre_run_func is not None:
+            pre_run_func(graph, terminals)
 
-        context.run(self.alg)
+        context.run(alg)
         # print("finished job id: ", job_id)
 
-        return self.alg, context.return_solutions()
+        return alg, context.return_solutions()
 
     # def init(self,l):
     #     """Required to avoid race conditions for lists
