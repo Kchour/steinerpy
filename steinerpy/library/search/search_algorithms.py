@@ -271,6 +271,9 @@ class UniSearchMemLimit(UniSearch):
     In linux we can take advantage of lazy memory allocation, so
     creating an initially large np array wont eat up your memory
     until a cell is being written too...
+
+
+    DEPRECATED
     
     """
     def __init__(self, graph, start, goals):
@@ -397,6 +400,10 @@ class MultiSearch(Search):
         self._lmin = 0
         self.lnode = None
 
+        # fcostsfunc is a passed-in method representing the priority, returns a float
+        self.pCosts = pCostsFunc     
+        self.hCosts = hCostsFunc
+
         #### Keep a sorted array for gmin, rmin, and fmin
         self.gmin_heap = PriorityQueueHeap()
         self.rmin_heap = PriorityQueueHeap()
@@ -410,6 +417,11 @@ class MultiSearch(Search):
             self.fmin_heap.put(start[0], 0)
             self.f[start[0]] = 0
 
+            # estimate initial h costs
+            # h_init = self.hCosts(self, start[0])
+            # self.fmin_heap.put(start[0], h_init)
+            # self.f[start[0]] = h_init
+
             # Extra things: not necessary for shortest path computation
             # every node will keep track its closest terminal root node based on gcost
             self.root = {start[0]: start[0]}
@@ -418,9 +430,6 @@ class MultiSearch(Search):
         # (shortest path tree rooted at a terminal)
         self.children = {}
 
-        # fcostsfunc is a passed-in method representing the priority, returns a float
-        self.pCosts = pCostsFunc     
-        self.hCosts = hCostsFunc
 
         # to find components containing terminals
         self.findset = None
@@ -439,6 +448,14 @@ class MultiSearch(Search):
 
     #         # correct rot node f costs
     #         self.fmin_heap.put(self.start, self.f[self.start])
+
+    def finish_setup(self):
+        """call this one time once all siblings have been created"""
+        # finish initializing h costs
+        h_init = self.hCosts(self, self.start[0])
+        self.fmin_heap.put(self.start[0], h_init)
+        self.f[self.start[0]] = h_init
+
 
     @property
     def goal(self):
@@ -658,11 +675,18 @@ class MultiSearch(Search):
                 with a child in the open set
         """
         # return minR
-        try:
+        if not self.rmin_heap.empty():
             value, _ = self.rmin_heap.get_test()
             return value
-        except Exception as e_:
-            return np.inf
+        else:
+            return 0
+
+        # try:
+        #     value, _ = self.rmin_heap.get_test()
+        #     return value
+        # except Exception as e_:
+        #     # return np.inf
+        #     return 0
             
     @property
     def fmin(self):
@@ -680,12 +704,18 @@ class MultiSearch(Search):
         #     #     return np.inf
         #     return self.lmin
         #     # return 0
-        try:
+        if not self.fmin_heap.empty():
             value, _ = self.fmin_heap.get_test()
             return value
-        except Exception as e_:
-            # when frontier is empty, there is nothing else to explore!
-            return np.inf
+        else:
+            return 0
+        # try:
+        #     value, _ = self.fmin_heap.get_test()
+        #     return value
+        # except Exception as e_:
+        #     # when frontier is empty, there is nothing else to explore!
+        #     # return np.inf
+        #     return 0
 
     @property
     def gmin(self):
@@ -694,11 +724,18 @@ class MultiSearch(Search):
         """
         # return min((self.g[k] for k in self.frontier.elements))
         # return min(self.g[k[2]] for k in self.frontier.elements)
-        try:
+        if not self.gmin_heap.empty():
             value, _ = self.gmin_heap.get_test()
             return value
-        except Exception as e_:
-            return np.inf
+        else:
+            return 0
+
+        # try:
+        #     value, _ = self.gmin_heap.get_test()
+        #     return value
+        # except Exception as e_:
+        #     # return np.inf
+        #     return 0
 
     @property
     def pmin(self):
@@ -710,7 +747,8 @@ class MultiSearch(Search):
             priority, _ = self.frontier.get_test()
             return priority
         except:
-            return np.inf
+            # return np.inf
+            return 0
 
     @property
     def lmin(self):

@@ -30,12 +30,12 @@ class CustomFilter(logging.Filter):
         # if "MM CRITERIA, PATH_COST, RHS" in record.message:
         # if "Heuristic value, search_id" in record.message:
         if "Observing edge between" in record.message or "Adding sp edge between" in record.message \
-            or "ITERATION" in record.message:
+            or "ITERATION" in record.message or "solution updated" in record.message:
             return True
         else:
             return False
 
-# l.handlers[1].addFilter(CustomFilter())
+l.handlers[1].addFilter(CustomFilter())
 
 
 @unittest.skip("for now")
@@ -182,10 +182,11 @@ class TestUntilFailureDebug(unittest.TestCase):
         # generate random unique set of terminals
         T = set()
         # while len(T)<10:
-        while len(T)<10:
+        # while len(T)<80:
+        while len(T)<25:
             x = random.randint(self.minX, self.maxX)
             y = random.randint(self.minY, self.maxY)
-            if (x,y) not in self.graph.obstacles:
+            if  self.graph.not_obstacles((x,y)):
                 T.add((x,y))
 
         # convert to list
@@ -193,9 +194,8 @@ class TestUntilFailureDebug(unittest.TestCase):
 
     # @unittest.skip("not working just yet")
     def test_until_failure_seed(self):
-        # cnt = 21
-        # cnt = 21    # un lb issue
-        cnt = 70    # merged lb issue
+        # cnt = 80    # merged lb issue
+        cnt = 908    # merged lb issue
         lim = 2000  
         # load map
         self.load()
@@ -236,6 +236,7 @@ class TestUntilFailureDebug(unittest.TestCase):
         # base = Kruskal(self.graph, self.T)
         # base.run_algorithm()
         # res5 = base.return_solutions()
+        # print("Kruskal: ", sum(res5['dist']))
 
         print("MM UN lB: ".ljust(25), end=""),
         mm_lb = SstarMMUNLP(self.graph, self.T)
@@ -251,7 +252,7 @@ class TestUntilFailureDebug(unittest.TestCase):
         res2 = mm.return_solutions()
         print(sum(res2['dist']), "".ljust(25), res2['stats']["expanded_nodes"])
 
-        self.assertTrue(    abs(sum(res1['dist']) - sum(res2['dist'])) < 1e-6)
+        # self.assertTrue(    abs(sum(res1['dist']) - sum(res2['dist'])) < 1e-6)
 
         print("MM Merged LB: ".ljust(25), end="")
         mm_lb = SstarMMLP(self.graph, self.T)

@@ -35,13 +35,13 @@ class Kruskal(AbstractAlgorithm):
         # TODO: If cache file is provided, we can skip parallel dijkstra and just look precomputed values
 
         # do all-pairs-shortest path between terminals via parallel dijkstra
-        apsp_terminals, pd_stats = AllPairsShortestPath.dijkstra_in_parallel(self.graph, nodes=self.terminals, return_stats=True)
+        apsp_terminals, pd_stats = AllPairsShortestPath.dijkstra_in_parallel(self.graph, node_list=self.terminals)
         self.results['stats']['expanded_nodes'] = pd_stats['expanded_nodes']
         self.results['stats']['time'] = pd_stats['time']
 
         # now produce mst 
         try:
-            if self.graph.graph_type == "undirected":
+            if self.graph.edge_type == "UNDIRECTED":
                 # undirected edges requires looking at all pair combinations (don't double count edges)
 
                 # construct a graph-like dict from the terminals
@@ -61,7 +61,7 @@ class Kruskal(AbstractAlgorithm):
                         # break after getting a tree
                         if len(self.results['sol']) == len(self.terminals):
                             break
-            elif self.graph.graph_type == "directed":
+            elif self.graph.edge_type == "DIRECTED":
                 # directed edges requires looking at all pair permutations
 
                 # construct a graph-like dict from the terminals

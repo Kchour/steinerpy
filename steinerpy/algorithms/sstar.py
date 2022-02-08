@@ -5,6 +5,7 @@
 import logging
 from typing import List
 from steinerpy.heuristics import Heuristics
+import steinerpy.config as cfg
 
 
 from steinerpy.library.search.search_algorithms import MultiSearch
@@ -258,7 +259,6 @@ class SstarMMUN(Unmerged):
 
     def local_bound_value(self, comp_ind: tuple)->float:
         return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin, self.comps[comp_ind].pmin])
-        # return max([2*self.comps[comp_ind].gmin, self.comps[comp_ind].fmin]) 
 
 class SstarMM0UN(Unmerged):
     
@@ -293,68 +293,150 @@ def lb_prop_func(search: MultiSearch, next: tuple) ->float:
             return 0
 
         # forward heuristic is the typical nearest-neighbor one
-        hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=next, goal=goal), search.goal.values()))
-        minH = min(hju)
-        minInd = hju.index(minH)
-        minGoal = search.goal[list(search.goal)[minInd]]
+        hju = list(map(lambda goal: (Heuristics.heuristic_func_wrap(next=next, goal=goal), goal), search.goal.values()))
+        minH, minGoal = min(hju)
+        # minInd = hju.index(minH)
+        # minGoal = search.goal[list(search.goal)[minInd]]
+        # minGoal = search.goal[minInd]
 
-        f_forward = search.g[next] + minH 
+        # forward values
+        f_forward = search.g[next] + minH
+        g_forward = search.g[next] 
 
-        # now try lb-propagation (involves both forward and backward heuristics)
-        # loop over all components except this one
-        
+        # loop over each component and find the minimum possible backward bounds 
         lb = float('inf')
-        for idx, comp in search.siblings.items():
-            # skip self
-            if idx == search.id:
+        for id, comp in search.siblings.items():
+            # skip current search id
+            if id == search.id:
                 continue
+            # estimate optimal path cost between these two components
+            est_c = max(f_forward, comp.fmin, g_forward + comp.gmin)
+            # we add all nodes with f<est_c
+            ready_list = []
+            while not comp.fmin_heap.empty():
+                # peek only
+                value, node = comp.fmin_heap.get_min()
+                if value <= est_c:
+                    ready_list.append((comp.g[node], node))
+                    # pop
+                    comp.fmin_heap.get()
+                else:
+                    break
+            ready_list.sort()
+            # add removed nodes back into fmin_heap
+            for item in ready_list:
+                _, node = item
+                comp.fmin_heap.put(node,  comp.f[node])
+
+            # now compute backward values
+            # min_back_node = ready_list[0][1]
+            min_back_node = ready_list[0][1]
+            g_backward = ready_list[0][0]
+            f_backward = comp.f[min_back_node]
+            current_lb = max(f_forward, f_backward, g_forward + g_backward)
+            lb = min(current_lb, lb)
+
+        # # find component with least f
+        # min_comp = None
+        # min_f_sofar = None
+        # for id, comp in search.siblings.items():
+        #     if id == search.id:
+        #         continue
+        #     if min_f_sofar is None or comp.fmin < min_f_sofar:
+        #         min_comp = comp
+        #         min_f_sofar = comp.fmin
+
+
+        # find component minGoal belongs to 
+        # for comp in search.siblings.values():
+        #     if minGoal in comp.start:
+        #         break
+
+        # est_c = max(f_forward, comp.fmin, g_forward + comp.gmin)
+        # # we add all nodes with f<est_c
+        # ready_list = []
+        # while not comp.fmin_heap.empty():
+        #     # peek only
+        #     value, node = comp.fmin_heap.get_min()
+        #     if value <= est_c:
+        #         ready_list.append((comp.g[node], node))
+        #         # pop
+        #         comp.fmin_heap.get()
+        #     else:
+        #         break
+        # ready_list.sort()
+        # # add removed nodes back into fmin_heap
+        # for item in ready_list:
+        #     _, node = item
+        #     comp.fmin_heap.put(node,  comp.f[node])
+
+        # # now compute backward values
+        # # min_back_node = ready_list[0][1]
+        # min_back_node = ready_list[0][1]
+        # g_backward = ready_list[0][0]
+        # f_backward = comp.f[min_back_node]
+        # lb = max(f_forward, f_backward, g_forward + g_backward)
+
+        # # find component with least f
+        # min_comp = None
+        # min_f_sofar = None
+        # for id, comp in search.siblings.items():
+        #     if id == search.id:
+        #         continue
+        #     if min_f_sofar is None or comp.fmin < min_f_sofar:
+        #         min_comp = comp
+        #         min_f_sofar = comp.fmin
+        # comp = min_comp
+        # # compute backward values using sorting trick
+        # # est C
+        # # est_c = max(search.fmin, comp.fmin)
+        # # est_c = max(f_forward, comp.fmin)
+        # est_c = 0
+
+        # value, node = comp.fmin_heap.get()
+        # ready_list = [(comp.g[node], node)]
+        # while True:
+        #     # consider all nodes with f <= est_c
+        #     # repeatedly call this until gf + gb <= est_c
+        #     # update est_c with min(ff, fb, gf + gb)
+        #     # while not comp.fmin_heap.empty():
+        #     if not comp.fmin_heap.empty():
+        #         # peek only
+        #         value, node = comp.fmin_heap.get_min()
+        #         if value <= est_c:
+        #             ready_list.append((comp.g[node], node))
+        #             # pop
+        #             comp.fmin_heap.get()
+        #         # else:
+        #         #     break
+
+        #     # sort ready list by g
+        #     ready_list.sort()
+
+        #     # now compute lower bound
+        #     min_back_node = ready_list[0][1]
+        #     g_backward = ready_list[0][0]
+        #     f_backward = comp.f[min_back_node]
+        #     # assert search.g[next] + g_backward <= est_c 
+        #     if search.g[next] + g_backward <= est_c:
+        #         break
+        #     else:
+        #         # update est_c 
+        #         est_c = min(f_forward, f_backward, search.g[next]+g_backward)
             
-            # try faster method
-            est_C = max(search.fmin, comp.fmin)
+        #     if comp.fmin_heap.empty():
+        #         break
 
-            # get all nodes with f < est_C from neighbor
-            temp = []
-            while True:
-                item 
+        # # add popped nodes back into opposing comp's fmin_heap
+        # for item in ready_list:
+        #     _, node = item
+        #     comp.fmin_heap.put(node,  comp.f[node])
+        # lb = max(f_forward, f_backward, search.g[next]+g_backward)
 
 
-            # # Try doing lb-propagation between nearest-neighbor only (wrong results)
-            # if minGoal not in comp.start:
-            #     continue
-
-            # # SLOW: loop over all nodes in the open set
-            # for item in list(comp.frontier):
-            #     _,_,v = item
-            #     # best lower bound between two different search fronts
-            #     # ----------------------------------------------------
-            #     # try recompute backward heuristic?
-            #     hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=v, goal=goal), comp.goal.values()))
-            #     if hju:
-            #         minH = min(hju)
-            #     else:
-            #         minH = 0
-            #     f_backward = comp.g[v] + minH 
-
-            #     # with respect to current forward direction's root only!
-            #     # f_backward = comp.g[v] + Heuristics.heuristic_func_wrap(next=v, goal=search.root[next])
-
-            #     # # dynamic update data structures?
-            #     # comp.f[v] = f_backward
-            #     # # comp.fmin_heap.put(v, f_backward)
-            #     # # comp.frontier.put(v, f_backward)
-            #     temp = max(f_forward, f_backward, search.g[next] + comp.g[v])
-
-            #     # dont recompute backward h?
-            #     # temp = max(f_forward, comp.f[v], search.g[next] + comp.g[v])
-
-            #     # keep the minimum lower bound
-            #     if temp < lb:
-            #         lb = temp
-
-        # this is from the paper
         h = lb - search.g[next]
         logger.debug("Heuristic value, search_id: {} {}".format(h, search.id))
-        return h
+        return cfg.Algorithm.hFactor*h
 
 class SstarMMLP(SstarMM):
 

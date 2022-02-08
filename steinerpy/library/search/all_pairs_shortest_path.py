@@ -171,27 +171,25 @@ class AllPairsShortestPath:
 
     """
     @classmethod
-    def dijkstra_in_parallel(cls,G, processes=4, maxtasksperchild=1000, flatten_results=False, return_stats=False, **kwargs):
-        """Solve APSP problem with running Dijkstra on each node. Alternatively,
-        the user can specify a subset of nodes or a random percentage of all nodes
-        to consider
+    def dijkstra_in_parallel(cls,G, node_list, processes=4, maxtasksperchild=1000):
+        """Find all pairs shortest distance between any pair of vertices in node_list,
+        where each vertex belongs to graph G
 
         Args:
             G (IGraph)
             processes (int)
             maxtasksperchild (int)
-            random_sampling_percentage (int): optional
-            nodes (list of IGraph nodes): optional
-            random_sampling_limit (int): optional
+            nodes (list of tuples): the vertices for which we want all pairs shortest distance
 
         Returns:
             results (dict), stats (dict)
 
         """
-        global graph
+        global graph, target_nodes
         graph = G
+        target_nodes = node_list
 
-        D = {}
+        all_results = {}
         STATS = {"time": 0, "expanded_nodes": 0}
 
         # # sampling limit
@@ -200,20 +198,21 @@ class AllPairsShortestPath:
         # num_tasks = len(node_tasks)
 
         # job_progress = IncrementalBar("Dijkstra in Parallel: ",max=num_tasks)
-        job_progress = Progress(num_tasks)
+
+        job_progress = Progress(len(node_list))
 
         pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
         
-        # flatten dictionary results into a dict of pairs
-        flatten_results = False
-        if "flatten_results_into_pairs" in kwargs:
-            if kwargs["flatten_results_into_pairs"] == True:
-                flatten_results = True
+        # # flatten dictionary results into a dict of pairs
+        # flatten_results = False
+        # if "flatten_results_into_pairs" in kwargs:
+        #     if kwargs["flatten_results_into_pairs"] == True:
+        #         flatten_results = True
                 
         try:
             my_logger.info("Running Parallel Dijkstra: ")
-            for result in pool.imap_unordered(cls._run_dijkstra, node_tasks):
-                D[result[0]] = result[1]
+            for result in pool.imap_unordered(cls._run_dijkstra, node_list):
+                all_results[result[0]] = result[1]
                 STATS["expanded_nodes"] += result[2]
                 STATS["time"] += result[3]
                 job_progress.next()
@@ -227,27 +226,31 @@ class AllPairsShortestPath:
         job_progress.finish()
         pool.close()
         pool.join()    
-        if flatten_results:
-            for key, value in list(D.items()):
-                for vkey, vval in value.items():
-                    D[(key, vkey)] = vval
-                del D[key]
-        if return_stats:
-            return dict(D), STATS
-        else:
-            return dict(D)
+        #     for key, value in all_results.items()):
+        #         for vkey, vval in value.items():
+        #             D[(key, vkey)] = vval
+        #         del D[key]
+        # if return_stats:
+        #     return dict(D), STATS
+        # else:
+        #     return dict(D)
+        return all_results, STATS
 
     @staticmethod
     def _run_dijkstra(start):
-        search = UniSearch(graph, start, None, "zero", False)
+        # search = UniSearch(graph, start, None, "zero", False)
+        search = UniSearchMemLimitFast(graph, start, set(target_nodes))
         # print(os.getpid(), start)
         start_time = timer()
         search.use_algorithm()
         # number of nodes expanded
-        num_of_expanded = UniSearch.total_expanded_nodes
+        num_of_expanded = UniSearchMemLimitFast.total_expanded_nodes
         # time
         total_time = timer() - start_time
-        return start, search.g, num_of_expanded, total_time
+        # only get dist to target_nodes
+        nvalues = {n:search.g[n] for n in target_nodes}
+        # return start, search.g, num_of_expanded, total_time
+        return start, nvalues, num_of_expanded, total_time
 
     @classmethod
     def floyd_warshall_simple_slow(cls, G):

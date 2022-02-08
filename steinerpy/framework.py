@@ -101,6 +101,11 @@ class Framework(AbstractAlgorithm):
             c.siblings = self.comps
             # c.findset = self.findset
             # c.finish_setup(self.comps)
+        
+        # now finish setting up
+        for c in self.comps.values():
+            c.finish_setup()
+            
 
         # make sure root nodes 
         self.findset = {}
@@ -542,9 +547,11 @@ class Framework(AbstractAlgorithm):
         # Nearest neighbor heuristic
         hju = list(map(lambda goal: Heuristics.heuristic_func_wrap(next=next, goal=goal), search.goal.values()))
 
-        minH = min(hju)
-        minInd = hju.index(minH)
-        minGoal = search.goal[list(search.goal)[minInd]]
+        # minH = min(hju)
+        # minInd = hju.index(minH)
+        # minGoal = search.goal[list(search.goal)[minInd]]
+        hju = list(map(lambda goal: (Heuristics.heuristic_func_wrap(next=next, goal=goal), goal), search.goal.values()))
+        minH, minGoal = min(hju)
 
         # Set current Goal
         search.currentGoal = minGoal

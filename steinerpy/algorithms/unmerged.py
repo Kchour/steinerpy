@@ -59,6 +59,9 @@ class Unmerged(Framework):
                 # may be due to inadmissible heuristic?
                 # raise ValueError("distances don't match! path queue and feasible table is conflicting!", self.terminals, self, pdist, dist, _)
 
+            my_logger.debug("ITERATION {}".format(self.run_debug))
+            my_logger.debug("solution updated with edge {} {}, cost {}".format(c1, c2, dist))
+
             Common.add_solution(path=path, dist=dist, edge=term_actual,\
                 results=self.results, terminals=self.terminals)
 
@@ -95,8 +98,10 @@ class Unmerged(Framework):
                     # update destinations and reprioritze the open sets
                     if cfg.Algorithm.reprioritize_after_merge:
                             findset = self.cycle_detection.parent_table[comps_ind[0]]
-                            new_goals = {i: self.terminals[i] for i in set(range(len(self.terminals)))-set(findset)}
+                            # new_goals = {i: self.terminals[i] for i in set(range(len(self.terminals)))-set(findset)}
                             for c in findset:
+                                # make sure this set is a completely new object each time!
+                                new_goals = {i: self.terminals[i] for i in set(range(len(self.terminals)))-set(findset)}
                                 self.comps[(c,)].goal = new_goals
                                 self.comps[(c,)].reprioritize()
 

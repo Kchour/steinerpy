@@ -1,7 +1,15 @@
+"""Numba accelerated priority queue based on lazy deletion. Implementation
+    is a bit hacky because we are using a typed.List([Bool]) to
+    keep track of entries in the pq list for deletions
+
+    We also assume items in each entry are a tuple of integers 
+"""
 from typing import List, Dict, Tuple 
 from heapq import heappush, heappop
 import numba as nb
 from numba.experimental import jitclass
+
+
 
 # priority, counter, item, removed
 entry_def = (0.0, 0, (0,0,0), nb.typed.List([False]))
@@ -82,5 +90,22 @@ class PriorityQueue2D(PriorityQueue):
         self.entry_finder = nb.typed.Dict.empty( (0, 0), (0.0, 0, (0,0), nb.typed.List([False])))
         self.counter = 0
 
+entry_def =  (0.0, 0, nb.types.unicode_type, nb.typed.List([False]))
+entry_type = nb.typeof(entry_def)
+@jitclass
+class PriorityQueueArb(PriorityQueue):
+    """Allow for arbitrary keys via string keys"""
+    pq: List[entry_type]
+    entry_finder: Dict[Tuple[int, int], entry_type]
+    counter: int
+    entry: entry_type
+
+    def __init__(self):
+        # add an item to help numba infer type
+        # self.pq = nb.typed.List.empty_list((0.0, 0, nb.types.unicode_type, nb.typed.List([False])))
+        # self.entry_finder = nb.typed.Dict.empty( (0, 0), (0.0, 0, nb.types.unicode_type, nb.typed.List([False])))
+        self.pq = nb.typed.List.empty_list(entry_def)
+        self.entry_finder = nb.typed.Dict.empty(entry_def)
+        self.counter = 0
 
 

@@ -33,6 +33,7 @@ C3 = vl
 list_instance = typed.List([0]*6)
 
 spec = [("domain_type", nb.types.unicode_type),
+        ("edge_type", nb.types.unicode_type),
         ('grid_size', nb.types.int64),
         # ('grid_size', nb.types.float64),
         ('grid_dim', typeof(list_instance)),
@@ -59,6 +60,7 @@ class RectGrid3D:
     def __init__(self, grid_dim: list, obstacles: list=None):
         # self.name = None
         self.domain_type = "GRID_3D"
+        self.edge_type = "UNDIRECTED"
 
         # assume unit grid spacing    
         self.grid_size = 1
@@ -245,6 +247,7 @@ class RectGrid2D:
 
     """
     domain_type: nb.types.unicode_type
+    edge_type: nb.types.unicode_type
     grid_dim: grid_dim_def
     grid_size: nb.types.int64
     xwidth: nb.types.int64
@@ -254,7 +257,10 @@ class RectGrid2D:
     grid: nb.types.float64[:,:]
 
     def __init__(self, grid_dim: list, obstacles: list=None):
+        
         self.domain_type = "GRID_2D"
+        self.edge_type = "UNDIRECTED"
+
         self.grid_dim = grid_dim
         self.grid_size = 1
 
@@ -275,6 +281,7 @@ class RectGrid2D:
         return np.where(self.grid==1)
         # x,y= np.where(self.grid==1)
         # return (y,x)
+
      
     def node_count(self):
         return np.count_nonzero(self.grid==0)

@@ -7,7 +7,7 @@ from typing import Iterable
 
 from steinerpy.library.search.search_algorithms import UniSearchMemLimit
 
-from .numba_search_utils import PriorityQueue2D, PriorityQueue3D
+from .numba_search_utils import PriorityQueue2D, PriorityQueue3D, PriorityQueueArb
 # from steinerpy.library.graphs.graph_numba import RectGrid3D
 
 class UniSearchMemLimitFast:
@@ -31,21 +31,26 @@ class UniSearchMemLimitFast:
         self.graph = graph
         self.start = start
         # self.g = typed.Dict.empty(nb.types.UniTuple(nb.int64, len(start)), nb.types.float64)
-        if len(start) == 2:
-            # 3d graph
+
+        if len(start) == 2 and type(start)==tuple:
+            # 2d graph
             # store cost-to-come, init start state
             self.g = np.full((graph.xwidth, graph.yheight), np.inf)
             self.frontier = PriorityQueue2D()
-        elif len(start) == 3:
+        elif len(start) == 3 and type(start)==tuple:
             # 3d graph
             # store cost-to-come, init start state
             self.g = np.full((graph.x_len, graph.y_len, graph.z_len), np.inf)
             self.frontier = PriorityQueue3D()
+        elif type(start) == str:
+            # allow for arbitrary key types 
+            self.g = nb.typed.Dict.empty(nb.types.unicode_type, nb.types.float64)
+            self.frontier = PriorityQueueArb()
         self.g[start] = 0.0
 
         if goal is not None:
             self.goal = goal.copy()
-            print(list(self.goal)[20:25])
+            print(list(self.goal)[20:25], end="")
         
         # init the front
         self.frontier.put(start, 0.0)
@@ -62,8 +67,41 @@ class UniSearchMemLimitFast:
 
 
     @nb.njit(cache=True)
-    def _search(pq, graph, g, goal):
-        """
+    def _search_np(pq, graph, g, goal):
+        """ Assume g is a numpy array
+        Params:
+            pq: priority queue
+            g:  a numba array containing both the closed and open set
+            b:  boundary nodes
+            p:  parent dict
+
+        """ 
+        iteration = 0 
+        while not pq.empty():
+            _, current = pq.pop()
+
+            # early stopping
+            if current in goal:
+                # print(current)
+                goal.remove(current)
+                if len(goal)==0:
+                    break
+
+            if iteration % 1e6 == 0 and iteration > 1:
+                print("searched nodes: ", iteration)
+
+            for n in graph.neighbors(current):
+                g_next = g[current] + graph.cost(current, n)
+                if g[n] == np.inf or g_next < g[n]:
+                    g[n] = g_next
+                    pq.put(n, g_next)
+
+            iteration += 1
+        return g, iteration
+
+    @nb.njit(cache=True)
+    def _search_dict(pq, graph, g, goal):
+        """ Assume g is a dict
         Params:
             pq: priority queue
             g:  a numba dict containing both the closed and open set
@@ -82,12 +120,12 @@ class UniSearchMemLimitFast:
                 if len(goal)==0:
                     break
 
-            if iteration % 1e6 == 0:
+            if iteration % 1e6 == 0 and iteration > 1:
                 print("searched nodes: ", iteration)
 
             for n in graph.neighbors(current):
                 g_next = g[current] + graph.cost(current, n)
-                if g[n] == np.inf or g_next < g[n]:
+                if n not in g or g_next < g[n]:
                     g[n] = g_next
                     pq.put(n, g_next)
 
@@ -97,13 +135,18 @@ class UniSearchMemLimitFast:
     def use_algorithm(self):
         # need to wrap each guy properly
         UniSearchMemLimitFast.total_expanded_nodes = 0
-        g, iteration = UniSearchMemLimitFast._search(self.frontier, self.graph, self.g, self.goal)
+        if type(self.start) == tuple:
+            # search using numpy g
+            g, iteration = UniSearchMemLimitFast._search_np(self.frontier, self.graph, self.g, self.goal)
+        elif type(self.start) == str:
+            # search using dict g
+            g, iteration = UniSearchMemLimitFast._search_dict(self.frontier, self.graph, self.g, self.goal)
         # self.g = g
         # self.parent = p
         UniSearchMemLimitFast.total_expanded_nodes = iteration
 
 class UniSearchMemLimitFastSC(UniSearchMemLimitFast):
-    """Same as above except stopping criteria is allowed
+    """Same as above except stopping criteria (mainly for cdh) is allowed
     
     WORK IN PROGRESS"""
 
