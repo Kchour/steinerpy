@@ -1,0 +1,79 @@
+# Minimal configuration for an automatically managed on-premise cluster.
+
+# To use, run the script at ray/python/ray/autoscaler/local/coordinator_server.py:
+# $ python coordinator_server.py --ips <list_of_node_ips> --port <PORT>
+# Copy the address from the output into the coordinator_address field.
+
+# A unique identifier for the head node and workers of this cluster.
+cluster_name: minimal-automatic
+
+provider:
+    type: local
+    # coordinator_address: COORDINATOR_HOST:COORDINATOR_PORT
+    coordinator_address: "127.0.1.1:6400"
+
+# The minimum number of workers nodes to add to the Ray cluster in addition to the head
+# node. This number should be >= 0.
+# Set to 0 by default.
+min_workers: 0
+# The maximum number of worker nodes to add to the Ray cluster in addition to the head node.
+# This takes precedence over min_workers.
+# Required for automatically managed clusters.
+max_workers: 8
+
+# How Ray will authenticate with newly launched nodes.
+auth:
+    ssh_user: kenny
+    # Optional if an ssh private key is necessary to ssh to the cluster.
+    # ssh_private_key: ~/.ssh/id_rsa
+
+# file_mounts: {
+#     "~/Development/test_ray/":  "~/Development/Research/steinerpy"
+# #    "/path1/on/remote/machine": "/path1/on/local/machine",
+# #    "/path2/on/remote/machine": "/path2/on/local/machine",
+# }
+
+# The above configuration assumes Ray is installed on your on-prem cluster.
+# If Ray is not already installed on your cluster, you can use setup
+# commands to install it.
+# For the latest Python 3.7 Linux wheels:
+# setup_commands:
+  # - if [ $(which ray) ]; then pip uninstall ray -y; fi
+  # - pip install -U "ray[default] @ https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-2.0.0.dev0-cp37-cp37m-manylinux2014_x86_64.whl"
+# head_setup_commands: ["source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate"]
+# setup_commands: ["source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate"]
+# worker_start_ray_commands:
+# # #   # If we have e.g. conda dependencies, we could create on each node a conda environment (see `setup_commands` section).
+# # #   # In that case we'd have to activate that env on each node before running `ray`:
+# # #   # - conda activate my_venv && ray stop
+# # #   # - ray start --address=$RAY_HEAD_IP:6379
+#     - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate 
+#     # - ray start --address=$RAY_HEAD_IP:6379
+# head_start_ray_commands:
+# #   # If we have e.g. conda dependencies, we could create on each node a conda environment (see `setup_commands` section).
+# #   # In that case we'd have to activate that env on each node before running `ray`:
+# #   # - conda activate my_venv && ray stop
+#   # - conda activate my_venv && ulimit -c unlimited && ray start --head --port=6379 --autoscaling-config=~/ray_bootstrap_config.yaml
+#     - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate 
+#     # - ulimit -c unlimited
+#     # - ray start --head --port=6379 --autoscaling-config=~/ray_bootstrap_config.yaml
+head_start_ray_commands:
+  # If we have e.g. conda dependencies, we could create on each node a conda environment (see `setup_commands` section).
+  # In that case we'd have to activate that env on each node before running `ray`:
+  # - conda activate my_venv && ray stop
+  # - conda activate my_venv && ulimit -c unlimited && ray start --head --port=6379 --autoscaling-config=~/ray_bootstrap_config.yaml
+    - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && ray stop
+    - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && ulimit -c unlimited && ray start --head --port=6379 --autoscaling-config=~/ray_bootstrap_config.yaml
+    # - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && ray start --head --port=6379 
+
+# Command to start ray on worker nodes. You don't need to change this.
+worker_start_ray_commands:
+  # If we have e.g. conda dependencies, we could create on each node a conda environment (see `setup_commands` section).
+  # In that case we'd have to activate that env on each node before running `ray`:
+  # - conda activate my_venv && ray stop
+  # - ray start --address=$RAY_HEAD_IP:6379
+    # - ray stop
+    # - ray start --address=$RAY_HEAD_IP:6379
+    - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && ray stop
+    - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && ray start --address=$RAY_HEAD_IP:6379
+    # - ray start --address=$RAY_HEAD_IP:6379
