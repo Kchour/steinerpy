@@ -10,3 +10,6 @@ use `ray up ray_setup_minimal.yaml` to start ray cluster
 use `ray status` to see status
 
 check the "monitor autoscaling" command 
+
+make sure redis is shutdown 
+/etc/init.d/redis-server stop

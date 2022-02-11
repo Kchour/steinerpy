@@ -17,11 +17,11 @@ provider:
 # The minimum number of workers nodes to add to the Ray cluster in addition to the head
 # node. This number should be >= 0.
 # Set to 0 by default.
-min_workers: 1
+min_workers: 0
 # The maximum number of worker nodes to add to the Ray cluster in addition to the head node.
 # This takes precedence over min_workers.
 # Required for automatically managed clusters.
-max_workers: 2
+max_workers: 25
 
 # How Ray will authenticate with newly launched nodes.
 auth:
@@ -35,16 +35,17 @@ auth:
 # #    "/path2/on/remote/machine": "/path2/on/local/machine",
 # }
 
+upscaling_speed: 0.05
+idle_timeout_minutes: 5
+
 # The above configuration assumes Ray is installed on your on-prem cluster.
 # If Ray is not already installed on your cluster, you can use setup
 # commands to install it.
 # For the latest Python 3.7 Linux wheels:
-setup_commands:
-  # - if [ $(which ray) ]; then pip uninstall ray -y; fi
-  # - pip install -U "ray[default] @ https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-2.0.0.dev0-cp37-cp37m-manylinux2014_x86_64.whl"
-    - cd ~/Development/Research/steinerpy
-    - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && python3 -m pip install -e steinerpy .
-    - python3 -m pip install -e .
+# setup_commands:
+#   # - if [ $(which ray) ]; then pip uninstall ray -y; fi
+#   # - pip install -U "ray[default] @ https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-2.0.0.dev0-cp37-cp37m-manylinux2014_x86_64.whl"
+#     - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && cd ~/Development/Research/steinerpy && python3 -m pip install -e .
 # head_setup_commands:
 #     - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && ulimit -c unlimited && ray start --head --port=6379 --autoscaling-config=~/ray_bootstrap_config.yaml
 # setup_commands: 
@@ -75,7 +76,7 @@ head_start_ray_commands:
   # - conda activate my_venv && ulimit -c unlimited && ray start --head --port=6379 --autoscaling-config=~/ray_bootstrap_config.yaml
 
     - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && ray stop
-    - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && ulimit -c unlimited && ray start --head --port=6379 --include-dashboard=true --autoscaling-config=~/ray_bootstrap_config.yaml
+    - source ~/Development/Research/steinerpy/venv-3.8.0/bin/activate && ulimit -c unlimited && ray start --head --port=6379 --autoscaling-config=~/ray_bootstrap_config.yaml
 
 # Command to start ray on worker nodes. You don't need to change this.
 worker_start_ray_commands:

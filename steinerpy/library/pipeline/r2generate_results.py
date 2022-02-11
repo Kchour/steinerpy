@@ -184,27 +184,29 @@ class GenerateResultsMulti(Generate):
         number_of_jobs = len(self.instances)*len(self.algs_to_run)
         pg = Progress(number_of_jobs)   
 
+        # create jobs for the pool
+        jobs = it.product(self.instances, self.algs_to_run)
+        # local variable create after pool ensures
+        # children processes don't have it
+        solution = self.solution.copy()
         # create pool
         # pool = mp.Pool(processes=self.num_processes, maxtasksperchild=self.maxtasksperchild)
         pool = mp.Pool(ray_address="auto")
 
-        # create jobs for the pool
-        jobs = it.product(self.instances, self.algs_to_run)
-
-        # local variable create after pool ensures
-        # children processes don't have it
-        solution = self.solution.copy()
+        func = partial(GenerateResultsMulti._run_individual_algs)
 
         t0 = timer()
         try:
             # for res in pool.imap_unordered(GenerateResultsMulti._run_individual_algs, enumerate(jobs), chunksize=int(number_of_jobs // (self.num_processes**2) + 1)):
-            for res in pool.imap_unordered(GenerateResultsMulti._run_individual_algs, enumerate(jobs)): 
+            # for res in pool.imap_unordered(GenerateResultsMulti._run_individual_algs, jobs): 
+            for res in pool.imap(func, jobs): 
                 solution[res[0]].append(res[1])
                 pg.next()
             pg.finish()
-        except:
+        except Exception as _e:
             pool.terminate()
             my_logger.error("Something has gone wrong with GenerateResultsMulti", exc_info=True)
+            print(_e)
         finally:
             # good practice
             pool.close()
@@ -235,14 +237,14 @@ class GenerateResultsMulti(Generate):
 
     @staticmethod
     def _run_individual_algs(inputs):
-        job_id, data = inputs
-        print("starting job id: ", job_id)
+        # job_id, data = inputs
+        # print("starting job id: ", job_id)
 
         # grab from class variables
         graph = GenerateResultsMulti.graph
         pre_run_func = GenerateResultsMulti.pre_run_func
 
-        terminals, alg = data
+        terminals, alg = inputs
         context = Context(graph, terminals)
 
         # self.terminals = terminals

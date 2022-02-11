@@ -235,6 +235,7 @@ class AllPairsShortestPath:
         # job_progress = IncrementalBar("Dijkstra in Parallel: ",max=num_tasks)
 
         job_progress = Progress(len(node_list))
+        # node_list = (n for n in node_list)
 
         # pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
         pool = mp.Pool(ray_address="auto")
