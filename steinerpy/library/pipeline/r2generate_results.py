@@ -239,11 +239,12 @@ class GenerateResultsMulti(Generate):
     @staticmethod
     def _run_individual_algs(inputs):
         # job_id, data = inputs
-        print("starting job id")
 
         # grab from class variables
         graph = GenerateResultsMulti.graph
         pre_run_func = GenerateResultsMulti.pre_run_func
+
+        print(graph)
 
         terminals, alg = inputs
         context = Context(graph, terminals)
