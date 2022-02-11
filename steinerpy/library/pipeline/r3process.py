@@ -137,7 +137,7 @@ class Process(AFileHandle):
             for j in key_list:
                 # get stats from our main algorithms (not including Kruskal)
                 if j not in statsDict:
-                    if j is not "Kruskal":
+                    if j != "Kruskal":
                         statsDict[j] = pd_res.iloc[i][j]['stats']
                     elif self.baseline_data is not None and 'stats' in pd_baseline.iloc[i]:
                         statsDict[j] = pd_baseline.iloc[i]['stats']
