@@ -684,9 +684,12 @@ tests/heuristic
 tests/advanced/randomized_tests/temp/
 
 # ignore results files for now
-results/*.xlsx
+# results/*.xlsx
 
-# ignore 3dmaps (make user download them)
+# dont ignore gen pkl files since they are smal
+!results/*.pkl
+
+# ignore 3dmaps, databases, and heuristic files
 *.3dmap
 *.sqlite*
-*.pkl
+results/heuristics/*.pkl
