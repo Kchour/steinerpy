@@ -257,7 +257,11 @@ class GenerateResultsMulti(Generate):
         if cfg.Pipeline.perform_prerun_r2 and pre_run_func is not None:
             pre_run_func(graph, terminals)
 
-        context.run(alg)
+        try:
+            context.run(alg)
+        except Exception as e_:
+            raise e_
+
         # print("finished job id: ", job_id)
 
         return alg, context.return_solutions()
