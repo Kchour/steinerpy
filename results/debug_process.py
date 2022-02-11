@@ -7,7 +7,7 @@ res_path = "empty-48-48.map_10t_25i_1h_results.pkl"
 gen_proc = Process("")
 gen_proc.specify_files(bl_path, res_path)
 
-assert(len(gen_proc.baseline_data["solution"])==len(gen_proc.main_results_data["solution"]))
+assert(len(gen_proc.baseline_data["solution"])==len(gen_proc.main_results_data["solution"]["S*-BS"]))
 
 blah = gen_proc.run()
 
