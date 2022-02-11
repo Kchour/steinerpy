@@ -1,5 +1,6 @@
 """Use multiprocessing to find shortest distances"""
-import multiprocessing as mp
+# import multiprocessing as mp
+import ray.util.multiprocessing as mp
 import math
 from tkinter import W
 import numpy as np
@@ -96,7 +97,8 @@ class SubPairsShortestPath:
         del surrogate_sample
 
         # create multiprocessing pool
-        pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
+        # pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
+        pool = mp.Pool(ray_address="auto")
 
         # now run the tasks
         try:
@@ -234,7 +236,8 @@ class AllPairsShortestPath:
 
         job_progress = Progress(len(node_list))
 
-        pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
+        # pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
+        pool = mp.Pool(ray_address="auto")
         
         # # flatten dictionary results into a dict of pairs
         # flatten_results = False

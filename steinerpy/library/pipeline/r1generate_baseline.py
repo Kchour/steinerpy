@@ -4,10 +4,11 @@ import pickle
 import random as rd
 import os
 from timeit import default_timer as timer
-import multiprocessing as mp
+# import multiprocessing as mp
 import logging
 from typing import  Union
 
+import ray.util.multiprocessing as mp
 
 from .base import Generate
 

@@ -46,7 +46,7 @@ algs = ["S*-BS", "S*-HS", "S*-MM",
 # number of terminals
 terminals = [10, 20, 30, 40, 50]
 h_vals = [0, 0.25, 0.50, 0.75, 1]
-instances = 4
+instances = 100
 
 # keep track of previous terminal number and map
 prev_term_map = []

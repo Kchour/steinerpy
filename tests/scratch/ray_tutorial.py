@@ -5,7 +5,7 @@ import time
 import ray
 
 # optionally pass in the cluster address to use cluster
-ray.init(address="auto")
+ray.init(address="auto", include_dashboard=True)
 
 print('''This cluster consists of
     {} nodes in total
@@ -18,7 +18,7 @@ def f():
     # Return IP address.
     return socket.gethostbyname(socket.gethostname())
 
-object_ids = [f.remote() for _ in range(10000)]
+object_ids = [f.remote() for _ in range(100000)]
 ip_addresses = ray.get(object_ids)
 
 print('Tasks executed')

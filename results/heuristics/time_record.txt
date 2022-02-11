@@ -29,12 +29,12 @@ Caldera.map: 			8435.761629575001		Attempt 1
 
 
 # simple ~ 1e6
-|P| = 128	|Pa| = 64	memory limit = |Pa||V|,	667.964
+|P| = 256	|Pa| = 4	memory limit = |Pa||V|,	667.964
 
 # complex ~7e6	
-|P| = 128   |Pa| = 64   memory limit = |Pa||V|/8, 2703.3121669680113
+|P| = 256   |Pa| = 4   memory limit = |Pa||V|/8, 2703.3121669680113
 # Db1 ~ 50e6 
-|P| = 128	|Pa| = 64   memory limit = |Pa||V|/32
+|P| = 256	|Pa| = 4   memory limit = |Pa||V|/32	40131.922731358965
 
 #-----------------------------------------------------------------------------
 grid_3d maps older

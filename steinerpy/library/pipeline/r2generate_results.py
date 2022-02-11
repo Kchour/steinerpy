@@ -6,10 +6,13 @@ from timeit import default_timer as timer
 import re
 import math
 import itertools as it
-import multiprocessing as mp
+# import multiprocessing as mp
 from functools import partial
 import logging
 from typing import List, Union
+
+
+import ray.util.multiprocessing as mp
 
 # from results.debug_heuristics import pre_run_func
 # from steinerpy.library.pipeline.r0generate_heuristics import GenerateHeuristics
@@ -152,7 +155,7 @@ class GenerateResultsMulti(Generate):
     graph = None
     pre_run_func = None
 
-    def __init__(self, graph: IGraph, save_path: str="", file_behavior: str="HALT", num_processes=math.floor(mp.cpu_count()/2), maxtasksperchild=50, algs_to_run=None,
+    def __init__(self, graph: IGraph, save_path: str="", file_behavior: str="HALT", num_processes=4, maxtasksperchild=50, algs_to_run=None,
                 pre_run_func=None, *kwargs):
         
         if algs_to_run is None:
@@ -182,7 +185,8 @@ class GenerateResultsMulti(Generate):
         pg = Progress(number_of_jobs)   
 
         # create pool
-        pool = mp.Pool(processes=self.num_processes, maxtasksperchild=self.maxtasksperchild)
+        # pool = mp.Pool(processes=self.num_processes, maxtasksperchild=self.maxtasksperchild)
+        pool = mp.Pool(ray_address="auto")
 
         # create jobs for the pool
         jobs = it.product(self.instances, self.algs_to_run)

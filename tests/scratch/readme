@@ -1,0 +1,12 @@
+# intro
+configure ray using either automatic or manual cluster set up
+it seems manual works better
+
+# add source (head machine) public key to all destination (worker) pcs via
+cat ~/.ssh/id_rsa.pub | ssh USER@HOST "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+
+use `ray up ray_setup_minimal.yaml` to start ray cluster
+
+use `ray status` to see status
+
+check the "monitor autoscaling" command 
