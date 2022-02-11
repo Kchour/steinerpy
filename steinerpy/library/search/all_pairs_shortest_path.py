@@ -1,6 +1,8 @@
 """Use multiprocessing to find shortest distances"""
 # import multiprocessing as mp
 import ray.util.multiprocessing as mp
+import ray
+
 import math
 from tkinter import W
 import numpy as np
@@ -199,6 +201,17 @@ class SubPairsShortestPath:
 
         return start, nvalues, num_of_expanded, total_time
 
+class Results:
+
+    def __init__(self):
+        self.result = {}
+        self.stats = {"time": 0, "expanded_nodes": 0}
+    
+    def add_result(self, res):
+        self.result[res[0]] = res[1]
+        self.stats["expanded_nodes"] += res[2]
+        self.stats["time"] += res[3]
+
 class AllPairsShortestPath:
     """Multiple uses:
         - creating the baseline (kruskal)  
@@ -224,8 +237,9 @@ class AllPairsShortestPath:
         graph = G
         target_nodes = node_list
 
-        all_results = {}
-        STATS = {"time": 0, "expanded_nodes": 0}
+        # all_results = {}
+        # STATS = {"time": 0, "expanded_nodes": 0}
+        all_results = Results()
 
         # # sampling limit
         # limit = kwargs["random_sampling_limit"]
@@ -252,9 +266,10 @@ class AllPairsShortestPath:
             my_logger.info("Running Parallel Dijkstra: ")
             # for result in pool.imap_unordered(cls._run_dijkstra, node_list):
             for result in pool.imap_unordered(func, node_list):
-                all_results[result[0]] = result[1]
-                STATS["expanded_nodes"] += result[2]
-                STATS["time"] += result[3]
+                # all_results[result[0]] = result[1]
+                # STATS["expanded_nodes"] += result[2]
+                # STATS["time"] += result[3]
+                all_results.add_result(result)
                 job_progress.next()
                 pass
         except Exception as e:
@@ -274,12 +289,14 @@ class AllPairsShortestPath:
         #     return dict(D), STATS
         # else:
         #     return dict(D)
-        return all_results, STATS
+        # return all_results, STATS
+        return all_results.result, all_results.stats 
 
     @staticmethod
     def _run_dijkstra(graph, target_nodes, start):
         # search = UniSearch(graph, start, None, "zero", False)
         search = UniSearchMemLimitFast(graph, start, set(target_nodes))
+        print(target_nodes)
         # print(os.getpid(), start)
         start_time = timer()
         search.use_algorithm()
