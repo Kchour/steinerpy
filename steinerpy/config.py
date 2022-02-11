@@ -201,3 +201,6 @@ class Pipeline:
     pivot_limit = 1
     subset_limit = 1
     node_limit = 1
+
+    # max number of processes to spawn 
+    max_processes = 4

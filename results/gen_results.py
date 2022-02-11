@@ -75,6 +75,10 @@ cfg.Pipeline.min_reach_pivots = 1
 def prerun_func(graph, terminals):
     GenerateHeuristics.cdh_compute_bounds(graph, terminals)
 
+
+# maximum number of processes to use
+cfg.Pipeline.max_processes = 8
+
 for ndx, (t, m, h) in enumerate(it.product(terminals, map_names, h_vals)):
     print("no.: ",ndx+1, " num_terms: ", t, "map name: ", m, "h-weight: ", h)
 

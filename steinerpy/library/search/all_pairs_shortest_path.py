@@ -12,6 +12,7 @@ from timeit import default_timer as timer
 from steinerpy.library.search.search_algorithms import UniSearch, UniSearchMemLimit
 from steinerpy.library.search.numba_search_algorithms import UniSearchMemLimitFast
 from steinerpy.library.misc.utils import Progress
+import steinerpy.config as cfg
 
 # DEBUG
 import os
@@ -39,6 +40,8 @@ class SubPairsShortestPath:
 
         WORKER_RESULTS = {}
         STATS = {"time": 0, "expanded_nodes":0}
+
+        processes=cfg.Pipeline.max_processes
 
         # # randomly generate pivots
         # all_nodes = list(G.get_nodes())
@@ -226,6 +229,9 @@ class AllPairsShortestPath:
 
         all_results = {}
         STATS = {"time": 0, "expanded_nodes": 0}
+
+        # arg is ignored, using cfg variable
+        processes=cfg.Pipeline.max_processes
 
         # # sampling limit
         # limit = kwargs["random_sampling_limit"]

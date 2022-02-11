@@ -683,6 +683,9 @@ tests/heuristic
 # ignore cache files
 tests/advanced/randomized_tests/temp/
 
+# ignore results files for now
+results/*.xlsx
+
 # ignore 3dmaps (make user download them)
 *.3dmap
 *.sqlite*
