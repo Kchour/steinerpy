@@ -1,5 +1,6 @@
 from timeit import default_timer as timer
 import os
+import argparse
 import steinerpy.config as cfg
 
 from steinerpy.environment import EnvType, EnvLoader 
@@ -91,6 +92,13 @@ slim = [16]
 instances.append((names, size_scale, plim, slim))
 
 stats = []
+
+# maximum number of processes to use
+parser = argparse.ArgumentParser()
+parser.add_argument("cores", help="specify the number of cpu cores to use")
+args = parser.parse_args()
+cfg.Pipeline.max_processes = args.cores
+
 # for n in names:
 # for n, c in zip(names, size_scale):
 for ndx, instance in enumerate(instances):

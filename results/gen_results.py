@@ -3,6 +3,7 @@ import itertools as it
 import random
 import pickle
 import os
+import argparse
 
 # for deterministic behavior
 random.seed(123)
@@ -57,7 +58,7 @@ algs = ["S*-BS", "S*-HS", "S*-MM",
 # number of terminals
 terminals = [10, 20, 30, 40, 50]
 h_vals = [0, 0.25, 0.50, 0.75, 1]
-instances = 4
+instances = 100
 
 # keep track of previous terminal number and map
 
@@ -77,7 +78,10 @@ def prerun_func(graph, terminals):
 
 
 # maximum number of processes to use
-cfg.Pipeline.max_processes = 8
+parser = argparse.ArgumentParser()
+parser.add_argument("cores", help="specify the number of cpu cores to use")
+args = parser.parse_args()
+cfg.Pipeline.max_processes = args.cores
 
 for ndx, (t, m, h) in enumerate(it.product(terminals, map_names, h_vals)):
     print("no.: ",ndx+1, " num_terms: ", t, "map name: ", m, "h-weight: ", h)
