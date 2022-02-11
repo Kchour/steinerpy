@@ -1,5 +1,7 @@
+"""Use multiprocessing to find shortest distances"""
 import multiprocessing as mp
 import math
+from tkinter import W
 import numpy as np
 import random
 from functools import partial
@@ -19,21 +21,19 @@ class SubPairsShortestPath:
     """Used for computing the compressed differential heuristic (cdh)"""
 
     @classmethod
-    def build(cls, G, size_limit, pivot_limit, processes=4, maxtasksperchild=1000):
+    def build(cls, G, node_limit, pivot_limit, subset_limit, processes=4, maxtasksperchild=1000):
         """Given a memory limit build a cdh
 
         Params:
-            size_limit (float or int): The limit in the number of items in the cdh 
+            node_limit (float or int): Number of surrogate nodes or keys in the lookup table at most |V|
             pivot_limit (int): number of pivots (landmarks) in the graph to use
+            subset_limit (int): number of pivot distances per node (surrogate)
         
-        Typically,
-        m := |P_a|, the number of pivot distances per state 'a' \in V
-        |P| := number of pivots  
-        memory_limit = m|V|, m >= 0
-
+        That is,
+        memory limit = |Pa||K| or subset_limit X node_limit
         """
         # leverage copy-on-write by creating global variables that are shared efficiently
-        global graph, ind_sz_lim, total_node_count
+        global graph, pivot_goals
         graph = G
 
         WORKER_RESULTS = {}
@@ -49,8 +49,8 @@ class SubPairsShortestPath:
         # tasks = list(tasks)
         # del all_nodes
 
-        total_node_count = G.node_count()
-        ind_sz_lim = int(size_limit/pivot_limit)
+        # total_node_count = G.node_count()
+        # ind_sz_lim = int(size_limit/pivot_limit)
         # randomly sample free space to get pivots
         pivot_sample = G.sample_uniform(pivot_limit)
         # return a pivot for each pivot
@@ -59,8 +59,8 @@ class SubPairsShortestPath:
         pivot_index = {p:i for i,p in enumerate(pivot_sample)}
 
         # randomly sample surrogate nodes
-        # surrogate_sample = G.sample_uniform(size_limit)
-        surrogate_sample = set(G.sample_uniform(ind_sz_lim))
+        surrogate_sample = G.sample_uniform(node_limit)
+        # surrogate_sample = set(G.sample_uniform(ind_sz_lim))
 
         # # assign each surrogate to a pivot in round robin fashion
         # pivot_goals = {}
@@ -72,6 +72,13 @@ class SubPairsShortestPath:
         #     #     pivot_goals[ndx%pivot_limit].add(s)
         #     pivot_goals
 
+        pivot_goals = [[] for _ in range(pivot_limit)]
+        skip_by = int(pivot_limit/subset_limit)
+        for i, s in enumerate(surrogate_sample):
+            for j in range(subset_limit):
+                pv_i = int((i+j*pivot_limit/subset_limit) % pivot_limit)
+                pivot_goals[pv_i].append(s)
+
         # pass seed number to guarantee deterministic behavior
         seed_no = range(pivot_limit)
 
@@ -80,10 +87,13 @@ class SubPairsShortestPath:
         tasks = zip(pivot_sample, seed_no) 
 
         # create paritla function to fix goals
-        task_func = partial(cls._run_dijkstra, surrogate_sample)
+        # task_func = partial(cls._run_dijkstra, surrogate_sample)
 
         # keep track of job progress
         job_progress = Progress(pivot_limit)
+
+        # save some memory
+        del surrogate_sample
 
         # create multiprocessing pool
         pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
@@ -91,8 +101,8 @@ class SubPairsShortestPath:
         # now run the tasks
         try:
             my_logger.info("Computing cdh tables")
-            # for result in pool.imap_unordered(cls._run_dijkstra, tasks):
-            for result in pool.imap_unordered(task_func, tasks):
+            # for result in pool.imap_unordered(task_func, tasks):
+            for result in pool.imap_unordered(cls._run_dijkstra, tasks):
 
                 # for i in range(total_node_count-ind_sz_lim):
                 #     result[1].pop(random.choice(list(result[1].keys())))
@@ -116,32 +126,55 @@ class SubPairsShortestPath:
 
         # transpose results so that keys are all states, values are {pivot: dist}
         new_data = {"pivot_index": pivot_index, "pivot_identity": pivot_identity, "table": {}}
+        
+        # table data structure
+        struct_dtype = np.dtype([("i" , np.int64), ('d', np.float64)])
         for pivot, values in WORKER_RESULTS.items():
             # if pivot == "type":
             #     new_data[pivot] = values
             #     continue
             for state, dist in values.items():
+                # ind = int(abs(pivot_sample.index(pivot) - surrogate_sample.index(state)%pivot_limit)/(pivot_limit/subset_limit))
+                # assert ind < subset_limit
                 if state not in new_data["table"]:
                     # new_data[state] = {pivot: dist}
-                    new_data["table"][state] = np.full(pivot_limit, np.inf)
-                    new_data["table"][state][pivot_index[pivot]] = dist
-                else:
-                    # new_data[state].update({pivot: dist})
-                    new_data["table"][state][pivot_index[pivot]] = dist
-        
+                    # consider using sparse matrix here
+                    # previous non-sparse way to do things
+                    # new_data["table"][state] = np.full(pivot_limit, np.inf)
+                    new_data["table"][state] = []
+                    # new_data["table"][state] = np.full(pivot_limit, -1, dtype=struct_dtype)
+
+                    # new_data["table"][state] = np.full(subset_limit, np.inf)
+                    # last element is the index of the surrogate state ordering
+                    # new_data["table"][state] = [float('inf')]*(subset_limit+1)
+                    # new_data["table"][state][-1] = surrogate_sample.index
+                #     # new_data["table"][state][pivot_index[pivot]] = dist
+                # else:
+                #     # new_data[state].update({pivot: dist})
+                #     new_data["table"][state][pivot_goals[pivot_index[pivot]].index(state)%subset_limit] = (pivot, dist)
+                # assert new_data['table'][state][ind] == float('inf') 
+                # new_data["table"][state][ind] = dist
+
+                # previous non-sparse way to do things
+                # new_data["table"][state][pivot_index[pivot]] = dist
+                new_data["table"][state].append((pivot_index[pivot], dist))
+
+        # # convert each value to a structure numpy array
+        # for k, v in new_data["table"].items():
+        #     new_data["table"][k] = np.array(v, dtype = struct_dtype)
 
         return new_data
                 
     @staticmethod
-    def _run_dijkstra(goals, tasks):
+    def _run_dijkstra(tasks):
         start, seed_no = tasks
         # set seed of numpy
         np.random.seed(seed_no)
 
         # get some goals (surrogate states)
         # goals = set(graph.sample_uniform(int(ind_sz_lim)))
+        goals = set(pivot_goals[seed_no])
         search = UniSearchMemLimitFast(graph, start, goals)
-
 
         # print(os.getpid(), start)
         start_time = timer()

@@ -210,4 +210,16 @@ class Merged(Framework):
         my_logger.info("pathQueue len now: {}".format(len(self.path_queue)))
 
 
+    def debug_2dpath_cost(self, path):
+        sum_ = 0
+        for v1, v2 in zip(path, path[1:]):
+            x1, y1 = v1
+            x2, y2 = v2
+            sum_ += np.sqrt((x1-x2)**2 + (y1-y2)**2)
+        return sum_
+
+    def compare_with_g(self, path, comp):
+        for ndx, v in enumerate(path):
+            print("correct: {} g: {}".format(self.debug_2dpath_cost(path[0:ndx]), self.comps[comp].g[v]))
+
 

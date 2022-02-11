@@ -123,7 +123,7 @@ class Generate(AFileHandle):
             my_logger.info("Loading results from file {}".format(self.save_path))
             results = pickle.load(f)
             # make sure instances are loaded from disk too
-            self.instances = self.results['terminals']
+            self.instances = results['terminals']
         
         return results
 

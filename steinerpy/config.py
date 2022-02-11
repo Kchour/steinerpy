@@ -197,6 +197,7 @@ class Pipeline:
     # debug cdh bounds by visualizing
     debug_vis_bounds = False 
 
-    pivot_limit = 1
     min_reach_pivots = 10   #r value
+    pivot_limit = 1
+    subset_limit = 1
     node_limit = 1

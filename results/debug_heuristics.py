@@ -6,13 +6,14 @@ from steinerpy.environment import EnvType, EnvLoader
 from steinerpy.library.pipeline import GenerateResultsMulti, GenerateBaseLine, Process
 from steinerpy.library.pipeline.r0generate_heuristics import GenerateHeuristics
 import steinerpy.config as cfg
+import pdb
 
 # required for 3d graph
 from mayavi import mlab
 
 # visualize algorithm?
 cfg.Animation.visualize = False
-# visualize bounds function?
+# visualize bounds function
 cfg.Pipeline.debug_vis_bounds = False
 # profile the code
 cfg.Misc.profile_frame = False
@@ -32,7 +33,17 @@ random.seed(69)
 # rng = np.random.default_rng(seed=1)
 # out = rng.random(5)
 np.random.seed(69)
-
+# names = ["brc202d.map", "den520d.map", "lak303d.map", "maze-128-128-10.map", "orz900d.map"]
+# load heuristic preprocessed file
+# with open("./heuristics/h_WheelofWar.map.pkl", 'rb') as f:
+#     data = pickle.load(f)
+# graph = EnvLoader.load(EnvType.GRID_2D, "sc/WheelofWar.map")
+with open("./heuristics/h_maze-128-128-10.map.pkl", 'rb') as f:
+    data = pickle.load(f)
+graph = EnvLoader.load(EnvType.MAPF, "maze-128-128-10.map")
+# with open("./heuristics/h_den520d.map.pkl", 'rb') as f:
+#     data = pickle.load(f)
+# graph = EnvLoader.load(EnvType.MAPF, "den520d.map")
 # load heuristic preprocessed file
 # with open("./heuristics/h_maze-32-32-4.map.pkl", 'rb') as f:
 #     data = pickle.load(f)
@@ -48,28 +59,28 @@ np.random.seed(69)
 
 # cfg.Pipeline.min_reach_pivots = 10
 
-with open("./heuristics/h_Complex.3dmap.pkl", 'rb') as f:
-    data = pickle.load(f)
-graph = EnvLoader.load(EnvType.GRID_3D, "Complex.3dmap")
-pass
+# with open("./heuristics/h_Complex.3dmap.pkl", 'rb') as f:
+#     data = pickle.load(f)
+# graph = EnvLoader.load(EnvType.GRID_3D, "Complex.3dmap")
+# pass
 
-# try visualizing graph and pivots
-xx, yy, zz = np.where(graph.grid>0)
-mlab.points3d(xx, yy, zz, mode="cube", color=(0.75,0.75,0.75))
-# try visualizing surrogates
-blah = set()
-for k, values in data["table"].items():
-    # if k == "type":
-    #     continue
-    for v in values:
-        blah.add(k)
+# # try visualizing graph and pivots
+# xx, yy, zz = np.where(graph.grid>0)
+# mlab.points3d(xx, yy, zz, mode="cube", color=(0.75,0.75,0.75))
+# # try visualizing surrogates
+# blah = set()
+# for k, values in data["table"].items():
+#     # if k == "type":
+#     #     continue
+#     for v in values:
+#         blah.add(k)
 
-# try visualizing pivots
-piv = np.array(list(data["pivot_index"]))
-surr = np.asarray(list(blah), dtype=np.int64)
-mlab.points3d(piv[:,0], piv[:,1], piv[:,2], mode="sphere", color=(0,0,1), scale_factor=2)
-mlab.points3d(surr[:,0], surr[:,1], surr[:,2], mode="sphere", color=(1,0,0), scale_factor=1)
-mlab.show()
+# # try visualizing pivots
+# piv = np.array(list(data["pivot_index"]))
+# surr = np.asarray(list(blah), dtype=np.int64)
+# mlab.points3d(piv[:,0], piv[:,1], piv[:,2], mode="sphere", color=(0,0,1), scale_factor=2)
+# mlab.points3d(surr[:,0], surr[:,1], surr[:,2], mode="sphere", color=(1,0,0), scale_factor=1)
+# mlab.show()
 
 
 # with open("./heuristics/h_Simple.3dmap.pkl", 'rb') as f:
@@ -85,7 +96,7 @@ mlab.show()
 # viewing graph
 # graph.show_grid()
 
-cfg.Pipeline.min_reach_pivots = 16
+cfg.Pipeline.min_reach_pivots = 2
 
 # # make sure you dont run the following if visualize=True
 # graph.show_grid()
@@ -99,7 +110,7 @@ cfg.Pipeline.min_reach_pivots = 16
 # use baseline to generate a random problem
 gen_bs = GenerateBaseLine(graph=graph)
 gen_bs.randomly_generate_instances(1, 10)
-res_bs = gen_bs.run()
+# res_bs = gen_bs.run()
 instances = gen_bs.instances
 
 # very specific instance
@@ -132,12 +143,12 @@ def pre_run_func(graph, terminals):
     # cfg.Algorithm.sstar_heuristic_type = "diagonal_nonuniform"
 
     # for grid_3d only
-    cfg.Algorithm.sstar_heuristic_type = "voxel"
+    # cfg.Algorithm.sstar_heuristic_type = "voxel"
 
-    # GenerateHeuristics.preload_type="CDH"
-    # cfg.Algorithm.sstar_heuristic_type = "preprocess"
-    # cfg.Algorithm.use_bpmx = True
-    # GenerateHeuristics.cdh_compute_bounds(graph, terminals)
+    GenerateHeuristics.preload_type="CDH"
+    cfg.Algorithm.sstar_heuristic_type = "preprocess"
+    cfg.Algorithm.use_bpmx = True
+    GenerateHeuristics.cdh_compute_bounds(graph, terminals)
 
 # now pass instances to results generator
 # algs = ["S*-MM", "S*-BS"]

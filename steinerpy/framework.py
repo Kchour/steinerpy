@@ -272,9 +272,9 @@ class Framework(AbstractAlgorithm):
        
 
             # Avoid adding duplicate paths to the path PriorityQueue
-            if (c1,c2) in self.path_queue or (c2,c1) in self.path_queue or \
-                (c1, c2) in self.sol_edges or (c2, c1) in self.sol_edges:
-                continue
+            # if (c1,c2) in self.path_queue or (c2,c1) in self.path_queue or \
+            #     (c1, c2) in self.sol_edges or (c2, c1) in self.sol_edges:
+            #     continue
 
             # Store only the best possible feasible path so far
             # Obtain previous feasible path result
@@ -516,7 +516,7 @@ class Framework(AbstractAlgorithm):
             # propagated h value
             parent_h_prop = search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next)
             # h = max(h, search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next))            
-            if Decimal(parent_h_prop) > Decimal(h):
+            if parent_h_prop > h:
                 h = parent_h_prop
         else:
             h = self.h_costs_func(search, next)

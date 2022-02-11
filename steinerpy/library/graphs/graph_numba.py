@@ -207,7 +207,8 @@ class RectGrid3D:
                 # randomly generate N number of indices samples
                 # gen = np.empty((current_size, 3))
                 # gen = np.random.randint((min_x, min_y, min_z), (max_x, max_y, max_z), size=(current_size,3))
-                gen = np.random.randint(low=(min_x, min_y, min_z), high=(max_x, max_y, max_z), size=(current_size,3))
+                # return random integers from low (inclusive) to high (exclusive)
+                gen = np.random.randint(low=(min_x, min_y, min_z), high=(max_x+1, max_y+1, max_z+1), size=(current_size,3))
                 # non-obstacle cell mask
                 get = self.grid[gen[:,0], gen[:,1], gen[:,2]] < 1
                 # grab all non-obstacle indices
@@ -285,6 +286,7 @@ class RectGrid2D:
      
     def node_count(self):
         return np.count_nonzero(self.grid==0)
+        # return len(self.grid<1)
         
     def in_bounds(self, node):
         (x,y) = node
@@ -410,18 +412,20 @@ class RectGrid2D:
                 # randomly generate N number of indices samples
                 # gen = np.empty((current_size, 3))
                 # gen = np.random.randint((min_x, min_y, min_z), (max_x, max_y, max_z), size=(current_size,3))
-                gen = np.random.randint(low=(min_x, min_y), high=(max_x, max_y), size=(current_size,2))
+                # return random integers from low (inclusive) to high (exclusive)
+                gen = np.random.randint(low=(min_x, min_y), high=(max_x+1, max_y+1), size=(current_size,2))
                 # non-obstacle cell mask
                 get = self.grid[gen[:,0], gen[:,1]] < 1
                 # grab all non-obstacle indices
                 items = gen[get]
                 # add to samples set for uniquenes
+                # print(current_size)
                 for i in items:
                     if len(samples)<num_of_samples:
                         samples.add(tuple(i))
                     else:
                         break
-                current_size = num_of_samples - len(samples)
+                # current_size = num_of_samples - len(samples)
             samples = list(samples)
             samples = np.array(samples)
 

@@ -298,6 +298,7 @@ def lb_prop_func(search: MultiSearch, next: tuple) ->float:
         # minInd = hju.index(minH)
         # minGoal = search.goal[list(search.goal)[minInd]]
         # minGoal = search.goal[minInd]
+        search.currentGoal = minGoal
 
         # forward values
         f_forward = search.g[next] + minH

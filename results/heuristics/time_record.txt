@@ -8,26 +8,48 @@ WheelofWar.map			2787.2882601499878
 Sandstorm.map			586.2972709780006
 Caldera.map: 			8435.761629575001		Attempt 1
 						1375.7065553870016		Attempt 2
-|P| = 100, memory limit = 16|V|
 
-# newer attempt with numba
-('WheelofWar.map', 65.48188286600634)
-('Archipelago.map', 29.38035058300011)
-('BigGameHunters.map', 36.57324054600031)
-('Brushfire.map', 23.507250106005813)
-('Sandstorm.map', 19.27844671199273)
+|P| = 256, |Pa| = 16	memory limit = |Pa||V|
 
+# STARCRAFT
+('WheelofWar.map', 115.14730924402829)
+('Archipelago.map', 46.760007339005824)
+('BigGameHunters.map', 63.92626810603542)
+('Brushfire.map', 38.328537771012634)
+('Sandstorm.map', 28.823159821971785)
+
+|P| = 128, |Pa| = 64	 memory limit = |Pa||V|
+
+# MAPF/DAO
+('brc202d.map', 27.413021463959012)
+('den520d.map', 17.577769469004124)
+('lak303d.map', 10.7144584429916)
+('maze-128-128-10.map', 10.81687088200124)
+('orz900d.map', 49.61230158503167)
+
+
+# simple ~ 1e6
+|P| = 128	|Pa| = 64	memory limit = |Pa||V|,	667.964
+
+# complex ~7e6	
+|P| = 128   |Pa| = 64   memory limit = |Pa||V|/8, 2703.3121669680113
+# Db1 ~ 50e6 
+|P| = 128	|Pa| = 64   memory limit = |Pa||V|/32
 
 #-----------------------------------------------------------------------------
-grid_3d maps
+grid_3d maps older
+
+
 
 
 # simple 3d map
-|P| = 100, memory limit = 0.25|V|			317.8116316109954
+|P| = 100, memory limit = |V|				396.4472950420022
 
+# DB1
+|P| = 75, memory limit = |V|/1			('DB1.3dmap', 39000.398234408)
 
 # h-Complex.3dmap
-|P|=4, memory limit = |V|/16				97.27355645899661
+|P|=100, memory limit = |V|/16/100				2244.755692232
 
-# FA1
-|P|=4, memory limit = |V|/64				3722.000430068001
+# FA1 (takes too long if 100 |P|)
+|P|=4, memory limit = |V|/64/4				3722.000430068001

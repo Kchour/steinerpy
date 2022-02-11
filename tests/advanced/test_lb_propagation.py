@@ -207,11 +207,11 @@ class TestUntilFailureDebug(unittest.TestCase):
             self.with_unmerged_mm_and_lp()
             cnt +=1
 
-    @unittest.skip("Resolved due to tolerance and inequality issue")
+    @unittest.skip("not using specific case testing")
     def test_weird_case(self):
         """Test weird bounds edge case?"""
         self.load()
-        T = [(54, 8),(53, 36)]
+        T = [(53,14),(27,15),(51,6),(61,12)]
 
         # path cost should be 76.21
         # base = Kruskal(self.graph, T)
@@ -219,16 +219,47 @@ class TestUntilFailureDebug(unittest.TestCase):
         # res0 = base.return_solutions()
         # print(sum(res0['dist']))
 
-        mm = SstarMMUN(self.graph, T)
-        mm.run_algorithm()
-        res1 = mm.return_solutions()
+        # mm = SstarMMUN(self.graph, T)
+        # mm.run_algorithm()
+        # res1 = mm.return_solutions()
 
-        mm_lb = SstarMMUNLP(self.graph, T)
+        # mm_lb = SstarMMUNLP(self.graph, T)
+        # mm_lb.run_algorithm()
+        # res2 = mm_lb.return_solutions()
+
+        # print("MM UN lB: ".ljust(25), end=""),
+        # mm_lb = SstarMMUNLP(self.graph, T)
+        # mm_lb.run_algorithm()
+        # res1 = mm_lb.return_solutions()
+        # print(sum(res1['dist']), "".ljust(25), res1['stats']["expanded_nodes"])
+
+        # # self.assertTrue(    abs(sum(res5['dist']) - sum(res1['dist'])) < 1e-6)
+
+        # print("MM UN: ".ljust(25), end="")
+        # mm = SstarMMUN(self.graph, T)
+        # mm.run_algorithm()
+        # res2 = mm.return_solutions()
+        # print(sum(res2['dist']), "".ljust(25), res2['stats']["expanded_nodes"])
+
+        # self.assertTrue(    abs(sum(res1['dist']) - sum(res2['dist'])) < 1e-6)
+
+        print("MM Merged LB: ".ljust(25), end="")
+        mm_lb = SstarMMLP(self.graph, T)
         mm_lb.run_algorithm()
-        res2 = mm_lb.return_solutions()
+        res3 = mm_lb.return_solutions()
+        print(sum(res3['dist']), "".ljust(25), res3['stats']["expanded_nodes"])
 
-        self.assertTrue(    abs(sum(res1['dist']) - sum(res2['dist'])) < 1e-6)
+        # self.assertTrue(    abs(sum(res2['dist']) - sum(res3['dist'])) < 1e-6)
 
+        print("MM Merged: ".ljust(25), end="")
+        mm = SstarMM(self.graph, T)
+        mm.run_algorithm()
+        res4 = mm.return_solutions()
+        print(sum(res4['dist']), "".ljust(25), res4['stats']["expanded_nodes"])
+
+        self.assertTrue(    abs(sum(res3['dist']) - sum(res4['dist'])) < 1e-6)
+
+    # @unittest.skip("full test skipped for now")
     def with_unmerged_mm_and_lp(self):
         """Test unmerged mm against lb prop""" 
         res1 = {'stats': None}
@@ -252,7 +283,7 @@ class TestUntilFailureDebug(unittest.TestCase):
         res2 = mm.return_solutions()
         print(sum(res2['dist']), "".ljust(25), res2['stats']["expanded_nodes"])
 
-        # self.assertTrue(    abs(sum(res1['dist']) - sum(res2['dist'])) < 1e-6)
+        self.assertTrue(    abs(sum(res1['dist']) - sum(res2['dist'])) < 1e-6)
 
         print("MM Merged LB: ".ljust(25), end="")
         mm_lb = SstarMMLP(self.graph, self.T)
@@ -260,7 +291,7 @@ class TestUntilFailureDebug(unittest.TestCase):
         res3 = mm_lb.return_solutions()
         print(sum(res3['dist']), "".ljust(25), res3['stats']["expanded_nodes"])
 
-        # self.assertTrue(    abs(sum(res2['dist']) - sum(res3['dist'])) < 1e-6)
+        self.assertTrue(    abs(sum(res2['dist']) - sum(res3['dist'])) < 1e-6)
 
         print("MM Merged: ".ljust(25), end="")
         mm = SstarMM(self.graph, self.T)
@@ -270,7 +301,7 @@ class TestUntilFailureDebug(unittest.TestCase):
 
         self.assertTrue(    abs(sum(res3['dist']) - sum(res4['dist'])) < 1e-6)
 
-        # print("Kruskal: ".ljust(25), end="")
+        print("Kruskal: ".ljust(25), end="")
         base = Kruskal(self.graph, self.T)
         base.run_algorithm()
         res5 = base.return_solutions()
@@ -278,14 +309,14 @@ class TestUntilFailureDebug(unittest.TestCase):
 
         self.assertTrue(    abs(sum(res5['dist']) - sum(res4['dist'])) < 1e-6)
 
-        print("MMUN--------------------------------\n") 
-        print("with lb: ", res1['stats'])
-        print("\n")
-        print("normal: ", res2['stats'])
-        print("MM--------------------------------\n") 
-        print("with lb: ", res3['stats'])
-        print("\n")
-        print("normal: ", res4['stats'])
+        # print("MMUN--------------------------------\n") 
+        # print("with lb: ", res1['stats'])
+        # print("\n")
+        # print("normal: ", res2['stats'])
+        # print("MM--------------------------------\n") 
+        # print("with lb: ", res3['stats'])
+        # print("\n")
+        # print("normal: ", res4['stats'])
         if cfg.Animation.visualize:
             plt.pause(5)
 

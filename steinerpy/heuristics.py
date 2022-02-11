@@ -62,6 +62,7 @@ class _GridBasedHeuristics2D(type):
         next (tuple): The source vertex  
         goal (tuple): The destination vertex
 
+    TODO: REMOVE 2D from name
     """
 
     def __init__(cls): 

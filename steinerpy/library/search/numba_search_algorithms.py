@@ -66,6 +66,7 @@ class UniSearchMemLimitFast:
         cls.total_expanded_nodes = 0
 
 
+    # @nb.njit
     @nb.njit(cache=True)
     def _search_np(pq, graph, g, goal):
         """ Assume g is a numpy array
@@ -87,8 +88,8 @@ class UniSearchMemLimitFast:
                 if len(goal)==0:
                     break
 
-            if iteration % 1e6 == 0 and iteration > 1:
-                print("searched nodes: ", iteration)
+            # if iteration % 1e6 == 0 and iteration > 1:
+            #     print("searched nodes: ", iteration)
 
             for n in graph.neighbors(current):
                 g_next = g[current] + graph.cost(current, n)
@@ -99,7 +100,8 @@ class UniSearchMemLimitFast:
             iteration += 1
         return g, iteration
 
-    @nb.njit(cache=True)
+    # @nb.njit(cache=True)
+    @nb.njit
     def _search_dict(pq, graph, g, goal):
         """ Assume g is a dict
         Params:
@@ -120,8 +122,8 @@ class UniSearchMemLimitFast:
                 if len(goal)==0:
                     break
 
-            if iteration % 1e6 == 0 and iteration > 1:
-                print("searched nodes: ", iteration)
+            # if iteration % 1e6 == 0 and iteration > 1:
+            #     print("searched nodes: ", iteration)
 
             for n in graph.neighbors(current):
                 g_next = g[current] + graph.cost(current, n)
@@ -160,7 +162,8 @@ class UniSearchMemLimitFastSC(UniSearchMemLimitFast):
         self.ub = ub
         self.pivot_counter = pivot_counter
 
-    @nb.njit(cache=True)
+    # @nb.njit(cache=True)
+    @nb.njit
     def _search(pq, graph, g, sc, cdh_table, start, lb, ub, pivot_counter):
         """dijkstra with stopping condition"""
         iteration = 0 

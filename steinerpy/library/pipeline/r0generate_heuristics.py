@@ -86,12 +86,47 @@ class HFileHandle(AFileHandle):
 ###################################
 def numba_dict_array(ndim):
     """Assumes keys are n-tuples, values are float64 ndarrays
-    
+    Used for upper and lower bound calculation
+
     """
     return nb.typed.Dict.empty(
         key_type=nb.types.UniTuple(nb.types.int64, ndim),
         value_type=nb.types.float64[:],
     )
+
+def numba_dict_listtp(ndim):
+    """Assumes keys are n-tuples, values are 2-tuples
+    Used for cdh table calculation
+
+    ndim (int): dimensionality of tuple keys
+    length (int): number of values 
+
+    """
+    # create numba list
+    # nb_list = nb.typed.List.empty_list((0, 0.0))
+
+    # # np struct type
+    # struct_dtype = np.dtype([("i" , np.int64), ('d', np.float64)])
+    # nb_np_type = nb.from_dtype(struct_dtype)
+
+
+    # # nb_list = nb.typed.List([(0, 0.0)])
+    # return nb.typed.Dict.empty(
+    #         key_type=nb.types.UniTuple(nb.types.int64, ndim),
+    #         # value_type=nb.typed.List.empty_list(nb.typeof((0,0.0)))
+    #         value_type = nb_np_type
+    # )
+    return nb.typed.Dict.empty(
+        key_type = nb.types.UniTuple(nb.types.int64, 2), 
+        value_type=nb.typeof(nb.typed.List.empty_list(nb.types.Tuple((nb.int64, nb.float64))))
+    )
+
+def numba_list(my_list):
+    nb_list = nb.typed.List.empty_list(nb.types.Tuple((nb.int64, nb.float64)))
+    for v in my_list:
+        nb_list.append(v)
+    return nb_list
+
 
 # def numba_nested_dict(ndim):
 #     return nb.typed.Dict.empty(
@@ -162,10 +197,11 @@ class GenerateHeuristics:
 
         node_limit = cfg.Pipeline.node_limit
         pivot_limit = cfg.Pipeline.pivot_limit
+        subset_limit = cfg.Pipeline.subset_limit
 
         from steinerpy.library.search.all_pairs_shortest_path import SubPairsShortestPath
 
-        results = SubPairsShortestPath.build(graph, node_limit, pivot_limit)
+        results = SubPairsShortestPath.build(graph, node_limit, pivot_limit, subset_limit)
         results["type"] = "CDH"
         return results
 
@@ -180,7 +216,7 @@ class GenerateHeuristics:
         """
         from steinerpy.library.search.all_pairs_shortest_path import AllPairsShortestPath
 
-        results = AllPairsShortestPath.dijkstra_in_parallel(graph, random_sampling_limit=random_sampling_limit)  
+        results = AllPairsShortestPath.dijkstra_in_parallel(graph)  
         results["type"] = "LAND" 
         return results
 
@@ -223,8 +259,12 @@ class GenerateHeuristics:
         if from_node not in table:
             return h1 
         else:
-            a = np.nanmax(table[from_node] - ub[to_node])
-            b = np.nanmax(lb[to_node] - table[from_node])
+            # non sparse way of doing things
+            # a = np.nanmax(table[from_node] - ub[to_node])
+            # b = np.nanmax(lb[to_node] - table[from_node])
+            # looping over a small list of numbers
+            a = max(x[1] - ub[to_node][x[0]] for x in table[from_node])
+            b = max(lb[to_node][x[0]] - x[1] for x in table[from_node])
             if a >= b and a > h1:
                 return a
             elif b > a and b > h1:
@@ -317,13 +357,17 @@ class GenerateHeuristics:
             
             # see if expanded node has indirect path to a pivot through a surrogate node
             if expanded_node in cdh_table:
-                for index, dist in  enumerate(cdh_table[expanded_node]):
+                # for index, dist in  enumerate(cdh_table[expanded_node]):
+                for index, dist in  cdh_table[expanded_node]:
                     # pivot is reachable through surrogate
                     # searched_pivots.add(pivot)
                     # # store distance to surrogate 
                     # if goal_point not in searched_pivot_dists:
                     #     searched_pivot_dists[expanded_node] = current_g_cost
-                    
+
+                    if dist == np.inf:
+                        continue
+
                     # update bounds wrt to pivot directly here
                     dist_g_to_x = current_g_cost
                     # dist_x_to_p = cdh_table[expanded_node][pv_index[pivot]]
@@ -412,6 +456,7 @@ class GenerateHeuristics:
 
             minX, maxX, minY, maxY = graph.grid_dim
             AnimateV2.init_figure(fig, ax, xlim=(minX, maxX), ylim=(minY,maxY))
+            AnimateV2.update()
 
         # minimum of reaches to a pivot
         r = cfg.Pipeline.min_reach_pivots
@@ -434,11 +479,14 @@ class GenerateHeuristics:
         # ub = GenerateHeuristics.cdh_upper_bound
 
         # convert cdh table
-        _cdh = numba_dict_array(len(pv_identity[0]))
+        # _cdh_table = numba_dict_array(len(pv_identity[0]))
+        # _cdh_table = numba_dict_array_sp(len(pv_identity[0]), len(next(iter(cdh_table.values()))))
+        _cdh_table = numba_dict_listtp(len(pv_identity[0])) 
         for k,v in cdh_table.items():
-            _cdh[k] = v
+            # convert list of tuples to numba type
+            nb_v = numba_list(v)
+            _cdh_table[k] = nb_v
 
-        _cdh_table = _cdh
 
         # create a counter for number of times a pivot is indriectly encounered
         # pivot_counter = {i: r for i in pv_identity}
@@ -465,13 +513,19 @@ class GenerateHeuristics:
             search = UniSearchMemLimitFastSC(graph, goal_point, None, stopping_critiera, _cdh_table, _lb, _ub, pivot_counter)
         
             search.use_algorithm()
+            # print("goal point: ", goal_point, "expanded: ", np.count_nonzero(search.g<np.inf))
         # now store results from computation
-        for k,v in _cdh_table.items():
-            cdh_table[k] = v
+        # for k,v in _cdh_table.items():
+        #     cdh_table[k] = v
         for k,v in _lb.items():
             lb[k] = v
         for k,v in _ub.items():
             ub[k] = v
+
+        # replace any infs with nan
+        # for k,v in cdh_table.items():
+        #     cdh_table[k] = np.where(v==np.inf, np.nan, v)
+
         print("Computed bounds in ", timer()-t1)
     
             # compute bounds
