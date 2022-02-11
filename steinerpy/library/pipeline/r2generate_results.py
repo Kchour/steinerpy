@@ -153,7 +153,7 @@ class GenerateResultsMulti(Generate):
     graph = None
     pre_run_func = None
 
-    def __init__(self, graph: IGraph, save_path: str="", file_behavior: str="HALT", num_processes=4, maxtasksperchild=50, algs_to_run=None,
+    def __init__(self, graph: IGraph, save_path: str="", file_behavior: str="HALT", num_processes=4, maxtasksperchild=50,load_from_disk=None, algs_to_run=None,
                 pre_run_func=None, *kwargs):
         
         if algs_to_run is None:

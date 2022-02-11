@@ -19,7 +19,8 @@ from steinerpy.library.pipeline import GenerateHeuristics
 # loader = [(EnvType.MAPF, lambda x: x),
 #           (EnvType.GRID_2D, lambda x: os.path.join("sc", x)), 
 #         (EnvType.GRID_3D, lambda x: x),] 
-loader = [(EnvType.GRID_3D, lambda x: x),] 
+# loader = [(EnvType.GRID_3D, lambda x: x),] 
+loader = [(EnvType.MAPF, lambda x: x),] 
 
 instances = []
 
@@ -42,6 +43,8 @@ names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.m
 # names = ["Archipelago.map"]
 # names = ["den520d.map"]
 # names = ["room-32-32-4.map"]
+# names = ["empty-48-48.map"]
+
 
 size_scale = [1, 1, 1, 1, 1]
 plim = [256, 256, 256, 256, 256]
@@ -75,10 +78,16 @@ slim = [16, 16, 16, 16, 16]
 # plim =  [256, 256, 256]
 # slim = [4, 4, 4]
 
-names = ["DB1.3dmap"]
-size_scale = [32]
-plim =  [256]
-slim = [4]
+# names = ["DB1.3dmap"]
+# size_scale = [32]
+# plim =  [256]
+# slim = [4]
+
+names = ["empty-48-48.map"]
+size_scale= [1]
+plim = [256]
+slim = [16]
+
 instances.append((names, size_scale, plim, slim))
 
 stats = []

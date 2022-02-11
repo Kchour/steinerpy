@@ -66,8 +66,8 @@ class UniSearchMemLimitFast:
         cls.total_expanded_nodes = 0
 
 
-    # @nb.njit
-    @nb.njit(cache=True)
+    # @nb.njit(cache=True)
+    @nb.njit
     def _search_np(pq, graph, g, goal):
         """ Assume g is a numpy array
         Params:
@@ -100,7 +100,7 @@ class UniSearchMemLimitFast:
             iteration += 1
         return g, iteration
 
-    # @nb.njit(cache=True)
+    # @nb.njitache=True)
     @nb.njit
     def _search_dict(pq, graph, g, goal):
         """ Assume g is a dict

@@ -1,7 +1,7 @@
 """Use multiprocessing to find shortest distances"""
-# import multiprocessing as mp
-import ray.util.multiprocessing as mp
-import ray
+import multiprocessing as mp
+# import ray.util.multiprocessing as mp
+# import ray
 import math
 import numpy as np
 import random
@@ -237,8 +237,8 @@ class AllPairsShortestPath:
         job_progress = Progress(len(node_list))
         # node_list = (n for n in node_list)
 
-        # pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
-        pool = mp.Pool(ray_address="auto")
+        pool = mp.Pool(processes=processes, maxtasksperchild=maxtasksperchild)
+        # pool = mp.Pool(ray_address="auto")
         
         # # flatten dictionary results into a dict of pairs
         # flatten_results = False
@@ -275,8 +275,7 @@ class AllPairsShortestPath:
         # return all_results, STATS
         return all_results, STATS
 
-    # @staticmethod
-    @ray.remote
+    @staticmethod
     def _run_dijkstra(start):
         # search = UniSearch(graph, start, None, "zero", False)
         search = UniSearchMemLimitFast(graph, start, set(target_nodes))

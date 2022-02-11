@@ -2,6 +2,7 @@
 import itertools as it
 import random
 import pickle
+import os
 
 # for deterministic behavior
 random.seed(123)
@@ -33,11 +34,21 @@ from steinerpy.library.pipeline import GenerateHeuristics
 from steinerpy.library.pipeline import GenerateResultsMulti, GenerateBaseLine, Process
 import  steinerpy.config as cfg
 
-# map names
-# names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.map", "Sandstorm.map"]
+# sc map names
+sc_names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.map", "Sandstorm.map"]
+
+# mapf map names
+mapf_names = ["empty-48-48.map", "brc202d.map", "den520d.map", "lak303d.map", "maze-128-128-10.map", "orz900d.map"]
+
+# 3d map names
+grid3d_names = ["Simple.3dmap","Complex.3dmap","DB1.3dmap"]
+
 
 # load map and preprocessed heuristic
-map_names = ["maze-128-128-10.map"]
+map_names = []
+map_names.extend(mapf_names)
+map_names.extend(sc_names)
+map_names.extend(grid3d_names)
 
 algs = ["S*-BS", "S*-HS", "S*-MM", 
         "S*-BS-UN", "S*-HS-UN", "S*-MM-UN", 
@@ -46,7 +57,7 @@ algs = ["S*-BS", "S*-HS", "S*-MM",
 # number of terminals
 terminals = [10, 20, 30, 40, 50]
 h_vals = [0, 0.25, 0.50, 0.75, 1]
-instances = 1
+instances = 4
 
 # keep track of previous terminal number and map
 
@@ -59,16 +70,22 @@ cfg.Algorithm.sstar_heuristic_type = "preprocess"
 cfg.Algorithm.use_bpmx = True
 
 # bounding procedure, number of reaches
-cfg.Pipeline.min_reach_pivots = 2
+cfg.Pipeline.min_reach_pivots = 1
 # define pre-run (setup) function
 def prerun_func(graph, terminals):
     GenerateHeuristics.cdh_compute_bounds(graph, terminals)
 
 for ndx, (t, m, h) in enumerate(it.product(terminals, map_names, h_vals)):
-    print("no.: ",ndx, " num_terms: ", t, "map name: ", m, "h-weight: ", h)
+    print("no.: ",ndx+1, " num_terms: ", t, "map name: ", m, "h-weight: ", h)
 
     # load graph (FOR SC maps, name must include "sc/")
-    graph = EnvLoader.load(EnvType.MAPF, m)
+    if m in mapf_names:
+        graph = EnvLoader.load(EnvType.MAPF, m)
+    elif m in sc_names:
+        graph = EnvLoader.load(EnvType.GRID_2D, os.path.join("sc", m))
+    else:
+        # must be 3d 
+        graph = EnvLoader.load(EnvType.GRID_3D, m)
 
     # load preprocessed heuristics
     with open("./heuristics/h_"+m + ".pkl", 'rb') as f:
@@ -80,7 +97,7 @@ for ndx, (t, m, h) in enumerate(it.product(terminals, map_names, h_vals)):
 
     ############ generate baseline ##############
     # make sure we reuse the same terminals for the same map/heuristic values
-    bl_path = "{}_{}t_baseline.pkl".format(m, t)
+    bl_path = "{}_{}t_{}i_baseline.pkl".format(m, t, instances)
     gen_bs = GenerateBaseLine(graph=graph, save_path=bl_path, file_behavior="SKIP", load_from_disk=True)    # just added load from disk
     # generate random instances only when map or terminals changes
     if not prev_term_map or t not in prev_term_map or m not in prev_term_map:
@@ -91,15 +108,15 @@ for ndx, (t, m, h) in enumerate(it.product(terminals, map_names, h_vals)):
     sp_instances = gen_bs.instances
 
     ############# generate results ###############
-    res_path = "{}_{}t_{}h_results.pkl".format(m, t, h)
-    gen_res = GenerateResultsMulti(graph=graph, save_path=res_path, algs_to_run=algs, file_behavior="OVERWRITE", pre_run_func=prerun_func)
+    res_path = "{}_{}t_{}i_{}h_results.pkl".format(m, t, instances, h)
+    gen_res = GenerateResultsMulti(graph=graph, save_path=res_path, algs_to_run=algs, file_behavior="SKIP", load_from_disk=True, pre_run_func=prerun_func)
     # specify instances
     gen_res.input_specifed_instances(sp_instances)
     # run generator
     gen_res.run()
 
     ############ process results #################
-    gen_proc = Process(save_path="{}_{}t_{}h_processed.xlsx".format(m, t, h), file_behavior="OVERWRITE")
+    gen_proc = Process(save_path="{}_{}t_{}i_{}h_processed.xlsx".format(m, t, instances, h), file_behavior="OVERWRITE")
     # specify baseline and result files
     gen_proc.specify_files(bl_path, res_path)
     # run to process

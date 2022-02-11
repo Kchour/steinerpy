@@ -446,8 +446,11 @@ def grid2d_wrap(grid_dim: list, obstacles: List[tuple]):
     """wrapper around Rect2D jitted object"""
     # nb_dim_list = nb.typed.List([0]*4)
     nb_dim_list = nb.typed.List(grid_dim)
-    nb_obs_list = nb.typed.List(obstacles)
-
+    if obstacles:
+        nb_obs_list = nb.typed.List(obstacles)
+    else:
+        nb_obs_list = nb.typed.List.empty_list(nb.types.UniTuple(nb.types.int64,2))
+        # obstacles: nb.typeof(nb.typed.List.empty_list(nb.types.UniTuple(nb.types.int64,2)))
     # # convert python list to numba list
     # for ndx, d in enumerate(grid_dim):
     #     nb_dim_list[ndx] = d
@@ -459,10 +462,15 @@ def grid2d_wrap(grid_dim: list, obstacles: List[tuple]):
 def grid3d_wrap(grid_dim, obstacles):
     """Wrapper around Rect3d jitted object"""
 
-    for i, v in enumerate(grid_dim):
-        list_instance[i] = v
     # convert obstacles to typed list
     obs = nb.typed.List(obstacles)
+    if obstacles:
+        obs = nb.typed.List(obstacles)
+    else:
+        obs = nb.typed.List.empty_list(nb.types.UniTuple(nb.types.int64,3))
+
+    for i, v in enumerate(grid_dim):
+        list_instance[i] = v
 
     return RectGrid3D(list_instance, obs)
 

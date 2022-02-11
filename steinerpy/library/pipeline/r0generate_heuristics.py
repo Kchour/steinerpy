@@ -511,8 +511,10 @@ class GenerateHeuristics:
             #     goal_point=goal_point, 
             #     lb=lb, ub=ub, pivot_counter=pivot_counter)
             search = UniSearchMemLimitFastSC(graph, goal_point, None, stopping_critiera, _cdh_table, _lb, _ub, pivot_counter)
-        
-            search.use_algorithm()
+            try: 
+                search.use_algorithm()
+            except Exception as e_:
+                raise e_
             # print("goal point: ", goal_point, "expanded: ", np.count_nonzero(search.g<np.inf))
         # now store results from computation
         # for k,v in _cdh_table.items():
