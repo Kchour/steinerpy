@@ -197,7 +197,8 @@ class GenerateResultsMulti(Generate):
 
         t0 = timer()
         try:
-            for res in pool.imap(GenerateResultsMulti._run_individual_algs, enumerate(jobs), chunksize=int(number_of_jobs // (self.num_processes**2) + 1)):
+            # for res in pool.imap_unordered(GenerateResultsMulti._run_individual_algs, enumerate(jobs), chunksize=int(number_of_jobs // (self.num_processes**2) + 1)):
+            for res in pool.imap_unordered(GenerateResultsMulti._run_individual_algs, enumerate(jobs)): 
                 solution[res[0]].append(res[1])
                 pg.next()
             pg.finish()
@@ -235,7 +236,7 @@ class GenerateResultsMulti(Generate):
     @staticmethod
     def _run_individual_algs(inputs):
         job_id, data = inputs
-        # print("starting job id: ", job_id)
+        print("starting job id: ", job_id)
 
         # grab from class variables
         graph = GenerateResultsMulti.graph

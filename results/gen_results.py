@@ -90,7 +90,7 @@ for ndx, (t, m, h) in enumerate(it.product(terminals, map_names, h_vals)):
 
     ############# generate results ###############
     res_path = "{}_{}t_{}h_results.pkl".format(m, t, h)
-    gen_res = GenerateResultsMulti(graph=graph, save_path=res_path, algs_to_run=algs, pre_run_func=prerun_func)
+    gen_res = GenerateResultsMulti(graph=graph, save_path=res_path, algs_to_run=algs, file_behavior="OVERWRITE", pre_run_func=prerun_func)
     # specify instances
     gen_res.input_specifed_instances(sp_instances)
     # run generator
