@@ -213,7 +213,7 @@ class GenerateResultsMulti(Generate):
 
 
         self.solution = solution
-
+        
         # dump instances and solution to file if path specified
         if self.save_path != "":
             with open(self.save_path, 'wb') as f:

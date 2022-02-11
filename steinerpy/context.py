@@ -63,36 +63,45 @@ class Context:
         # Update strategy to most recent run
         self.strategy = strategy
 
-        # run based on input
-        if self.strategy == "S*-HS":
-            self.instances[self.strategy] = SstarHS(self._graph, self._terminals)
-        elif  self.strategy == "Kruskal":
-            self.instances[self.strategy] = Kruskal(self._graph, self._terminals)
-        elif self.strategy == "S*-BS":
-            self.instances[self.strategy] = SstarBS(self._graph, self._terminals)
-        elif self.strategy == "S*-MM":
-            self.instances[self.strategy] = SstarMM(self._graph, self._terminals)
-        elif self.strategy == "S*-MM0":
-            self.instances[self.strategy] = SstarMM0(self._graph, self._terminals)
-        elif self.strategy == "S*-HS-UN":
-            self.instances[self.strategy] = SstarHSUN(self._graph, self._terminals)
-        elif self.strategy == "S*-BS-UN":
-            self.instances[self.strategy] = SstarBSUN(self._graph, self._terminals)
-        elif self.strategy == "S*-MM-UN":
-            self.instances[self.strategy] = SstarMMUN(self._graph, self._terminals)
-        elif self.strategy == "S*-MM0-UN":
-            self.instances[self.strategy] = SstarMM0UN(self._graph, self._terminals)                                
-        elif self.strategy == "S*-MM-LP":
-            self.instances[self.strategy] = SstarMMLP(self._graph, self._terminals)                                
-        elif self.strategy == "S*-MM-UN-LP":
-            self.instances[self.strategy] = SstarMMUNLP(self._graph, self._terminals)                                
-        elif self.strategy == "S*-HS-LP":
-            self.instances[self.strategy] = SstarHSLP(self._graph, self._terminals)                                
-        elif self.strategy == "S*-HS-UN-LP":
-            self.instances[self.strategy] = SstarHSUNLP(self._graph, self._terminals)                                
+        # better error handling
+        try: 
+            # run based on input
+            if self.strategy == "S*-HS":
+                self.instances[self.strategy] = SstarHS(self._graph, self._terminals)
+            elif  self.strategy == "Kruskal":
+                self.instances[self.strategy] = Kruskal(self._graph, self._terminals)
+            elif self.strategy == "S*-BS":
+                self.instances[self.strategy] = SstarBS(self._graph, self._terminals)
+            elif self.strategy == "S*-MM":
+                self.instances[self.strategy] = SstarMM(self._graph, self._terminals)
+            elif self.strategy == "S*-MM0":
+                self.instances[self.strategy] = SstarMM0(self._graph, self._terminals)
+            elif self.strategy == "S*-HS-UN":
+                self.instances[self.strategy] = SstarHSUN(self._graph, self._terminals)
+            elif self.strategy == "S*-BS-UN":
+                self.instances[self.strategy] = SstarBSUN(self._graph, self._terminals)
+            elif self.strategy == "S*-MM-UN":
+                self.instances[self.strategy] = SstarMMUN(self._graph, self._terminals)
+            elif self.strategy == "S*-MM0-UN":
+                self.instances[self.strategy] = SstarMM0UN(self._graph, self._terminals)                                
+            elif self.strategy == "S*-MM-LP":
+                self.instances[self.strategy] = SstarMMLP(self._graph, self._terminals)                                
+            elif self.strategy == "S*-MM-UN-LP":
+                self.instances[self.strategy] = SstarMMUNLP(self._graph, self._terminals)                                
+            elif self.strategy == "S*-HS-LP":
+                self.instances[self.strategy] = SstarHSLP(self._graph, self._terminals)                                
+            elif self.strategy == "S*-HS-UN-LP":
+                self.instances[self.strategy] = SstarHSUNLP(self._graph, self._terminals)                                
 
-        else:
-            raise ValueError("Strategy {} is not found".format(self.strategy))
+            else:
+                raise ValueError("Strategy {} is not found".format(self.strategy))
+        except ValueError as e_:
+            # handle expected error
+            raise e_
+        except Exception as e_:
+            # handle unexpected error
+            raise e_
+
         # Log run
         my_logger.info("Running {}".format(self.strategy))
         self.instances[self.strategy].run_algorithm(**kwargs)

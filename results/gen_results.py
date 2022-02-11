@@ -57,7 +57,8 @@ algs = ["S*-BS", "S*-HS", "S*-MM",
 
 # number of terminals
 terminals = [10, 20, 30, 40, 50]
-h_vals = [0, 0.25, 0.50, 0.75, 1]
+h_vals = [1, 0.75, 0.50, 0.25, 0]
+# h_vals = [1]
 instances = 25
 
 # keep track of previous terminal number and map
@@ -124,7 +125,7 @@ for ndx, (t, m, h) in enumerate(it.product(terminals, map_names, h_vals)):
     gen_res.run()
 
     ############ process results #################
-    gen_proc = Process(save_path="{}_{}t_{}i_{}h_processed.xlsx".format(m, t, instances, h), file_behavior="OVERWRITE")
+    gen_proc = Process(save_path="{}_{}t_{}i_{}h_processed.xlsx".format(m, t, instances, h), file_behavior="SKIP")
     # specify baseline and result files
     gen_proc.specify_files(bl_path, res_path)
     # run to process

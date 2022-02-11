@@ -509,17 +509,18 @@ class Framework(AbstractAlgorithm):
         # super().p_costs_func(search, cost_to_come, next)
 
         # propagate heuristic cost from parent using BPMX for inconsistent heuristic
+        h = self.h_costs_func(search, next)
         if cfg.Algorithm.use_bpmx:
-            h = self.h_costs_func(search, next)
             # parent node
             parent_node = search.parent[next]
-            # propagated h value
-            parent_h_prop = search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next)
-            # h = max(h, search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next))            
-            if parent_h_prop > h:
-                h = parent_h_prop
-        else:
-            h = self.h_costs_func(search, next)
+            # watch out for case where parent_node is None (the very first node expanded)
+            # and the heuristic function is somehow called (either through reprioritization)
+            if parent_node is not None:
+                # propagate h value from parent (the expanded node)
+                parent_h_prop = search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next)
+                # h = max(h, search.f[parent_node] - cost_to_come[parent_node] - search.graph.cost(parent_node, next))            
+                if parent_h_prop > h:
+                    h = parent_h_prop
 
         search.f[next] = cost_to_come[next] + h
 
