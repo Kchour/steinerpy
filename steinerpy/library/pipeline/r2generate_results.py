@@ -199,7 +199,7 @@ class GenerateResultsMulti(Generate):
         try:
             # for res in pool.imap_unordered(GenerateResultsMulti._run_individual_algs, enumerate(jobs), chunksize=int(number_of_jobs // (self.num_processes**2) + 1)):
             # for res in pool.imap_unordered(GenerateResultsMulti._run_individual_algs, jobs): 
-            for res in pool.imap(func, jobs): 
+            for res in pool.map(func, jobs): 
                 solution[res[0]].append(res[1])
                 pg.next()
             pg.finish()
