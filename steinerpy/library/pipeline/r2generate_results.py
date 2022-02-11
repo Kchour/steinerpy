@@ -191,7 +191,7 @@ class GenerateResultsMulti(Generate):
         solution = self.solution.copy()
         # create pool
         # pool = mp.Pool(processes=self.num_processes, maxtasksperchild=self.maxtasksperchild)
-        pool = mp.Pool(ray_address="auto")
+        pool = mp.Pool(ray_address="auto", processes=8)
 
         func = partial(GenerateResultsMulti._run_individual_algs)
 
