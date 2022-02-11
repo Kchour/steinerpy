@@ -33,8 +33,8 @@ from .grid_utils import get_world
 from .ogm import OccupancyGridMap
 import matplotlib.pyplot as plt
 
-from mayavi.mlab import points3d
-from mayavi import mlab
+# from mayavi.mlab import points3d
+# from mayavi import mlab
 
 class IGraph(ABC):
     """ Create an abstract interface factory interface class    
@@ -215,10 +215,10 @@ class SquareGrid3D(IGraph):
     #     ax = plt.figure().add_subplot(projection='3d')
     #     ax.voxels(self.grid, facecolors="red", edgecolor='k')
     #     plt.show(block=False)
-    @mlab.show
-    def show_grid(self):
-        xx, yy, zz = np.where(self.grid>0)
-        mlab.points3d(xx, yy, zz, mode="cube")
+    # @mlab.show
+    # def show_grid(self):
+    #     xx, yy, zz = np.where(self.grid>0)
+    #     mlab.points3d(xx, yy, zz, mode="cube")
 
     def node_count(self):
        return np.count_nonzero(self.grid<1) 
