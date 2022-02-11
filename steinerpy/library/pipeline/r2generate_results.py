@@ -6,13 +6,11 @@ from timeit import default_timer as timer
 import re
 import math
 import itertools as it
-# import multiprocessing as mp
+import multiprocessing as mp
 from functools import partial
 import logging
 from typing import List, Union
 
-
-import ray.util.multiprocessing as mp
 
 # from results.debug_heuristics import pre_run_func
 # from steinerpy.library.pipeline.r0generate_heuristics import GenerateHeuristics
@@ -152,7 +150,6 @@ class GenerateResults(Generate):
 class GenerateResultsMulti(Generate):
 
     # class variables to allow global scope
-    # will not work with ray
     graph = None
     pre_run_func = None
 
@@ -185,35 +182,32 @@ class GenerateResultsMulti(Generate):
         number_of_jobs = len(self.instances)*len(self.algs_to_run)
         pg = Progress(number_of_jobs)   
 
+        # create pool
+        pool = mp.Pool(processes=self.num_processes, maxtasksperchild=self.maxtasksperchild)
+
         # create jobs for the pool
         jobs = it.product(self.instances, self.algs_to_run)
+
         # local variable create after pool ensures
         # children processes don't have it
         solution = self.solution.copy()
-        # create pool
-        # pool = mp.Pool(processes=self.num_processes, maxtasksperchild=self.maxtasksperchild)
-        pool = mp.Pool(ray_address="auto", processes=8)
-
-        func = partial(GenerateResultsMulti._run_individual_algs)
 
         t0 = timer()
         try:
             # for res in pool.imap_unordered(GenerateResultsMulti._run_individual_algs, enumerate(jobs), chunksize=int(number_of_jobs // (self.num_processes**2) + 1)):
-            # for res in pool.imap_unordered(GenerateResultsMulti._run_individual_algs, jobs): 
-            for res in pool.map(func, jobs): 
+            for res in pool.imap_unordered(GenerateResultsMulti._run_individual_algs, jobs): 
                 solution[res[0]].append(res[1])
                 pg.next()
+            pg.finish()
         except Exception as _e:
             pool.terminate()
-            pool.close()
-            pool.join()
             my_logger.error("Something has gone wrong with GenerateResultsMulti", exc_info=True)
             print(_e)
-            raise _e
+        finally:
+            # good practice
+            pool.close()
+            pool.join()
 
-        pg.finish()
-        pool.close()
-        pool.join()
         # end time
         t1 = timer() - t0
 
@@ -240,12 +234,11 @@ class GenerateResultsMulti(Generate):
     @staticmethod
     def _run_individual_algs(inputs):
         # job_id, data = inputs
+        # print("starting job id: ", job_id)
 
         # grab from class variables
         graph = GenerateResultsMulti.graph
         pre_run_func = GenerateResultsMulti.pre_run_func
-
-        print(graph)
 
         terminals, alg = inputs
         context = Context(graph, terminals)

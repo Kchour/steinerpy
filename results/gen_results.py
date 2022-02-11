@@ -46,9 +46,11 @@ algs = ["S*-BS", "S*-HS", "S*-MM",
 # number of terminals
 terminals = [10, 20, 30, 40, 50]
 h_vals = [0, 0.25, 0.50, 0.75, 1]
-instances = 100
+instances = 1
 
 # keep track of previous terminal number and map
+
+starting = True
 prev_term_map = []
 
 # change global heuristic to preprocess type
@@ -88,20 +90,20 @@ for ndx, (t, m, h) in enumerate(it.product(terminals, map_names, h_vals)):
     # retrieve specific instances
     sp_instances = gen_bs.instances
 
-    # ############# generate results ###############
-    # res_path = "{}_{}t_{}h_results.pkl".format(m, t, h)
-    # gen_res = GenerateResultsMulti(graph=graph, save_path=res_path, algs_to_run=algs, file_behavior="OVERWRITE", pre_run_func=prerun_func)
-    # # specify instances
-    # gen_res.input_specifed_instances(sp_instances)
-    # # run generator
-    # gen_res.run()
+    ############# generate results ###############
+    res_path = "{}_{}t_{}h_results.pkl".format(m, t, h)
+    gen_res = GenerateResultsMulti(graph=graph, save_path=res_path, algs_to_run=algs, file_behavior="OVERWRITE", pre_run_func=prerun_func)
+    # specify instances
+    gen_res.input_specifed_instances(sp_instances)
+    # run generator
+    gen_res.run()
 
-    # ############ process results #################
-    # gen_proc = Process(save_path="{}_{}t_{}h_processed.xlsx".format(m, t, h), file_behavior="OVERWRITE")
-    # # specify baseline and result files
-    # gen_proc.specify_files(bl_path, res_path)
-    # # run to process
-    # gen_proc.run()
+    ############ process results #################
+    gen_proc = Process(save_path="{}_{}t_{}h_processed.xlsx".format(m, t, h), file_behavior="OVERWRITE")
+    # specify baseline and result files
+    gen_proc.specify_files(bl_path, res_path)
+    # run to process
+    gen_proc.run()
 
 
     ##### keep track of map and terminal number
