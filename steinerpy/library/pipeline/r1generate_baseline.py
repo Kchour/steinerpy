@@ -124,8 +124,12 @@ class GenerateBaseLine(Generate):
                 context = Context(self.graph, t)
                 context.run('Kruskal')
                 self.solution.append(context.return_solutions())
-            except:
-                my_logger.warning("one or more terminals may be landlocked! In ndx {}, with terminals: {}".format(ndx,t), exc_info=True)
+                if len(self.solution) == 0:
+                    raise ValueError("no solutions obtained for kruskal baseline!")
+            except Exception as e_:
+                # my_logger.warning("one or more terminals may be landlocked! In ndx {}, with terminals: {}".format(ndx,t), exc_info=True)
+                raise e_
+            
 
             pg.next()
 

@@ -58,7 +58,7 @@ algs = ["S*-BS", "S*-HS", "S*-MM",
 # number of terminals
 terminals = [10, 20, 30, 40, 50]
 h_vals = [0, 0.25, 0.50, 0.75, 1]
-instances = 100
+instances = 25
 
 # keep track of previous terminal number and map
 
@@ -81,7 +81,7 @@ def prerun_func(graph, terminals):
 parser = argparse.ArgumentParser()
 parser.add_argument("cores", help="specify the number of cpu cores to use")
 args = parser.parse_args()
-cfg.Pipeline.max_processes = args.cores
+cfg.Pipeline.max_processes = int(args.cores)
 
 for ndx, (t, m, h) in enumerate(it.product(terminals, map_names, h_vals)):
     print("no.: ",ndx+1, " num_terms: ", t, "map name: ", m, "h-weight: ", h)

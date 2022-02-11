@@ -83,8 +83,14 @@ class Kruskal(AbstractAlgorithm):
                         break
             else:
                 raise ValueError("graph type is not specified")
-        except:
+        except ValueError as e_ :
+            # handle expected error
             my_logger.error("graph_type must either be directed or undirected", exc_info=True)
+            raise e_
+        except Exception as e_:
+            # handle unexpected error
+            raise e_
+        
         
         return True
 

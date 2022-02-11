@@ -348,7 +348,8 @@ class GenerateHeuristics:
         # perform a breadth-first search from each terminal (goal state), until
         # the goal is able to reach all of the pivots through some other surrogate goal/state
         # def stopping_critiera(self, cdh_table=None, goal_point=None, lb=None, ub=None, pivot_counter=None):
-        @nb.njit(cache=True)
+        # @nb.njit(cache=True)
+        @nb.njit
         def stopping_critiera(cost_to_come, current, cdh_table=None, goal_point=None, lb=None, ub=None, pivot_counter=None):
             expanded_node = current
             current_g_cost = cost_to_come[current]

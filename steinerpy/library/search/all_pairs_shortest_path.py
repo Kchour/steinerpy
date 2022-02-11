@@ -183,7 +183,11 @@ class SubPairsShortestPath:
 
         # print(os.getpid(), start)
         start_time = timer()
-        search.use_algorithm()
+        try:
+            search.use_algorithm()
+        except Exception as e_:
+            raise e_
+
         # number of nodes expanded
         num_of_expanded = UniSearchMemLimitFast.total_expanded_nodes
         print("nodes expanded", num_of_expanded)
@@ -288,7 +292,10 @@ class AllPairsShortestPath:
         # print(target_nodes)
         # print(os.getpid(), start)
         start_time = timer()
-        search.use_algorithm()
+        try:
+            search.use_algorithm()
+        except Exception as e_:
+            raise e_
         # number of nodes expanded
         num_of_expanded = UniSearchMemLimitFast.total_expanded_nodes
         # time
