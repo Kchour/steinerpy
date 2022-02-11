@@ -245,10 +245,13 @@ class AllPairsShortestPath:
         # if "flatten_results_into_pairs" in kwargs:
         #     if kwargs["flatten_results_into_pairs"] == True:
         #         flatten_results = True
+
+        func = partial(cls._run_dijkstra, graph, target_nodes)
                 
         try:
             my_logger.info("Running Parallel Dijkstra: ")
-            for result in pool.imap_unordered(cls._run_dijkstra, node_list):
+            # for result in pool.imap_unordered(cls._run_dijkstra, node_list):
+            for result in pool.imap_unordered(func, node_list):
                 all_results[result[0]] = result[1]
                 STATS["expanded_nodes"] += result[2]
                 STATS["time"] += result[3]
@@ -274,7 +277,7 @@ class AllPairsShortestPath:
         return all_results, STATS
 
     @staticmethod
-    def _run_dijkstra(start):
+    def _run_dijkstra(graph, target_nodes, start):
         # search = UniSearch(graph, start, None, "zero", False)
         search = UniSearchMemLimitFast(graph, start, set(target_nodes))
         # print(os.getpid(), start)

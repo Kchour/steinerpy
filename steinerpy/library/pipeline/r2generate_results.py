@@ -152,6 +152,7 @@ class GenerateResults(Generate):
 class GenerateResultsMulti(Generate):
 
     # class variables to allow global scope
+    # will not work with ray
     graph = None
     pre_run_func = None
 
