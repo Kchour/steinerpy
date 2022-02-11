@@ -202,16 +202,17 @@ class GenerateResultsMulti(Generate):
             for res in pool.map(func, jobs): 
                 solution[res[0]].append(res[1])
                 pg.next()
-            pg.finish()
         except Exception as _e:
             pool.terminate()
-            my_logger.error("Something has gone wrong with GenerateResultsMulti", exc_info=True)
-            print(_e)
-        finally:
-            # good practice
             pool.close()
             pool.join()
+            my_logger.error("Something has gone wrong with GenerateResultsMulti", exc_info=True)
+            print(_e)
+            raise _e
 
+        pg.finish()
+        pool.close()
+        pool.join()
         # end time
         t1 = timer() - t0
 
