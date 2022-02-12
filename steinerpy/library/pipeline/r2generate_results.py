@@ -162,7 +162,7 @@ class GenerateResultsMulti(Generate):
             raise ValueError("Cannot run Kruskal here, use r1generate_baseline instead")
         
         self.maxtasksperchild = maxtasksperchild
-        self.num_processes = num_processes
+        self.num_processes = cfg.Pipeline.max_processes
 
         # self.pre_run = pre_run_func
         # self.pre_run_kwargs = kwargs
