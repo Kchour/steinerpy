@@ -36,14 +36,17 @@ from steinerpy.library.pipeline import GenerateResultsMulti, GenerateBaseLine, P
 import  steinerpy.config as cfg
 
 # sc map names
-sc_names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.map", "Sandstorm.map"]
+# sc_names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.map", "Sandstorm.map"]
+
+sc_names = ["WheelofWar.map"]
 
 # mapf map names
 mapf_names = ["empty-48-48.map", "brc202d.map", "den520d.map", "lak303d.map", "maze-128-128-10.map", "orz900d.map"]
 # mapf_names = ["brc202d.map"]
 
 # 3d map names
-grid3d_names = ["Simple.3dmap","Complex.3dmap","DB1.3dmap"]
+#  grid3d_names = ["Simple.3dmap","Complex.3dmap","DB1.3dmap"]
+grid3d_names = ["Complex.3dmap"]
 
 
 # load map and preprocessed heuristic
