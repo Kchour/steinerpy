@@ -39,7 +39,8 @@ import  steinerpy.config as cfg
 sc_names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.map", "Sandstorm.map"]
 
 # mapf map names
-mapf_names = ["empty-48-48.map", "brc202d.map", "den520d.map", "lak303d.map", "maze-128-128-10.map", "orz900d.map"]
+# mapf_names = ["empty-48-48.map", "brc202d.map", "den520d.map", "lak303d.map", "maze-128-128-10.map", "orz900d.map"]
+mapf_names = ["brc202d.map"]
 
 # 3d map names
 grid3d_names = ["Simple.3dmap","Complex.3dmap","DB1.3dmap"]
@@ -75,8 +76,9 @@ cfg.Algorithm.use_bpmx = True
 cfg.Pipeline.min_reach_pivots = 1
 # define pre-run (setup) function
 def prerun_func(graph, terminals):
+    # This function will reinitialize all bounds
+    # will not touch the cdh table though! Just READONLY
     GenerateHeuristics.cdh_compute_bounds(graph, terminals)
-
 
 # maximum number of processes to use
 parser = argparse.ArgumentParser()
@@ -96,10 +98,12 @@ for ndx, (t, m, h) in enumerate(it.product(terminals, map_names, h_vals)):
         # must be 3d 
         graph = EnvLoader.load(EnvType.GRID_3D, m)
 
-    # load preprocessed heuristics
-    with open("./heuristics/h_"+m + ".pkl", 'rb') as f:
-        hdata = pickle.load(f)
-    GenerateHeuristics.load_results(results=hdata)
+    # load preprocessed heuristics only when the  map changes
+    if m not in prev_term_map:
+        with open("./heuristics/h_"+m + ".pkl", 'rb') as f:
+            hdata = pickle.load(f)
+        # dont keep regenerating the cdh table, it's slow! 
+        GenerateHeuristics.load_results(results=hdata)
 
     # change heuristic weighting
     cfg.Algorithm.hFactor = h

@@ -22,6 +22,7 @@ from steinerpy.library.graphs.graph import IGraph
 from steinerpy.library.misc.utils import Progress
 
 from steinerpy.library.pipeline.base import AFileHandle
+from steinerpy.library.pipeline.r2generate_results import GenerateResultsMulti
 # from steinerpy.library.search.search_algorithms import UniSearch
 from steinerpy.library.search.numba_search_algorithms import UniSearchMemLimitFastSC
 import steinerpy.config as cfg
@@ -116,12 +117,15 @@ def numba_dict_listtp(ndim):
     #         # value_type=nb.typed.List.empty_list(nb.typeof((0,0.0)))
     #         value_type = nb_np_type
     # )
+
+    # values arelist of tuples
     return nb.typed.Dict.empty(
         key_type = nb.types.UniTuple(nb.types.int64, 2), 
         value_type=nb.typeof(nb.typed.List.empty_list(nb.types.Tuple((nb.int64, nb.float64))))
     )
 
 def numba_list(my_list):
+    # a list of tuples
     nb_list = nb.typed.List.empty_list(nb.types.Tuple((nb.int64, nb.float64)))
     for v in my_list:
         nb_list.append(v)
@@ -145,6 +149,7 @@ class GenerateHeuristics:
     # for cdh use
     cdh_lower_bound = {}
     cdh_upper_bound = {}
+    cdh_table_nb = None
     # lower_bound = None
     # upper_bound = None
     # dist_ap = None
@@ -326,6 +331,28 @@ class GenerateHeuristics:
                                         # from_node,
                                         # to_node)
 
+    
+    @classmethod
+    def _cdh_numba_init(cls):
+        """Initialize a numba version of the cdh_table"""
+        cdh_result = GenerateHeuristics.preload_results
+        pv_identity = cdh_result["pivot_identity"]
+
+        # pure python data structures
+        cdh_table = cdh_result["table"]
+        
+
+        # the numba based data structures
+        t = timer()
+        _cdh_table = numba_dict_listtp(len(pv_identity[0])) 
+        for k,v in cdh_table.items():
+            # convert list of tuples to numba type
+            nb_v = numba_list(v)
+            _cdh_table[k] = nb_v
+
+        GenerateHeuristics.cdh_table_nb = _cdh_table
+        print("cdh table init time: ", timer()-t)
+
     @classmethod
     def cdh_compute_bounds(cls, graph: IGraph, terminals: list):
         """To use CDH, we must perform a bounding procedure
@@ -340,7 +367,11 @@ class GenerateHeuristics:
 
         """
         cdh_result = GenerateHeuristics.preload_results
-        cdh_table = cdh_result["table"]
+        
+        # cdh_table = cdh_result["table"]
+        # using numba data structures!
+        _cdh_table = GenerateHeuristics.cdh_table_nb
+
         pv_identity = cdh_result["pivot_identity"]
         pv_index = cdh_result["pivot_index"]
         lb = GenerateHeuristics.cdh_lower_bound
@@ -466,8 +497,10 @@ class GenerateHeuristics:
         t1= timer()
 
         # create numba data structures for search
+        # t = timer()
         _lb = numba_dict_array(len(pv_identity[0]))
         _ub = numba_dict_array(len(pv_identity[0]))
+        # print("init lb, ub time: ", timer()-t)
         # for k,v in ub.items():
         #     _ub[k] = v
         # for k,v in lb.items():
@@ -482,27 +515,28 @@ class GenerateHeuristics:
         # convert cdh table
         # _cdh_table = numba_dict_array(len(pv_identity[0]))
         # _cdh_table = numba_dict_array_sp(len(pv_identity[0]), len(next(iter(cdh_table.values()))))
-        _cdh_table = numba_dict_listtp(len(pv_identity[0])) 
-        for k,v in cdh_table.items():
-            # convert list of tuples to numba type
-            nb_v = numba_list(v)
-            _cdh_table[k] = nb_v
 
 
         # create a counter for number of times a pivot is indriectly encounered
         # pivot_counter = {i: r for i in pv_identity}
+        # t = timer()
         pivot_counter = nb.typed.Dict.empty(nb.types.int64, nb.types.int64)
+        # print("pivot counter init time:", timer()-t)
         # now run unisearch from terminal
         for goal_point in terminals:
             # initialize counter to r 
+            # t = timer()
             for i in pv_identity:
                 pivot_counter[i] = r
+            # print("pivot counter loop time:", timer()-t)
 
             # init lower bound
+            # t = timer()
             _lb[goal_point] = np.zeros(len(pv_index))
             # set lower bound to be voxel (generalized for 2d as well) heuristic for now 
             for i in range(len(pv_index)):
                 _lb[goal_point][i] = GenerateHeuristics._voxel(goal_point, pv_identity[i])
+            # print("lb time: ", timer()-t)
 
             # upper bound is initially infinity
             _ub[goal_point] = np.full(len(pv_index), np.inf)
@@ -512,18 +546,22 @@ class GenerateHeuristics:
             #     goal_point=goal_point, 
             #     lb=lb, ub=ub, pivot_counter=pivot_counter)
             search = UniSearchMemLimitFastSC(graph, goal_point, None, stopping_critiera, _cdh_table, _lb, _ub, pivot_counter)
-            try: 
+            try:     
+                # t = timer()
                 search.use_algorithm()
+                # print("search time: ", timer()-t)
             except Exception as e_:
                 raise e_
             # print("goal point: ", goal_point, "expanded: ", np.count_nonzero(search.g<np.inf))
         # now store results from computation
         # for k,v in _cdh_table.items():
         #     cdh_table[k] = v
+        # t = timer()
         for k,v in _lb.items():
             lb[k] = v
         for k,v in _ub.items():
             ub[k] = v
+        # print("unboxing time: ", timer()-t)
 
         # replace any infs with nan
         # for k,v in cdh_table.items():
@@ -789,6 +827,10 @@ class GenerateHeuristics:
         if results is not None:
             # user directly gives preprocessed results into memory
             cls.preload_results = results
+            if results["type"] == "CDH":
+                # initialize a cdh table using numba data structures
+                GenerateHeuristics._cdh_numba_init()
+
         elif results is not None:
             # load pickle from disk
             import pickle
