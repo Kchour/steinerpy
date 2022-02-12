@@ -99,7 +99,7 @@ stats = []
 parser = argparse.ArgumentParser()
 parser.add_argument("cores", help="specify the number of cpu cores to use")
 args = parser.parse_args()
-cfg.Pipeline.max_processes = args.cores
+cfg.Pipeline.max_processes = int(args.cores)
 
 # for n in names:
 # for n, c in zip(names, size_scale):
