@@ -191,6 +191,7 @@ class GenerateResultsMulti(Generate):
         # local variable create after pool ensures
         # children processes don't have it
         solution = self.solution.copy()
+        
 
         t0 = timer()
         try:
@@ -202,7 +203,7 @@ class GenerateResultsMulti(Generate):
         except Exception as _e:
             pool.terminate()
             my_logger.error("Something has gone wrong with GenerateResultsMulti", exc_info=True)
-            print(_e)
+            raise _e 
         finally:
             # good practice
             pool.close()
@@ -213,7 +214,9 @@ class GenerateResultsMulti(Generate):
 
 
         self.solution = solution
-        
+
+        assert len(next(iter(solution.values()))) == len(self.instances)
+
         # dump instances and solution to file if path specified
         if self.save_path != "":
             with open(self.save_path, 'wb') as f:
