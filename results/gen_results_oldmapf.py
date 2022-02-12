@@ -38,25 +38,25 @@ import  steinerpy.config as cfg
 # sc map names
 # sc_names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.map", "Sandstorm.map"]
 
-sc_names = ["WheelofWar.map"]
+# sc_names = ["WheelofWar.map"]
 
 # mapf map names
-mapf_names = ["empty-48-48.map", "brc202d.map", "den520d.map", "lak303d.map", "maze-128-128-10.map", "orz900d.map"]
+# mapf_names = ["empty-48-48.map", "brc202d.map", "den520d.map", "lak303d.map", "maze-128-128-10.map", "orz900d.map"]
 # mapf_names = ["brc202d.map"]
 
 # old mapf instances
-# mapf_names = ["den312d.map", "empty-32-32.map", "orz601d.map", "maze-32-32-4.map", "random-64-64-10.map"]
+mapf_names = ["den312d.map", "empty-32-32.map", "orz601d.map", "maze-32-32-4.map", "random-64-64-10.map"]
 
 # 3d map names
-# grid3d_names = ["Simple.3dmap","Complex.3dmap","DB1.3dmap"]
-grid3d_names = ["Complex.3dmap"]
+#  grid3d_names = ["Simple.3dmap","Complex.3dmap","DB1.3dmap"]
+# grid3d_names = ["Complex.3dmap"]
 
 
 # load map and preprocessed heuristic
 map_names = []
 map_names.extend(mapf_names)
-map_names.extend(sc_names)
-map_names.extend(grid3d_names)
+# map_names.extend(sc_names)
+# map_names.extend(grid3d_names)
 
 algs = ["S*-BS", "S*-HS", "S*-MM", 
         "S*-BS-UN", "S*-HS-UN", "S*-MM-UN", 
