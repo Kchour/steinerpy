@@ -26,19 +26,21 @@ loader = [(EnvType.MAPF, lambda x: x),]
 instances = []
 
 # mapf maps 
-names = ["brc202d.map", "den520d.map", "lak303d.map", "maze-128-128-10.map", "orz900d.map"]
+# names = ["brc202d.map", "den520d.map", "lak303d.map", "maze-128-128-10.map", "orz900d.map"]
 # names = ["maze-128-128-10.map"]
+# old mapf maps (a mix of dao and mapf actually)
+names = ["den312d.map", "empty-32-32.map", "maze-32-32-4.map", "orz601d.map", "random-64-64-10.map"]
 
 size_scale = [1, 1, 1, 1, 1]
 plim =  [128, 128, 128, 128, 128]
 slim = [64, 64, 64, 64, 64]
 
-# instances.append((names, size_scale, plim, slim))
+instances.append((names, size_scale, plim, slim))
 
 # cfg.Pipeline.pivot_limit = 128
 # cfg.Pipeline.subset_limit = 64
 # load sc grid2d maps
-names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.map", "Sandstorm.map"]
+# names = ["WheelofWar.map", "Archipelago.map", "BigGameHunters.map", "Brushfire.map", "Sandstorm.map"]
 # names = ["Archipelago.map"]
 # names = ["WheelofWar.map"]
 # names = ["Archipelago.map"]
@@ -84,12 +86,12 @@ slim = [16, 16, 16, 16, 16]
 # plim =  [256]
 # slim = [4]
 
-names = ["empty-48-48.map"]
-size_scale= [1]
-plim = [256]
-slim = [16]
-
-instances.append((names, size_scale, plim, slim))
+# names = ["empty-48-48.map"]
+# size_scale= [1]
+# plim = [256]
+# slim = [16]
+# 
+# instances.append((names, size_scale, plim, slim))
 
 stats = []
 
